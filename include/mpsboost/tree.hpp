@@ -51,10 +51,12 @@ struct TreeTrainingParameters final {
 
   std::uint32_t max_depth{6};
   std::uint32_t max_leaves{0};
+  std::uint32_t max_active_leaves{0};
   std::uint64_t min_samples_leaf{1};
   double min_child_weight{0.0};
   double reg_lambda{1.0};
   double gamma{0.0};
+  double min_gain_to_split{0.0};
   SplitStrategy split_strategy{SplitStrategy::kBestGain};
   GrowthStrategy growth_strategy{GrowthStrategy::kLevelWise};
   std::uint32_t random_seed{0};

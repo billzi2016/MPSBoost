@@ -137,7 +137,7 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
           right.hessian_sum, parameters.reg_lambda, parameters.gamma);
       // A non-positive gain cannot improve the objective and must not create a
       // meaningless branch. The strict comparison is part of tree semantics.
-      if (gain <= 0.0) {
+      if (gain <= 0.0 || gain < parameters.min_gain_to_split) {
         continue;
       }
       const SplitCandidate candidate{

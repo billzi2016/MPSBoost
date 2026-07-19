@@ -28,9 +28,11 @@ RegressionTree TrainSingleTreeCpu(const BinnedDataset& dataset,
                                   double min_child_weight,
                                   double reg_lambda,
                                   double gamma,
+                                  double min_gain_to_split,
                                   const std::string& split_strategy,
                                   const std::string& growth_strategy,
                                   std::uint32_t max_leaves,
+                                  std::uint32_t max_active_leaves,
                                   std::uint32_t random_seed) {
   const std::vector<GradientPair> gradients =
       ComputeSquaredErrorGradients(labels, predictions);
@@ -53,8 +55,9 @@ RegressionTree TrainSingleTreeCpu(const BinnedDataset& dataset,
     throw std::invalid_argument("unknown growth strategy");
   }
   const TreeTrainingParameters parameters{max_depth, max_leaves,
-                                          min_samples_leaf, min_child_weight,
-                                          reg_lambda, gamma, split_kind,
+                                          max_active_leaves, min_samples_leaf,
+                                          min_child_weight, reg_lambda, gamma,
+                                          min_gain_to_split, split_kind,
                                           growth_kind, random_seed};
   const CpuReferenceBackend backend;
   return TrainSingleRegressionTree(dataset, gradients, parameters, backend);
@@ -104,9 +107,11 @@ void RegisterObjectiveBindings(py::module_& module) {
              py::arg("min_samples_leaf") = 1,
              py::arg("min_child_weight") = 0.0,
              py::arg("reg_lambda") = 1.0, py::arg("gamma") = 0.0,
+             py::arg("min_gain_to_split") = 0.0,
              py::arg("split_strategy") = "best_gain",
              py::arg("growth_strategy") = "level_wise",
              py::arg("max_leaves") = 0,
+             py::arg("max_active_leaves") = 0,
              py::arg("random_seed") = 0,
              "Train one real CPU-oracle depth-limited regression tree.");
 }

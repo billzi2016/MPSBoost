@@ -25,6 +25,31 @@ bool IsBetterLeafWiseCandidate(const PreparedSplit& candidate,
   return candidate_node.node_index < incumbent_node.node_index;
 }
 
+void CacheChildHistograms(const BinnedDataset& dataset,
+                          const std::vector<GradientPair>& gradients,
+                          const HistogramBuilder& histogram_builder,
+                          const TreeTrainingParameters& parameters,
+                          const PreparedSplit& prepared,
+                          const NodeHistograms& parent_histograms,
+                          ActiveNode* left,
+                          ActiveNode* right) {
+  if (left == nullptr || right == nullptr ||
+      left->depth >= parameters.max_depth) {
+    return;
+  }
+  if (prepared.split.left.count <= prepared.split.right.count) {
+    left->cached_histograms =
+        histogram_builder.BuildHistograms(dataset, left->rows, gradients);
+    right->cached_histograms =
+        SubtractHistograms(parent_histograms, left->cached_histograms);
+  } else {
+    right->cached_histograms =
+        histogram_builder.BuildHistograms(dataset, right->rows, gradients);
+    left->cached_histograms =
+        SubtractHistograms(parent_histograms, right->cached_histograms);
+  }
+}
+
 }  // namespace
 
 RegressionTree TrainLeafWiseRegressionTree(
@@ -45,8 +70,12 @@ RegressionTree TrainLeafWiseRegressionTree(
       ActiveNode{0, 0, std::move(root_rows), root_statistics, {}});
   std::uint32_t leaf_count = 1;
   const std::uint32_t max_leaves = EffectiveMaxLeaves(parameters);
+  const std::uint32_t max_active_leaves = EffectiveMaxActiveLeaves(parameters);
 
   while (!active_leaves.empty() && leaf_count < max_leaves) {
+    if (active_leaves.size() > max_active_leaves) {
+      throw TrainingError("active leaf queue exceeded max_active_leaves");
+    }
     std::size_t best_index = 0;
     PreparedSplit best_prepared;
     NodeHistograms best_histograms;
@@ -89,18 +118,13 @@ RegressionTree TrainLeafWiseRegressionTree(
                     best_prepared.split.left, {}};
     ActiveNode right{right_index, child_depth, std::move(best_prepared.right_rows),
                      best_prepared.split.right, {}};
-    if (child_depth < parameters.max_depth) {
-      if (best_prepared.split.left.count <= best_prepared.split.right.count) {
-        left.cached_histograms =
-            histogram_builder.BuildHistograms(dataset, left.rows, gradients);
-        right.cached_histograms =
-            SubtractHistograms(best_histograms, left.cached_histograms);
-      } else {
-        right.cached_histograms =
-            histogram_builder.BuildHistograms(dataset, right.rows, gradients);
-        left.cached_histograms =
-            SubtractHistograms(best_histograms, right.cached_histograms);
-      }
+    CacheChildHistograms(dataset, gradients, histogram_builder, parameters,
+                         best_prepared,
+                         best_histograms, &left, &right);
+    const bool can_add_both =
+        active_leaves.size() + 2 <= max_active_leaves || leaf_count >= max_leaves;
+    if (!can_add_both) {
+      throw TrainingError("leaf-wise active queue reached max_active_leaves");
     }
     active_leaves.push_back(std::move(left));
     active_leaves.push_back(std::move(right));

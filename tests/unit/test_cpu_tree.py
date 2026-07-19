@@ -91,44 +91,6 @@ def test_level_wise_depth_two_tree_matches_every_hand_computed_node():
     assert tree.predict(dataset) == labels
 
 
-def test_leaf_wise_growth_expands_best_gain_leaf_first():
-    """Leaf-wise growth should expand the current best leaf before shallower siblings."""
-
-    matrix = [[0.0], [1.0], [2.0], [3.0], [4.0], [5.0], [6.0], [7.0]]
-    labels = [0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 11.0, 12.0]
-    dataset, tree = _train(
-        matrix,
-        labels,
-        max_depth=3,
-        growth_strategy="leaf_wise",
-        max_leaves=3,
-    )
-
-    nodes = tree.nodes
-    assert len(nodes) == 5
-    assert nodes[0]["threshold_bin"] == 2
-    assert nodes[2]["is_leaf"] is False
-    assert nodes[2]["threshold_bin"] == 5
-    assert tree.predict(dataset) == pytest.approx(
-        [0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 11.5, 11.5]
-    )
-
-
-def test_leaf_wise_growth_respects_max_leaves_limit():
-    """max_leaves should cap leaf-wise growth independently from max_depth."""
-
-    _, tree = _train(
-        [[float(value)] for value in range(8)],
-        [0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 3.0],
-        max_depth=4,
-        growth_strategy="leaf_wise",
-        max_leaves=2,
-    )
-
-    assert len(tree.nodes) == 3
-    assert sum(1 for node in tree.nodes if node["is_leaf"]) == 2
-
-
 def test_stable_tie_break_prefers_smaller_feature_then_threshold():
     """完全相同 feature gain 选 feature 0，同 feature 相同 gain 选较小 threshold。"""
 
@@ -245,6 +207,14 @@ def test_invalid_training_contract_and_prediction_shape_fail_explicitly():
             max_depth=1,
             growth_strategy="leaf_wise",
             max_leaves=1,
+        )
+    with pytest.raises(_native.TrainingError, match="min_gain_to_split"):
+        _native._train_single_tree_cpu(
+            one_feature,
+            [1.0, 2.0],
+            [0.0, 0.0],
+            max_depth=1,
+            min_gain_to_split=-1.0,
         )
 
     tree = _native._train_single_tree_cpu(

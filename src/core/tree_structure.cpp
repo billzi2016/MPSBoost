@@ -21,6 +21,13 @@ void ValidateParameters(const TreeTrainingParameters& parameters) {
   if (parameters.max_leaves == 1) {
     throw TrainingError("max_leaves must be zero or at least 2");
   }
+  if (parameters.max_active_leaves == 1) {
+    throw TrainingError("max_active_leaves must be zero or at least 2");
+  }
+  if (parameters.max_active_leaves != 0 && parameters.max_leaves != 0 &&
+      parameters.max_active_leaves > parameters.max_leaves) {
+    throw TrainingError("max_active_leaves must not exceed max_leaves");
+  }
   if (!std::isfinite(parameters.min_child_weight) ||
       parameters.min_child_weight < 0.0) {
     throw TrainingError("min_child_weight 必须是有限非负数");
@@ -30,6 +37,10 @@ void ValidateParameters(const TreeTrainingParameters& parameters) {
   }
   if (!std::isfinite(parameters.gamma) || parameters.gamma < 0.0) {
     throw TrainingError("gamma 必须是有限非负数");
+  }
+  if (!std::isfinite(parameters.min_gain_to_split) ||
+      parameters.min_gain_to_split < 0.0) {
+    throw TrainingError("min_gain_to_split must be finite and non-negative");
   }
 }
 
@@ -41,6 +52,14 @@ std::uint32_t EffectiveMaxLeaves(const TreeTrainingParameters& parameters) {
     return std::numeric_limits<std::uint32_t>::max();
   }
   return std::uint32_t{1} << parameters.max_depth;
+}
+
+std::uint32_t EffectiveMaxActiveLeaves(
+    const TreeTrainingParameters& parameters) {
+  if (parameters.max_active_leaves != 0) {
+    return parameters.max_active_leaves;
+  }
+  return EffectiveMaxLeaves(parameters);
 }
 
 TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda) {

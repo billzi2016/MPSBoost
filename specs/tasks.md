@@ -140,8 +140,8 @@
 ## S13：LightGBM-like 与 CatBoost-like 训练策略
 
 - [x] S13.1 实现受控 leaf-wise 生长策略。
-- [ ] S13.2 实现活跃叶队列、内存上限和过拟合控制。
-- [ ] S13.3 扩展 histogram subtraction 与小叶调度策略。
+- [x] S13.2 实现活跃叶队列、内存上限和过拟合控制。
+- [x] S13.3 扩展 histogram subtraction 与小叶调度策略。
 - [ ] S13.4 对 level-wise 与 leaf-wise 做端到端 benchmark。
 - [x] S13.5 设计 CatBoost-like ordered boosting、类别特征友好路径和 permutation 语义。
 - [x] S13.6 实现 `CatBoostRegressor` 与 `CatBoostClassifier` 的受控兼容入口。

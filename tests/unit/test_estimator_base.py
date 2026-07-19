@@ -46,16 +46,39 @@ def test_leaf_wise_parameters_are_sklearn_visible_and_train_native_model():
         min_child_weight=0.0,
         growth_strategy="leaf_wise",
         max_leaves=3,
+        max_active_leaves=3,
+        min_gain_to_split=0.0,
         device="cpu",
     ).fit(X, y)
 
     parameters = model.get_params()
     assert parameters["growth_strategy"] == "leaf_wise"
     assert parameters["max_leaves"] == 3
+    assert parameters["max_active_leaves"] == 3
+    assert model.training_summary_["growth_strategy"] == "leaf_wise"
+    assert model.training_summary_["max_active_leaves"] == 3
     predictions = model.predict(X)
     assert predictions.shape == (8,)
     assert np.all(np.isfinite(predictions))
     assert float(predictions[:3].mean()) < float(predictions[3:].mean())
+
+
+def test_leaf_wise_public_parameter_validation_fails_before_training():
+    """Invalid leaf-wise controls should fail before native training starts."""
+
+    X = np.ones((2, 1), dtype=np.float32)
+    y = np.ones(2, dtype=np.float32)
+    with pytest.raises(ValueError, match="growth_strategy"):
+        MPSBoostRegressor(growth_strategy="bad", device="cpu").fit(X, y)
+    with pytest.raises(ValueError, match="max_active_leaves"):
+        MPSBoostRegressor(
+            growth_strategy="leaf_wise",
+            max_leaves=3,
+            max_active_leaves=4,
+            device="cpu",
+        ).fit(X, y)
+    with pytest.raises(ValueError, match="min_gain_to_split"):
+        MPSBoostRegressor(min_gain_to_split=-1.0, device="cpu").fit(X, y)
 
 
 def test_unfitted_and_wrong_feature_prediction_fail_explicitly():

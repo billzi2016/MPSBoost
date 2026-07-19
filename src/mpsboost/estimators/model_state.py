@@ -129,6 +129,11 @@ class SklearnAndPersistenceMixin:
             "min_samples_leaf": (self.min_samples_leaf, 1, 2**63 - 1),
             "verbosity": (self.verbosity, 0, 3),
         }
+        for optional_name in ("max_leaves", "max_active_leaves"):
+            optional_value = getattr(self, optional_name)
+            if optional_value is None:
+                continue
+            integer_ranges[optional_name] = (optional_value, 2, 2**32 - 1)
         for name, (value, minimum, maximum) in integer_ranges.items():
             if isinstance(value, bool) or not isinstance(value, int):
                 raise TypeError(f"{name} 必须是整数")
@@ -137,6 +142,7 @@ class SklearnAndPersistenceMixin:
         for name, numeric_value, lower, upper, lower_inclusive in (
             ("learning_rate", self.learning_rate, 0.0, 1.0, False),
             ("min_child_weight", self.min_child_weight, 0.0, np.inf, True),
+            ("min_gain_to_split", self.min_gain_to_split, 0.0, np.inf, True),
             ("reg_lambda", self.reg_lambda, 0.0, np.inf, True),
         ):
             if isinstance(numeric_value, bool) or not isinstance(
@@ -148,10 +154,17 @@ class SklearnAndPersistenceMixin:
             if not np.isfinite(numeric) or not valid_lower or numeric > upper:
                 bracket = "[" if lower_inclusive else "("
                 raise ValueError(f"{name} 必须位于 {bracket}{lower}, {upper}]")
+        if self.growth_strategy not in {"level_wise", "leaf_wise"}:
+            raise ValueError("growth_strategy must be 'level_wise' or 'leaf_wise'")
+        if (
+            self.max_active_leaves is not None
+            and self.max_leaves is not None
+            and self.max_active_leaves > self.max_leaves
+        ):
+            raise ValueError("max_active_leaves must not exceed max_leaves")
         if self.device not in {"mps", "cpu", "auto"}:
             raise ValueError("device 只能是 'mps'、'cpu' 或 'auto'")
         if self.random_state is not None and (
             isinstance(self.random_state, bool) or not isinstance(self.random_state, int)
         ):
             raise TypeError("random_state 必须是整数或 None")
-

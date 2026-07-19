@@ -40,6 +40,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "max_bins",
         "growth_strategy",
         "max_leaves",
+        "max_active_leaves",
+        "min_gain_to_split",
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
@@ -56,6 +58,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         max_bins: int = 256,
         growth_strategy: str = "level_wise",
         max_leaves: int | None = None,
+        max_active_leaves: int | None = None,
+        min_gain_to_split: float = 0.0,
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
@@ -71,6 +75,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.max_bins = max_bins
         self.growth_strategy = growth_strategy
         self.max_leaves = max_leaves
+        self.max_active_leaves = max_active_leaves
+        self.min_gain_to_split = min_gain_to_split
         self.min_child_weight = min_child_weight
         self.min_samples_leaf = min_samples_leaf
         self.reg_lambda = reg_lambda
@@ -132,10 +138,14 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 self.min_samples_leaf,
                 self.min_child_weight,
                 self.reg_lambda,
+                min_gain_to_split=self.min_gain_to_split,
                 objective=self._native_objective,
                 split_strategy=self._split_strategy,
                 growth_strategy=self.growth_strategy,
                 max_leaves=0 if self.max_leaves is None else self.max_leaves,
+                max_active_leaves=(
+                    0 if self.max_active_leaves is None else self.max_active_leaves
+                ),
                 random_seed=0 if self.random_state is None else self.random_state,
             )
             mps_available = is_available()
@@ -178,6 +188,10 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 "device_decision": self.device_decision_,
                 "n_estimators": candidate.tree_count,
                 "weighted": bool(sample_weight is not None),
+                "growth_strategy": self.growth_strategy,
+                "max_leaves": self.max_leaves,
+                "max_active_leaves": self.max_active_leaves,
+                "min_gain_to_split": float(self.min_gain_to_split),
             }
             return self
         except Exception:

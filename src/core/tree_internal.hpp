@@ -88,6 +88,7 @@ void ValidateTreeStructure(std::uint32_t feature_count,
                            const std::vector<TreeNode>& nodes);
 
 std::uint32_t EffectiveMaxLeaves(const TreeTrainingParameters& parameters);
+std::uint32_t EffectiveMaxActiveLeaves(const TreeTrainingParameters& parameters);
 
 std::vector<NodeHistograms> BuildCurrentLayerHistograms(
     const BinnedDataset& dataset,
