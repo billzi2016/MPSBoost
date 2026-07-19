@@ -117,7 +117,7 @@ import mpsboost as mb
 
 print(mb.available_estimators())
 print(mb.planned_estimators())
-mb.require_estimator_supported("RandomForestRegressor")  # raises NotImplementedError today
+mb.require_estimator_supported("ExtraTreesRegressor")  # raises NotImplementedError today
 ```
 
 The `0.3.0` milestone is reserved for the v2 arboretum foundation: one shared tree-family
