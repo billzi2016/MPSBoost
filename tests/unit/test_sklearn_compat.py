@@ -164,6 +164,7 @@ def test_random_forest_estimators_follow_standard_sklearn_protocol():
         min_samples_leaf=1,
         min_child_weight=0.0,
         sample_fraction=1.0,
+        n_jobs=1,
         random_state=1,
         device="cpu",
     )
@@ -178,6 +179,7 @@ def test_random_forest_estimators_follow_standard_sklearn_protocol():
             min_samples_leaf=1,
             min_child_weight=0.0,
             sample_fraction=1.0,
+            n_jobs=1,
             random_state=2,
             device="cpu",
         ),

@@ -185,7 +185,8 @@ deterministic randomization and monitoring helpers, cache diagnostics and manage
 `float32`/`float64`-compatible data, squared error regression, strict binary-logistic
 classification for labels `0` and `1`, deterministic quantization, depth-limited histogram trees,
 sklearn-compatible `score()`, model save/load, gain/split/permutation feature importance,
-explicit `device="mps"`, explicit `device="cpu"`, and initial `device="auto"` selection.
+random forest `n_jobs`, explicit `device="mps"`, explicit `device="cpu"`, and initial
+`device="auto"` selection.
 
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 

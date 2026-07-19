@@ -392,6 +392,34 @@ def test_random_forest_random_state_is_deterministic():
     ]
 
 
+def test_random_forest_n_jobs_preserves_deterministic_results():
+    """Parallel tree fitting should preserve the deterministic sampling contract."""
+
+    X = np.array(
+        [[0.0, 1.0], [0.1, 1.0], [1.0, 0.0], [1.1, 0.0], [2.0, 1.0], [2.1, 1.0]],
+        dtype=np.float32,
+    )
+    y = np.array([0.0, 0.0, 4.0, 4.0, 8.0, 8.0], dtype=np.float32)
+    parameters = dict(
+        n_estimators=4,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        max_features=0.5,
+        sample_fraction=0.8,
+        random_state=29,
+        device="cpu",
+    )
+    serial = RandomForestRegressor(n_jobs=1, **parameters).fit(X, y)
+    parallel = RandomForestRegressor(n_jobs=2, **parameters).fit(X, y)
+
+    np.testing.assert_allclose(serial.predict(X), parallel.predict(X))
+    assert parallel.training_summary_["n_jobs"] == 2
+    assert [item.tolist() for item in serial.feature_subsets_] == [
+        item.tolist() for item in parallel.feature_subsets_
+    ]
+
+
 def test_random_forest_validates_parameters():
     """Forest parameter boundaries should fail explicitly."""
 
@@ -401,3 +429,5 @@ def test_random_forest_validates_parameters():
         RandomForestRegressor(max_features=0.0, device="cpu").fit(X, y)
     with pytest.raises(TypeError, match="bootstrap"):
         RandomForestRegressor(bootstrap=1, device="cpu").fit(X, y)
+    with pytest.raises(ValueError, match="n_jobs"):
+        RandomForestRegressor(n_jobs=0, device="cpu").fit(X, y)

@@ -11,6 +11,7 @@ import json
 import os
 import tempfile
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Lock
 from time import perf_counter
@@ -599,6 +600,7 @@ class _ForestMixin:
         "max_features",
         "sample_fraction",
         "bootstrap",
+        "n_jobs",
         "random_state",
         "device",
         "verbosity",
@@ -615,6 +617,7 @@ class _ForestMixin:
         max_features: float = 1.0,
         sample_fraction: float = 1.0,
         bootstrap: bool = True,
+        n_jobs: int = 1,
         random_state: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
@@ -636,6 +639,7 @@ class _ForestMixin:
         self.max_features = max_features
         self.sample_fraction = sample_fraction
         self.bootstrap = bootstrap
+        self.n_jobs = n_jobs
 
     def fit(self, X: Any, y: Any) -> "_ForestMixin":
         """Train independent native decision trees on sampled rows and feature subsets."""
@@ -647,19 +651,29 @@ class _ForestMixin:
             matrix = as_dense_matrix(X)
             labels = self._training_labels(y, matrix.shape[0])
             generator = np.random.default_rng(self.random_state)
-            estimators: list[DecisionTreeRegressor | DecisionTreeClassifier] = []
-            feature_subsets: list[NDArray[np.int64]] = []
-            for _ in range(self.n_estimators):
-                row_seed = int(generator.integers(0, np.iinfo(np.int32).max))
-                feature_seed = int(generator.integers(0, np.iinfo(np.int32).max))
-                rows = self._sample_rows(labels, row_seed)
-                features = self._sample_features(matrix.shape[1], feature_seed)
-                tree = self._make_tree(feature_seed).fit(
-                    matrix[rows][:, features],
-                    labels[rows],
+            jobs = tuple(
+                (
+                    int(generator.integers(0, np.iinfo(np.int32).max)),
+                    int(generator.integers(0, np.iinfo(np.int32).max)),
                 )
-                estimators.append(tree)
-                feature_subsets.append(features)
+                for _ in range(self.n_estimators)
+            )
+            if self.n_jobs == 1:
+                fitted = tuple(
+                    self._fit_one_tree(matrix, labels, row_seed, feature_seed)
+                    for row_seed, feature_seed in jobs
+                )
+            else:
+                with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+                    fitted = tuple(
+                        executor.map(
+                            lambda seeds: self._fit_one_tree(
+                                matrix, labels, seeds[0], seeds[1]
+                            ),
+                            jobs,
+                        )
+                    )
+            estimators, feature_subsets = zip(*fitted, strict=True)
             self.estimators_ = tuple(estimators)
             self.feature_subsets_ = tuple(feature_subsets)
             self.n_features_in_ = matrix.shape[1]
@@ -670,6 +684,7 @@ class _ForestMixin:
                 "bootstrap": self.bootstrap,
                 "sample_fraction": float(self.sample_fraction),
                 "max_features": float(self.max_features),
+                "n_jobs": self.n_jobs,
             }
             self._finalize_fitted_metadata()
             return self
@@ -799,6 +814,20 @@ class _ForestMixin:
             verbosity=self.verbosity,
         )
 
+    def _fit_one_tree(
+        self,
+        matrix: NDArray[np.float32],
+        labels: NDArray[np.float32],
+        row_seed: int,
+        feature_seed: int,
+    ) -> tuple[DecisionTreeRegressor | DecisionTreeClassifier, NDArray[np.int64]]:
+        """Fit one independent tree and return it with its original feature subset."""
+
+        rows = self._sample_rows(labels, row_seed)
+        features = self._sample_features(matrix.shape[1], feature_seed)
+        tree = self._make_tree(feature_seed).fit(matrix[rows][:, features], labels[rows])
+        return tree, features
+
     def _sample_rows(self, labels: NDArray[np.float32], random_state: int) -> NDArray[np.int64]:
         """Sample training rows for one tree."""
 
@@ -830,6 +859,10 @@ class _ForestMixin:
             raise TypeError("n_estimators must be an integer")
         if self.n_estimators <= 0:
             raise ValueError("n_estimators must be positive")
+        if isinstance(self.n_jobs, bool) or not isinstance(self.n_jobs, int):
+            raise TypeError("n_jobs must be an integer")
+        if self.n_jobs <= 0:
+            raise ValueError("n_jobs must be positive")
         if not isinstance(self.bootstrap, bool):
             raise TypeError("bootstrap must be a boolean")
         for name in ("max_features", "sample_fraction"):
