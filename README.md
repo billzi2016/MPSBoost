@@ -1,5 +1,9 @@
 # MPSBoost
 
+<p align="center">
+  <img src="assets/icons/mpsboost-icon.png" alt="MPSBoost icon" width="160">
+</p>
+
 [![PyPI](https://img.shields.io/pypi/v/mpsboost)](https://pypi.org/project/mpsboost/)
 [![Python](https://img.shields.io/pypi/pyversions/mpsboost)](https://pypi.org/project/mpsboost/)
 [![README](https://img.shields.io/badge/README-English%20%7C%20%E4%B8%AD%E6%96%87-blue)](#mpsboost)
