@@ -87,7 +87,7 @@ _TREE_FAMILY_SPECS: tuple[TreeFamilySpec, ...] = (
         sampling=("feature_subsample", "random_threshold"),
         growth="independent_trees",
         aggregation="mean",
-        supports_mps_training=False,
+        supports_mps_training=True,
         supports_mps_prediction=False,
     ),
     TreeFamilySpec(
@@ -97,7 +97,7 @@ _TREE_FAMILY_SPECS: tuple[TreeFamilySpec, ...] = (
         sampling=("feature_subsample", "random_threshold"),
         growth="independent_trees",
         aggregation="vote",
-        supports_mps_training=False,
+        supports_mps_training=True,
         supports_mps_prediction=False,
     ),
     TreeFamilySpec(

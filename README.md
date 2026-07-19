@@ -100,7 +100,7 @@ libraries by changing the import and keeping familiar model names.
 | Histogram gradient boosting | `GradientBoostingRegressor` | Available |
 | Histogram gradient boosting classification | `GradientBoostingClassifier` | Available for strict binary 0/1 labels |
 | Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Available |
-| Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Planned |
+| Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Available |
 | Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Available |
 | CatBoost-like ordered boosting | `CatBoostRegressor`, `CatBoostClassifier` | Planned |
 | Isolation forest | `IsolationForest` | Planned |
@@ -117,7 +117,7 @@ import mpsboost as mb
 
 print(mb.available_estimators())
 print(mb.planned_estimators())
-mb.require_estimator_supported("ExtraTreesRegressor")  # raises NotImplementedError today
+mb.require_estimator_supported("CatBoostRegressor")  # raises NotImplementedError today
 ```
 
 The `0.3.0` milestone is reserved for the v2 arboretum foundation: one shared tree-family

@@ -74,14 +74,28 @@ _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
     EstimatorCapability(
         name="ExtraTreesRegressor",
         family_key="extra_trees_regression",
-        status="planned",
+        status="available",
         primary=True,
     ),
     EstimatorCapability(
         name="ExtraTreesClassifier",
         family_key="extra_trees_classification",
-        status="planned",
+        status="available",
         primary=True,
+    ),
+    EstimatorCapability(
+        name="ExtraTreeRegressor",
+        family_key="extra_trees_regression",
+        status="available",
+        primary=False,
+        alias_for="ExtraTreesRegressor",
+    ),
+    EstimatorCapability(
+        name="ExtraTreeClassifier",
+        family_key="extra_trees_classification",
+        status="available",
+        primary=False,
+        alias_for="ExtraTreesClassifier",
     ),
     EstimatorCapability(
         name="DecisionTreeRegressor",

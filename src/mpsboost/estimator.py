@@ -45,6 +45,7 @@ class MPSBoostRegressor:
 
     _estimator_type = "regressor"
     _native_objective = "squared_error"
+    _split_strategy = "best_gain"
     _fitted_error_message = "MPSBoostRegressor is not fitted or loaded"
     _PARAMETER_NAMES = (
         "n_estimators",
@@ -134,6 +135,8 @@ class MPSBoostRegressor:
                 self.min_child_weight,
                 self.reg_lambda,
                 objective=self._native_objective,
+                split_strategy=self._split_strategy,
+                random_seed=0 if self.random_state is None else self.random_state,
             )
             mps_available = is_available()
             device_decision = choose_device(
@@ -469,6 +472,13 @@ class DecisionTreeRegressor(MPSBoostRegressor):
             raise ValueError("DecisionTreeRegressor can only load one-tree models")
 
 
+class ExtraTreeRegressor(DecisionTreeRegressor):
+    """Train one squared-error tree with native random-threshold split candidates."""
+
+    _split_strategy = "random_threshold"
+    _fitted_error_message = "ExtraTreeRegressor is not fitted or loaded"
+
+
 class MPSBoostClassifier(MPSBoostRegressor):
     """Train a binary-logistic histogram GBDT classifier on the shared native backend."""
 
@@ -584,6 +594,13 @@ class DecisionTreeClassifier(MPSBoostClassifier):
 
         if model.tree_count != 1:
             raise ValueError("DecisionTreeClassifier can only load one-tree models")
+
+
+class ExtraTreeClassifier(DecisionTreeClassifier):
+    """Train one binary-logistic tree with native random-threshold split candidates."""
+
+    _split_strategy = "random_threshold"
+    _fitted_error_message = "ExtraTreeClassifier is not fitted or loaded"
 
 
 class _ForestMixin:
@@ -929,3 +946,17 @@ class RandomForestClassifier(_ForestMixin, MPSBoostClassifier):
             )
         probabilities /= float(len(self.estimators_))
         return probabilities.astype(np.float32)
+
+
+class ExtraTreesRegressor(RandomForestRegressor):
+    """Train an ExtraTrees-style regressor from native random-threshold trees."""
+
+    _tree_type = ExtraTreeRegressor
+    _fitted_error_message = "ExtraTreesRegressor is not fitted"
+
+
+class ExtraTreesClassifier(RandomForestClassifier):
+    """Train an ExtraTrees-style binary classifier from native random-threshold trees."""
+
+    _tree_type = ExtraTreeClassifier
+    _fitted_error_message = "ExtraTreesClassifier is not fitted"

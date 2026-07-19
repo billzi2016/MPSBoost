@@ -12,6 +12,8 @@ import pytest
 from mpsboost import (
     DecisionTreeClassifier,
     DecisionTreeRegressor,
+    ExtraTreesClassifier,
+    ExtraTreesRegressor,
     MPSBoostClassifier,
     MPSBoostRegressor,
     RandomForestClassifier,
@@ -181,6 +183,44 @@ def test_random_forest_rejects_incompatible_container_type(tmp_path):
 
     with pytest.raises(ValueError, match="incompatible"):
         RandomForestRegressor(device="cpu").load_model(path)
+
+
+def test_extra_trees_round_trip_uses_forest_container(tmp_path):
+    """ExtraTrees should reuse the forest container with random-threshold native trees."""
+
+    X = np.array([[float(value)] for value in range(8)], dtype=np.float32)
+    y_reg = np.array([0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 3.0], dtype=np.float32)
+    regressor = ExtraTreesRegressor(
+        n_estimators=2,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=401,
+        device="cpu",
+    ).fit(X, y_reg)
+    regressor_path = tmp_path / "extra_trees_regressor.mb"
+    regressor.save_model(regressor_path)
+    restored_regressor = ExtraTreesRegressor(device="cpu").load_model(regressor_path)
+    np.testing.assert_allclose(restored_regressor.predict(X), regressor.predict(X))
+
+    y_clf = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+    classifier = ExtraTreesClassifier(
+        n_estimators=2,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=409,
+        device="cpu",
+    ).fit(X, y_clf)
+    classifier_path = tmp_path / "extra_trees_classifier.mb"
+    classifier.save_model(classifier_path)
+    restored_classifier = ExtraTreesClassifier(device="cpu").load_model(classifier_path)
+    np.testing.assert_allclose(
+        restored_classifier.predict_proba(X),
+        classifier.predict_proba(X),
+    )
 
 
 @pytest.mark.parametrize("mutation", ["truncate", "checksum", "major"])

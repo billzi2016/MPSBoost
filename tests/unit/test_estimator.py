@@ -10,6 +10,10 @@ import pytest
 from mpsboost import (
     DecisionTreeClassifier,
     DecisionTreeRegressor,
+    ExtraTreeClassifier,
+    ExtraTreeRegressor,
+    ExtraTreesClassifier,
+    ExtraTreesRegressor,
     MPSBoostClassifier,
     MPSBoostRegressor,
     RandomForestClassifier,
@@ -306,6 +310,53 @@ def test_decision_tree_classifier_trains_exactly_one_native_tree():
     assert model.score(X, y) == 1.0
 
 
+def test_extra_tree_estimators_use_random_threshold_strategy():
+    """Single ExtraTree estimators should be seeded native random-threshold trees."""
+
+    X = np.array([[float(value)] for value in range(8)], dtype=np.float32)
+    y_reg = np.array([0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 3.0], dtype=np.float32)
+    first = ExtraTreeRegressor(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        reg_lambda=0.0,
+        random_state=101,
+        device="cpu",
+    ).fit(X, y_reg)
+    second = ExtraTreeRegressor(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        reg_lambda=0.0,
+        random_state=101,
+        device="cpu",
+    ).fit(X, y_reg)
+    different = ExtraTreeRegressor(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        reg_lambda=0.0,
+        random_state=202,
+        device="cpu",
+    ).fit(X, y_reg)
+
+    assert first.model_.trees[0].nodes == second.model_.trees[0].nodes
+    assert (
+        first.model_.trees[0].nodes[0]["threshold_bin"]
+        != different.model_.trees[0].nodes[0]["threshold_bin"]
+    )
+
+    y_clf = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+    classifier = ExtraTreeClassifier(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        random_state=101,
+        device="cpu",
+    ).fit(X, y_clf)
+    assert classifier.predict_proba(X).shape == (8, 2)
+
+
 def test_random_forest_regressor_trains_independent_native_trees():
     """RandomForestRegressor should aggregate real native decision trees."""
 
@@ -431,3 +482,33 @@ def test_random_forest_validates_parameters():
         RandomForestRegressor(bootstrap=1, device="cpu").fit(X, y)
     with pytest.raises(ValueError, match="n_jobs"):
         RandomForestRegressor(n_jobs=0, device="cpu").fit(X, y)
+
+
+def test_extra_trees_regressor_and_classifier_share_forest_contracts():
+    """ExtraTrees ensembles should reuse RF aggregation with native random-threshold trees."""
+
+    X = np.array([[float(value)] for value in range(8)], dtype=np.float32)
+    y_reg = np.array([0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 3.0], dtype=np.float32)
+    regressor = ExtraTreesRegressor(
+        n_estimators=3,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=303,
+        device="cpu",
+    ).fit(X, y_reg)
+    assert regressor.predict(X).shape == (8,)
+    assert regressor.feature_importances_.shape == (1,)
+
+    y_clf = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+    classifier = ExtraTreesClassifier(
+        n_estimators=3,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=307,
+        device="cpu",
+    ).fit(X, y_clf)
+    assert classifier.predict_proba(X).shape == (8, 2)

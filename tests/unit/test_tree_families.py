@@ -69,13 +69,26 @@ def test_available_random_forests_have_independent_tree_family_contracts():
     assert classifier.family.supports_mps_training is True
 
 
+def test_available_extra_trees_have_random_split_family_contracts():
+    """ExtraTrees estimators should expose native random-threshold split semantics."""
+
+    regressor = mb.estimator_capability("ExtraTreesRegressor")
+    classifier = mb.estimator_capability("ExtraTreesClassifier")
+    single = mb.estimator_capability("ExtraTreeRegressor")
+
+    assert regressor.family_key == "extra_trees_regression"
+    assert regressor.family.objective == "random_split"
+    assert regressor.family.supports_mps_training is True
+    assert classifier.family_key == "extra_trees_classification"
+    assert classifier.family.supports_mps_training is True
+    assert single.alias_for == "ExtraTreesRegressor"
+
+
 def test_planned_tree_families_are_specs_not_fake_classes():
     """Planned models must be queryable without appearing as importable estimators."""
 
     planned = set(mb.planned_estimators())
     assert {
-        "ExtraTreesRegressor",
-        "ExtraTreesClassifier",
         "CatBoostRegressor",
         "CatBoostClassifier",
         "IsolationForest",
