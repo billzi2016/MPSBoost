@@ -213,3 +213,12 @@
 - [x] S19.5 拆分 native binned dataset 实现，隔离 validation、quantization、schema 和 serialization。
 - [x] S19.6 拆分 native tree 实现，隔离 split scan、growth、prediction 和 restore validation。
 - [x] S19.7 验收 G18：所有新增/重构文件满足长度规则，例外均有说明和后续任务。
+- [x] S19.8 拆分 MPS backend 实现，隔离 Metal context、gradient、histogram、split partition 与 lifetime glue。
+
+## S20：清理程序文件中文遗留问题
+
+- [ ] S20.1 开始前必须阅读 `specs/legacy-issues.md`，并按其中的搜索范围、禁止事项和完成标准执行。
+- [ ] S20.2 程序文件中的注释、docstring、测试说明、断言消息、运行时错误和包元数据必须全部翻译为英文。
+- [ ] S20.3 文档文件不纳入本任务；`specs/`、README、未来双语站点内容允许继续保留中文。
+- [ ] S20.4 必须使用 `specs/legacy-issues.md` 中规定的 `rg` 命令查找中文，并在新增程序目录后同步扩展搜索范围。
+- [ ] S20.5 完成后只能在搜索命令无程序文件中文命中、相关测试通过、且没有行为改动时打勾。

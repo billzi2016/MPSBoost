@@ -106,6 +106,10 @@ pybind11_add_module(
   src/io/model_payload.cpp
   src/mps/metal_context.mm
   src/mps/mps_backend.mm
+  src/mps/mps_context.mm
+  src/mps/mps_gradients.mm
+  src/mps/mps_histogram.mm
+  src/mps/mps_split_partition.mm
 )
 add_dependencies(_native mpsboost_metallib)
 
