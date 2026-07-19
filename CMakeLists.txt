@@ -101,7 +101,9 @@ pybind11_add_module(
   src/core/tree_structure.cpp
   src/core/trainer.cpp
   src/cpu/reference_backend.cpp
+  src/io/model_file_io.cpp
   src/io/model_format.cpp
+  src/io/model_payload.cpp
   src/mps/metal_context.mm
   src/mps/mps_backend.mm
 )

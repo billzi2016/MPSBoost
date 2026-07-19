@@ -212,4 +212,4 @@
 - [x] S19.4 拆分 Python binding 文件，隔离 buffer、dataset、model、backend test helpers。
 - [x] S19.5 拆分 native binned dataset 实现，隔离 validation、quantization、schema 和 serialization。
 - [x] S19.6 拆分 native tree 实现，隔离 split scan、growth、prediction 和 restore validation。
-- [ ] S19.7 验收 G18：所有新增/重构文件满足长度规则，例外均有说明和后续任务。
+- [x] S19.7 验收 G18：所有新增/重构文件满足长度规则，例外均有说明和后续任务。
