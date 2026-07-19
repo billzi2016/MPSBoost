@@ -44,6 +44,42 @@ restored.load_model("model.mb")
 `MPSBoostRegressor` remains available as a backwards-compatible project-branded alias for
 the same implementation.
 
+## sklearn model selection
+
+MPSBoost estimators are designed to follow the sklearn estimator protocol, so users should be
+able to use the standard sklearn model-selection stack instead of learning a project-specific
+search API.
+
+```python
+from sklearn.model_selection import GridSearchCV
+import mpsboost as mb
+
+search = GridSearchCV(
+    mb.GradientBoostingRegressor(device="auto"),
+    param_grid={
+        "max_depth": [3, 6, 9],
+        "learning_rate": [0.03, 0.1],
+        "n_estimators": [100, 300],
+    },
+    cv=3,
+    n_jobs=2,
+)
+
+search.fit(X_train, y_train)
+best_model = search.best_estimator_
+```
+
+The same direction applies to `RandomizedSearchCV`, `cross_val_score`, and future classifier
+estimators. MPSBoost should not add a separate `MPSGridSearchCV` unless a later release proves
+that GPU-specific batched hyperparameter scheduling needs a distinct API.
+
+Multiprocessing is supported through sklearn/joblib at the outer search level. CPU jobs can run
+in multiple processes. MPS jobs should be scheduled more conservatively: several Python workers
+competing for one Apple GPU can be slower than one well-sized GPU worker because command queues,
+unified memory bandwidth, and synchronization overhead become the bottleneck. The intended policy
+is to let `device="auto"` choose CPU for small search jobs and reserve MPS for workloads where the
+measured tree hot path is large enough.
+
 ## Tree estimator names
 
 The primary public API uses concise sklearn-style estimator names, so users can usually switch
