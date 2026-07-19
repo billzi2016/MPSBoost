@@ -96,6 +96,9 @@ pybind11_add_module(
   src/core/binned_dataset_serialization.cpp
   src/core/objective.cpp
   src/core/tree.cpp
+  src/core/tree_histogram.cpp
+  src/core/tree_split.cpp
+  src/core/tree_structure.cpp
   src/core/trainer.cpp
   src/cpu/reference_backend.cpp
   src/io/model_format.cpp
