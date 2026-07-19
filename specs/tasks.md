@@ -135,7 +135,7 @@
 - [x] S12.3 Implement `ExtraTreesClassifier` using native random-threshold split candidates.
 - [x] S12.4 Implement native random-threshold split policy for CPU and MPS tree training.
 - [x] S12.5 Share sampling, aggregation, and forest container prediction format with Random Forest.
-- [ ] S12.6 验收 G11：ExtraTrees 正确、稳定、真实 MPS 路径可观测。
+- [x] S12.6 验收 G11：ExtraTrees 正确、稳定、真实 MPS 路径可观测。
 
 ## S13：LightGBM-like 与 CatBoost-like 训练策略
 
