@@ -92,6 +92,8 @@ pybind11_add_module(
   src/python/binding_model.cpp
   src/python/binding_objective.cpp
   src/core/binned_dataset.cpp
+  src/core/binned_dataset_internal.cpp
+  src/core/binned_dataset_serialization.cpp
   src/core/objective.cpp
   src/core/tree.cpp
   src/core/trainer.cpp
