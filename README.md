@@ -26,7 +26,7 @@ Accelerated releases provide prebuilt Apple Silicon wheels; normal users will no
 ```python
 import mpsboost as mb
 
-model = mb.MPSBoostRegressor(
+model = mb.GradientBoostingRegressor(
     n_estimators=200,
     learning_rate=0.05,
     max_depth=6,
@@ -35,11 +35,33 @@ model = mb.MPSBoostRegressor(
 
 model.fit(X_train, y_train)
 prediction = model.predict(X_test)
-model.save_model("model.mpsb")
+model.save_model("model.mb")
 
-restored = mb.MPSBoostRegressor(device="mps")
-restored.load_model("model.mpsb")
+restored = mb.GradientBoostingRegressor(device="mps")
+restored.load_model("model.mb")
 ```
+
+`MPSBoostRegressor` remains available as a backwards-compatible project-branded alias for
+the same implementation.
+
+## Tree estimator names
+
+The primary public API uses concise sklearn-style estimator names, so users can usually switch
+libraries by changing the import and keeping familiar model names.
+
+| Model family | Primary names | Status |
+| --- | --- | --- |
+| Histogram gradient boosting | `GradientBoostingRegressor` | Available |
+| Histogram gradient boosting classification | `GradientBoostingClassifier` | Planned |
+| Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Planned |
+| Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Planned |
+| Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Planned |
+| Isolation forest | `IsolationForest` | Planned |
+| Ranking trees | `LearningToRankRegressor` | Planned |
+
+Objective variants such as quantile, Poisson, Tweedie, logistic, and ranking losses should be
+selected through estimator parameters when they share the same tree engine. Separate class names
+are added only when the model family has different fit/predict semantics.
 
 ## Backend diagnostics
 
@@ -70,7 +92,12 @@ symlinks. Cache deletion never changes model results.
 
 ## Status
 
-The public API currently includes `MPSBoostRegressor`, cache diagnostics and management helpers, `is_available`, `system_info`, and `__version__`. Training supports dense finite `float32`/`float64`-compatible data, squared error, deterministic quantization, depth-limited histogram trees, model save/load, and explicit `device="mps"` or diagnostic `device="cpu"` selection.
+The public API currently includes `GradientBoostingRegressor`, its backwards-compatible
+alias `MPSBoostRegressor`, cache diagnostics and management helpers, `is_available`,
+`system_info`, and `__version__`. Training supports dense finite
+`float32`/`float64`-compatible data, squared error, deterministic quantization,
+depth-limited histogram trees, model save/load, and explicit `device="mps"` or diagnostic
+`device="cpu"` selection.
 
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 

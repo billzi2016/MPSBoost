@@ -1,11 +1,13 @@
-"""MPSBoost 对外公开入口。
+"""Stable public entry points for MPSBoost.
 
-本文件只负责整理并导出稳定的公共符号，不承载训练逻辑。这样做有两个目的：
+This module only collects stable public symbols and intentionally avoids training logic.
+That separation keeps two invariants simple:
 
-1. 用户始终可以通过 ``import mpsboost as mb`` 获得清晰、稳定的入口；
-2. 内部模块可以持续重构，而不会意外把实现细节暴露为公共 API。
+1. users can always import the package through ``import mpsboost as mb``;
+2. internal modules can be refactored without leaking implementation details as public API.
 
-当前开发版本提供真实 MPS/Metal 训练、设备诊断和 estimator 风格回归入口。
+The concise estimator names follow the familiar scikit-learn style, while the
+``MPSBoost*`` names remain available as explicit project-branded aliases.
 """
 
 from ._native import __version__  # type: ignore[import-not-found]
@@ -18,8 +20,13 @@ from .diagnostics import (
 )
 from .estimator import MPSBoostRegressor
 
-# 明确维护 __all__，避免 ``from mpsboost import *`` 泄露内部辅助函数和模块。
+# Keep one implementation and expose a shorter sklearn-style public name. This is an alias,
+# not a wrapper, so model behavior, serialization, and type checks remain identical.
+GradientBoostingRegressor = MPSBoostRegressor
+
+# Maintain __all__ explicitly so ``from mpsboost import *`` does not leak helper modules.
 __all__ = [
+    "GradientBoostingRegressor",
     "MPSBoostRegressor",
     "__version__",
     "cache_info",

@@ -14,12 +14,12 @@ Apple Silicon 的 MPS/Metal 后端上。MPSBoost 不应只停留在单一回归 
 
 从 v2 开始，除 Agent 与用户在对话中继续使用中文外，项目持久材料必须使用英文。
 这包括代码文件头部意图注释、函数注释、关键实现注释、commit message、README、
-specs、release notes、CI 文案、错误文档和公开示例说明。这样做是为了让项目后续
-面向国际用户、外部 contributor、PyPI/GitHub 生态和学术/工程复现时保持一致。
+release notes、CI 文案、错误文档和公开示例说明。这样做是为了让项目后续面向国际
+用户、外部 contributor、PyPI/GitHub 生态和学术/工程复现时保持一致。
 
 v0/v1 已存在的中文材料可以保留作为历史规格和开发记录；v2 及以后的新增或大幅修改
-内容必须转为英文。若需要在对话中解释设计取舍，Agent 仍然使用中文，但落盘内容不得
-混用中英文。
+代码、公开文档和发布材料必须转为英文。specs 不强制就地翻译；中英文站点通过 MkDocs
+维护或生成独立语言版本。若需要在对话中解释设计取舍，Agent 仍然使用中文。
 
 ## 2. 范围
 
@@ -81,6 +81,12 @@ v0/v1 已存在的中文材料可以保留作为历史规格和开发记录；v2
 
 公共入口保持 estimator 风格。v2 可以新增专用 estimator，例如：
 
+- `GradientBoostingRegressor`
+- `GradientBoostingClassifier`
+- `RandomForestRegressor`
+- `RandomForestClassifier`
+- `ExtraTreesRegressor`
+- `ExtraTreesClassifier`
 - `MPSBoostRegressor`
 - `MPSBoostClassifier`
 - `MPSRandomForestRegressor`
@@ -88,7 +94,7 @@ v0/v1 已存在的中文材料可以保留作为历史规格和开发记录；v2
 - `MPSExtraTreesRegressor`
 - `MPSExtraTreesClassifier`
 
-参数命名应尽量接近用户熟悉的树模型生态，但未知参数必须早失败。兼容层只做用户体验
+简洁名称是主入口，`MPS*` 名称作为项目品牌和向后兼容别名保留。参数命名应尽量接近用户熟悉的树模型生态，但未知参数必须早失败。兼容层只做用户体验
 映射，不得把第三方项目的内部结构、名称或源码变成项目依赖。
 
 ### 4.2 后端能力

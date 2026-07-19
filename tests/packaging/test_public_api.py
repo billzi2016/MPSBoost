@@ -1,4 +1,4 @@
-"""公开 API、estimator 入口与版本单一来源测试。"""
+"""Public API, estimator entry point, and single-source version tests."""
 
 from importlib.metadata import version
 
@@ -6,17 +6,20 @@ import mpsboost as mb
 
 
 def test_version_is_injected_by_native_build():
-    """native 顶层版本必须与安装包 metadata 的唯一版本来源一致。"""
+    """The native package version must match installed package metadata."""
 
     assert mb.__version__ == version("mpsboost")
 
 
 def test_only_completed_regressor_is_public():
-    """真实回归 estimator 必须公开，未实现分类器仍不得泄露。"""
+    """Only completed estimators may be exported from the public package namespace."""
 
+    assert mb.GradientBoostingRegressor is mb.MPSBoostRegressor
+    assert mb.GradientBoostingRegressor.__name__ == "MPSBoostRegressor"
     assert mb.MPSBoostRegressor.__name__ == "MPSBoostRegressor"
-    assert not hasattr(mps, "MPSBoostClassifier")
+    assert not hasattr(mb, "MPSBoostClassifier")
     assert set(mb.__all__) == {
+        "GradientBoostingRegressor",
         "MPSBoostRegressor",
         "__version__",
         "cache_info",

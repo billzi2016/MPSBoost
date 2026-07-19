@@ -9,7 +9,7 @@
 ```python
 import mpsboost as mb
 
-model = mb.MPSBoostRegressor(
+model = mb.GradientBoostingRegressor(
     n_estimators=100,
     learning_rate=0.1,
     max_depth=6,
@@ -25,7 +25,7 @@ model.fit(X, y)
 prediction = model.predict(X_test)
 ```
 
-0.2.0 公共符号仅包含：`MPSBoostRegressor`、`is_available`、`system_info`、`__version__`。未实现的分类和底层训练 API 不得放入正式公共入口。
+0.2.x 公共符号仅包含已完成能力：`GradientBoostingRegressor`、`MPSBoostRegressor`、`is_available`、`system_info`、`__version__` 以及缓存诊断/管理函数。未实现的分类和底层训练 API 不得放入正式公共入口。
 
 ## 3. 构造契约
 

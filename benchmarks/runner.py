@@ -114,19 +114,19 @@ def run(repeats: int) -> dict:
             min_child_weight=1.0,
             reg_lambda=1.0,
         )
-        mb.MPSBoostRegressor(device="cpu", **parameters).fit(scenario.X, scenario.y)
-        mb.MPSBoostRegressor(device="mps", **parameters).fit(scenario.X, scenario.y)
+        mb.GradientBoostingRegressor(device="cpu", **parameters).fit(scenario.X, scenario.y)
+        mb.GradientBoostingRegressor(device="mps", **parameters).fit(scenario.X, scenario.y)
         cpu_times = []
         mps_times = []
         max_prediction_differences = []
         for _ in range(repeats):
             cpu_model, cpu_elapsed = _elapsed(
-                lambda: mb.MPSBoostRegressor(device="cpu", **parameters).fit(
+                lambda: mb.GradientBoostingRegressor(device="cpu", **parameters).fit(
                     scenario.X, scenario.y
                 )
             )
             mps_model, mps_elapsed = _elapsed(
-                lambda: mb.MPSBoostRegressor(device="mps", **parameters).fit(
+                lambda: mb.GradientBoostingRegressor(device="mps", **parameters).fit(
                     scenario.X, scenario.y
                 )
             )

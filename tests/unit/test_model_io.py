@@ -32,7 +32,7 @@ def test_save_load_round_trip_and_file_permissions(tmp_path):
     """加载后预测逐位一致，模型文件不得包含宽松权限或临时文件。"""
 
     X, original = _fitted_model()
-    path = tmp_path / "model.mpsb"
+    path = tmp_path / "model.mb"
     original.save_model(path)
     restored = MPSBoostRegressor(device="cpu").load_model(path)
     np.testing.assert_array_equal(original.predict(X), restored.predict(X))
@@ -46,7 +46,7 @@ def test_corrupt_model_is_rejected_without_replacing_existing_state(tmp_path, mu
 
     X, model = _fitted_model()
     expected = model.predict(X)
-    path = tmp_path / "model.mpsb"
+    path = tmp_path / "model.mb"
     model.save_model(path)
     content = bytearray(path.read_bytes())
     if mutation == "truncate":
