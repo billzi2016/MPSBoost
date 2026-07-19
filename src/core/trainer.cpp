@@ -29,51 +29,82 @@ void ValidateTrainingParameters(const TrainingParameters& parameters) {
   }
 }
 
-double MeanLabel(const std::vector<double>& labels) {
+double ValidateWeightsAndTotal(const std::vector<double>& labels,
+                               const std::vector<double>& sample_weights) {
+  if (labels.empty()) {
+    throw TrainingError("labels must be non-empty");
+  }
+  if (labels.size() != sample_weights.size()) {
+    throw TrainingError("labels and sample weights must have the same length");
+  }
+  double total_weight = 0.0;
+  for (const double weight : sample_weights) {
+    if (!std::isfinite(weight) || weight < 0.0) {
+      throw TrainingError("sample weights must be finite non-negative values");
+    }
+    total_weight += weight;
+    if (!std::isfinite(total_weight)) {
+      throw TrainingError("sample weight sum overflowed");
+    }
+  }
+  if (total_weight <= 0.0) {
+    throw TrainingError("sample weights must contain positive total weight");
+  }
+  return total_weight;
+}
+
+double WeightedMeanLabel(const std::vector<double>& labels,
+                         const std::vector<double>& sample_weights) {
   if (labels.empty()) {
     throw TrainingError("标签不能为空");
   }
   double sum = 0.0;
-  for (const double label : labels) {
+  const double total_weight = ValidateWeightsAndTotal(labels, sample_weights);
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    const double label = labels[index];
     if (!std::isfinite(label)) {
       throw TrainingError("标签必须是有限值");
     }
-    sum += label;
+    sum += label * sample_weights[index];
     if (!std::isfinite(sum)) {
       throw TrainingError("标签累计发生浮点溢出");
     }
   }
-  return sum / static_cast<double>(labels.size());
+  return sum / total_weight;
 }
 
-double BinaryLogitBaseScore(const std::vector<double>& labels) {
+double WeightedBinaryLogitBaseScore(const std::vector<double>& labels,
+                                    const std::vector<double>& sample_weights) {
   if (labels.empty()) {
     throw TrainingError("labels must be non-empty");
   }
-  double positive_count = 0.0;
-  for (const double label : labels) {
+  const double total_weight = ValidateWeightsAndTotal(labels, sample_weights);
+  double positive_weight = 0.0;
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    const double label = labels[index];
     if (label == 0.0) {
       continue;
     }
     if (label == 1.0) {
-      positive_count += 1.0;
+      positive_weight += sample_weights[index];
       continue;
     }
     throw TrainingError("binary-logistic labels must be 0 or 1");
   }
   const double epsilon = 1e-15;
-  double probability = positive_count / static_cast<double>(labels.size());
+  double probability = positive_weight / total_weight;
   probability = std::min(1.0 - epsilon, std::max(epsilon, probability));
   return std::log(probability / (1.0 - probability));
 }
 
 double InitialBaseScore(const std::vector<double>& labels,
+                        const std::vector<double>& sample_weights,
                         TrainingParameters::Objective objective) {
   switch (objective) {
     case TrainingParameters::Objective::kSquaredError:
-      return MeanLabel(labels);
+      return WeightedMeanLabel(labels, sample_weights);
     case TrainingParameters::Objective::kBinaryLogistic:
-      return BinaryLogitBaseScore(labels);
+      return WeightedBinaryLogitBaseScore(labels, sample_weights);
   }
   throw TrainingError("unknown training objective");
 }
@@ -92,11 +123,30 @@ std::vector<GradientPair> ComputeObjectiveGradients(
   throw TrainingError("unknown training objective");
 }
 
+std::vector<GradientPair> ApplySampleWeights(
+    std::vector<GradientPair> gradients,
+    const std::vector<double>& sample_weights) {
+  if (gradients.size() != sample_weights.size()) {
+    throw TrainingError("gradient and sample weight lengths do not match");
+  }
+  for (std::size_t index = 0; index < gradients.size(); ++index) {
+    gradients[index].gradient *= sample_weights[index];
+    gradients[index].hessian *= sample_weights[index];
+    if (!std::isfinite(gradients[index].gradient) ||
+        !std::isfinite(gradients[index].hessian) ||
+        gradients[index].hessian < 0.0) {
+      throw TrainingError("weighted gradient/Hessian overflowed");
+    }
+  }
+  return gradients;
+}
+
 }  // namespace
 
 RegressionModel TrainRegressionModel(
     const BinnedDataset& dataset,
     const std::vector<double>& labels,
+    const std::vector<double>& sample_weights,
     const TrainingParameters& parameters,
     const GradientComputer& gradient_computer,
     const HistogramBuilder& histogram_builder) {
@@ -104,18 +154,21 @@ RegressionModel TrainRegressionModel(
   if (dataset.rows() != labels.size() || dataset.max_bins() != parameters.max_bins) {
     throw TrainingError("训练数据、标签或 max_bins 契约不一致");
   }
+  ValidateWeightsAndTotal(labels, sample_weights);
 
   RegressionModel model;
   model.schema_ = dataset.schema();
-  model.base_score_ = InitialBaseScore(labels, parameters.objective);
+  model.base_score_ = InitialBaseScore(labels, sample_weights, parameters.objective);
   model.learning_rate_ = parameters.learning_rate;
   model.objective_ = parameters.objective;
   model.trees_.reserve(parameters.n_estimators);
   std::vector<double> predictions(labels.size(), model.base_score_);
 
   for (std::uint32_t round = 0; round < parameters.n_estimators; ++round) {
-    const std::vector<GradientPair> gradients = ComputeObjectiveGradients(
-        labels, predictions, gradient_computer, parameters.objective);
+    const std::vector<GradientPair> gradients = ApplySampleWeights(
+        ComputeObjectiveGradients(labels, predictions, gradient_computer,
+                                  parameters.objective),
+        sample_weights);
     RegressionTree tree = TrainSingleRegressionTree(
         dataset, gradients, parameters.tree, histogram_builder);
     const std::vector<double> update = tree.Predict(dataset);

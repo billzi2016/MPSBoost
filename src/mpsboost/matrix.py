@@ -52,3 +52,30 @@ def as_labels(value: Any, expected_rows: int) -> NDArray[np.float64]:
     if labels.dtype.kind not in "iuf":
         raise TypeError("y dtype 必须是实数数值类型")
     return np.ascontiguousarray(labels, dtype=np.float64)
+
+
+def as_sample_weight(value: Any, expected_rows: int) -> NDArray[np.float64]:
+    """Return contiguous non-negative sample weights for native objective statistics.
+
+    The native trainer revalidates weights before multiplying gradients and Hessians. Python keeps
+    the adapter small so every estimator can share the same input contract without copying weight
+    validation logic into each ``fit`` method.
+    """
+
+    if value is None:
+        return np.ones(expected_rows, dtype=np.float64)
+    weights = np.asarray(value)
+    if weights.ndim != 1:
+        raise ValueError("sample_weight must be a one-dimensional numeric array")
+    if weights.shape[0] != expected_rows:
+        raise ValueError("sample_weight length must match X rows")
+    if weights.dtype.kind not in "iuf":
+        raise TypeError("sample_weight dtype must be numeric")
+    result = np.ascontiguousarray(weights, dtype=np.float64)
+    if not np.all(np.isfinite(result)):
+        raise ValueError("sample_weight values must be finite")
+    if np.any(result < 0.0):
+        raise ValueError("sample_weight values must be non-negative")
+    if float(result.sum()) <= 0.0:
+        raise ValueError("sample_weight total must be positive")
+    return result

@@ -334,6 +334,7 @@ PYBIND11_MODULE(_native, module) {
   module.def(
       "_train_regressor_cpu",
       [](const py::buffer& matrix, const std::vector<double>& labels,
+         const std::vector<double>& sample_weights,
          const mpsboost::TrainingParameters& parameters) {
         const mpsboost::DenseMatrixView view = MakeDenseView(matrix);
         py::gil_scoped_release release;
@@ -341,14 +342,16 @@ PYBIND11_MODULE(_native, module) {
             mpsboost::QuantizeDense(view, parameters.max_bins);
         const mpsboost::CpuReferenceBackend backend;
         return mpsboost::TrainRegressionModel(
-            dataset, labels, parameters, backend, backend);
+            dataset, labels, sample_weights, parameters, backend, backend);
       },
-      py::arg("matrix"), py::arg("labels"), py::arg("parameters"),
+      py::arg("matrix"), py::arg("labels"), py::arg("sample_weights"),
+      py::arg("parameters"),
       "使用唯一 CPU oracle 训练多轮回归模型，仅供显式 CPU 模式和正确性对照。");
 
   module.def(
       "_train_regressor_mps",
       [](const py::buffer& matrix, const std::vector<double>& labels,
+         const std::vector<double>& sample_weights,
          const mpsboost::TrainingParameters& parameters,
          const std::string& metallib_path) {
         const mpsboost::DenseMatrixView view = MakeDenseView(matrix);
@@ -357,9 +360,10 @@ PYBIND11_MODULE(_native, module) {
             mpsboost::QuantizeDense(view, parameters.max_bins);
         const mpsboost::MpsBackend backend(metallib_path);
         return mpsboost::TrainRegressionModel(
-            dataset, labels, parameters, backend, backend);
+            dataset, labels, sample_weights, parameters, backend, backend);
       },
-      py::arg("matrix"), py::arg("labels"), py::arg("parameters"),
+      py::arg("matrix"), py::arg("labels"), py::arg("sample_weights"),
+      py::arg("parameters"),
       py::arg("metallib_path"),
       "在真实 MPS gradient/histogram 后端上训练多轮回归模型。");
 

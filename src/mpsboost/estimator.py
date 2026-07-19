@@ -23,7 +23,7 @@ from numpy.typing import NDArray
 from . import _native
 from .device_policy import choose_device, decision_to_dict
 from .diagnostics import _metallib_path, is_available
-from .matrix import as_dense_matrix, as_labels
+from .matrix import as_dense_matrix, as_labels, as_sample_weight
 from .randomization import (
     bootstrap_sample_indices,
     ordered_boosting_permutations,
@@ -114,7 +114,12 @@ class MPSBoostRegressor:
             self._clear_fitted_state()
         return self
 
-    def fit(self, X: Any, y: Any) -> "MPSBoostRegressor":
+    def fit(
+        self,
+        X: Any,
+        y: Any,
+        sample_weight: Any = None,
+    ) -> "MPSBoostRegressor":
         """Train a complete model and replace fitted state only after success.
 
         The same estimator instance does not support concurrent ``fit`` calls. Failures clear any
@@ -127,6 +132,7 @@ class MPSBoostRegressor:
             self._validate_parameters()
             matrix = as_dense_matrix(X)
             labels = self._training_labels(y, matrix.shape[0])
+            weights = as_sample_weight(sample_weight, matrix.shape[0])
             parameters = _native._TrainingParameters(
                 self.n_estimators,
                 self.learning_rate,
@@ -156,10 +162,12 @@ class MPSBoostRegressor:
                     )
                 with _metallib_path() as metallib_path:
                     candidate = _native._train_regressor_mps(
-                        matrix, labels, parameters, metallib_path
+                        matrix, labels, weights, parameters, metallib_path
                     )
             else:
-                candidate = _native._train_regressor_cpu(matrix, labels, parameters)
+                candidate = _native._train_regressor_cpu(
+                    matrix, labels, weights, parameters
+                )
             elapsed = perf_counter() - started
 
             # Commit fitted fields only at the end of the success path. Device errors, OOM, or
@@ -176,6 +184,7 @@ class MPSBoostRegressor:
                 "device": device_decision.selected,
                 "device_decision": self.device_decision_,
                 "n_estimators": candidate.tree_count,
+                "weighted": bool(sample_weight is not None),
             }
             return self
         except Exception:
@@ -189,14 +198,16 @@ class MPSBoostRegressor:
 
         return self._predict_raw(X)
 
-    def score(self, X: Any, y: Any) -> float:
+    def score(self, X: Any, y: Any, sample_weight: Any = None) -> float:
         """Return the default regression R² score for sklearn model-selection tools."""
 
         predictions = self.predict(X).astype(np.float64, copy=False)
         labels = as_labels(y, predictions.shape[0]).astype(np.float64, copy=False)
-        residual_sum = float(np.sum((labels - predictions) ** 2))
-        centered = labels - float(np.mean(labels))
-        total_sum = float(np.sum(centered**2))
+        weights = as_sample_weight(sample_weight, predictions.shape[0])
+        residual_sum = float(np.sum(weights * (labels - predictions) ** 2))
+        mean = float(np.average(labels, weights=weights))
+        centered = labels - mean
+        total_sum = float(np.sum(weights * centered**2))
         if total_sum == 0.0:
             return 1.0 if residual_sum == 0.0 else 0.0
         score = 1.0 - residual_sum / total_sum
@@ -459,12 +470,17 @@ class DecisionTreeRegressor(MPSBoostRegressor):
             verbosity=verbosity,
         )
 
-    def fit(self, X: Any, y: Any) -> "DecisionTreeRegressor":
+    def fit(
+        self,
+        X: Any,
+        y: Any,
+        sample_weight: Any = None,
+    ) -> "DecisionTreeRegressor":
         """Fit exactly one native tree even if private attributes were mutated."""
 
         self.n_estimators = 1
         self.learning_rate = 1.0
-        return super().fit(X, y)
+        return super().fit(X, y, sample_weight=sample_weight)
 
     def _validate_loaded_model(self, model: Any) -> None:
         """Reject boosted ensembles because this estimator promises one tree."""
@@ -519,14 +535,16 @@ class MPSBoostClassifier(MPSBoostRegressor):
         probabilities = self.predict_proba(X)[:, 1]
         return self.classes_[(probabilities >= 0.5).astype(np.int64)]
 
-    def score(self, X: Any, y: Any) -> float:
+    def score(self, X: Any, y: Any, sample_weight: Any = None) -> float:
         """Return binary classification accuracy for sklearn model-selection tools."""
 
         predictions = self.predict(X)
         labels = as_labels(y, predictions.shape[0])
         if not np.all((labels == 0.0) | (labels == 1.0)):
             raise ValueError("binary classification labels must be exactly 0 and 1")
-        return float(np.mean(predictions == labels.astype(np.int64)))
+        weights = as_sample_weight(sample_weight, predictions.shape[0])
+        correct = predictions == labels.astype(np.int64)
+        return float(np.average(correct.astype(np.float64), weights=weights))
 
     def _more_tags(self) -> dict[str, Any]:
         """Return old-style sklearn classifier tags without importing sklearn."""
@@ -659,11 +677,16 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
             cat_features=cat_features,
         )
 
-    def fit(self, X: Any, y: Any) -> "CatBoostRegressor":
+    def fit(
+        self,
+        X: Any,
+        y: Any,
+        sample_weight: Any = None,
+    ) -> "CatBoostRegressor":
         """Fit using the real native boosting path and attach ordered-boosting diagnostics."""
 
         n_samples = as_dense_matrix(X).shape[0]
-        fitted = super().fit(X, y)
+        fitted = super().fit(X, y, sample_weight=sample_weight)
         fitted.training_summary_.update(self._catboost_training_metadata(n_samples))
         return fitted
 
@@ -713,11 +736,16 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
             cat_features=cat_features,
         )
 
-    def fit(self, X: Any, y: Any) -> "CatBoostClassifier":
+    def fit(
+        self,
+        X: Any,
+        y: Any,
+        sample_weight: Any = None,
+    ) -> "CatBoostClassifier":
         """Fit using the real native logistic boosting path and attach ordered diagnostics."""
 
         n_samples = as_dense_matrix(X).shape[0]
-        fitted = super().fit(X, y)
+        fitted = super().fit(X, y, sample_weight=sample_weight)
         fitted.training_summary_.update(self._catboost_training_metadata(n_samples))
         return fitted
 
@@ -754,12 +782,17 @@ class DecisionTreeClassifier(MPSBoostClassifier):
             verbosity=verbosity,
         )
 
-    def fit(self, X: Any, y: Any) -> "DecisionTreeClassifier":
+    def fit(
+        self,
+        X: Any,
+        y: Any,
+        sample_weight: Any = None,
+    ) -> "DecisionTreeClassifier":
         """Fit exactly one native logistic tree even if private attributes were mutated."""
 
         self.n_estimators = 1
         self.learning_rate = 1.0
-        return super().fit(X, y)
+        return super().fit(X, y, sample_weight=sample_weight)
 
     def _validate_loaded_model(self, model: Any) -> None:
         """Reject boosted ensembles because this estimator promises one tree."""
@@ -830,7 +863,12 @@ class _ForestMixin:
         self.bootstrap = bootstrap
         self.n_jobs = n_jobs
 
-    def fit(self, X: Any, y: Any) -> "_ForestMixin":
+    def fit(
+        self,
+        X: Any,
+        y: Any,
+        sample_weight: Any = None,
+    ) -> "_ForestMixin":
         """Train independent native decision trees on sampled rows and feature subsets."""
 
         if not self._fit_lock.acquire(blocking=False):
@@ -839,6 +877,7 @@ class _ForestMixin:
             self._validate_forest_parameters()
             matrix = as_dense_matrix(X)
             labels = self._training_labels(y, matrix.shape[0])
+            weights = as_sample_weight(sample_weight, matrix.shape[0])
             generator = np.random.default_rng(self.random_state)
             jobs = tuple(
                 (
@@ -849,7 +888,7 @@ class _ForestMixin:
             )
             if self.n_jobs == 1:
                 fitted = tuple(
-                    self._fit_one_tree(matrix, labels, row_seed, feature_seed)
+                    self._fit_one_tree(matrix, labels, weights, row_seed, feature_seed)
                     for row_seed, feature_seed in jobs
                 )
             else:
@@ -857,7 +896,7 @@ class _ForestMixin:
                     fitted = tuple(
                         executor.map(
                             lambda seeds: self._fit_one_tree(
-                                matrix, labels, seeds[0], seeds[1]
+                                matrix, labels, weights, seeds[0], seeds[1]
                             ),
                             jobs,
                         )
@@ -874,6 +913,7 @@ class _ForestMixin:
                 "sample_fraction": float(self.sample_fraction),
                 "max_features": float(self.max_features),
                 "n_jobs": self.n_jobs,
+                "weighted": bool(sample_weight is not None),
             }
             self._finalize_fitted_metadata()
             return self
@@ -1007,6 +1047,7 @@ class _ForestMixin:
         self,
         matrix: NDArray[np.float32],
         labels: NDArray[np.float32],
+        sample_weights: NDArray[np.float64],
         row_seed: int,
         feature_seed: int,
     ) -> tuple[DecisionTreeRegressor | DecisionTreeClassifier, NDArray[np.int64]]:
@@ -1014,7 +1055,11 @@ class _ForestMixin:
 
         rows = self._sample_rows(labels, row_seed)
         features = self._sample_features(matrix.shape[1], feature_seed)
-        tree = self._make_tree(feature_seed).fit(matrix[rows][:, features], labels[rows])
+        tree = self._make_tree(feature_seed).fit(
+            matrix[rows][:, features],
+            labels[rows],
+            sample_weight=sample_weights[rows],
+        )
         return tree, features
 
     def _sample_rows(self, labels: NDArray[np.float32], random_state: int) -> NDArray[np.int64]:

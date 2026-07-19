@@ -56,6 +56,7 @@ class RegressionModel final {
   friend RegressionModel TrainRegressionModel(
       const BinnedDataset&,
       const std::vector<double>&,
+      const std::vector<double>&,
       const TrainingParameters&,
       const GradientComputer&,
       const HistogramBuilder&);
@@ -70,6 +71,7 @@ class RegressionModel final {
 RegressionModel TrainRegressionModel(
     const BinnedDataset& dataset,
     const std::vector<double>& labels,
+    const std::vector<double>& sample_weights,
     const TrainingParameters& parameters,
     const GradientComputer& gradient_computer,
     const HistogramBuilder& histogram_builder);

@@ -62,6 +62,47 @@ def test_score_returns_r2_and_requires_fitted_model():
     assert fitted.score(np.ones((3, 1), dtype=np.float32), np.array([1.0, 2.0, 3.0])) == 0.0
 
 
+def test_sample_weight_changes_regression_training_and_score():
+    """Sample weights should flow into native gradients, Hessians, and regression scoring."""
+
+    X = np.ones((3, 1), dtype=np.float32)
+    y = np.array([0.0, 10.0, 10.0], dtype=np.float32)
+    unweighted = MPSBoostRegressor(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+    weighted = MPSBoostRegressor(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y, sample_weight=np.array([10.0, 1.0, 1.0]))
+
+    assert float(weighted.predict(X)[0]) < float(unweighted.predict(X)[0])
+    assert weighted.training_summary_["weighted"] is True
+    assert np.isfinite(weighted.score(X, y, sample_weight=np.array([10.0, 1.0, 1.0])))
+
+
+def test_sample_weight_validates_shape_values_and_total():
+    """Invalid sample weights should fail before device initialization."""
+
+    X = np.ones((3, 1), dtype=np.float32)
+    y = np.array([0.0, 1.0, 2.0], dtype=np.float32)
+    model = MPSBoostRegressor(device="cpu")
+    with pytest.raises(ValueError, match="length"):
+        model.fit(X, y, sample_weight=np.ones(2))
+    with pytest.raises(ValueError, match="finite"):
+        model.fit(X, y, sample_weight=np.array([1.0, np.nan, 1.0]))
+    with pytest.raises(ValueError, match="non-negative"):
+        model.fit(X, y, sample_weight=np.array([1.0, -1.0, 1.0]))
+    with pytest.raises(ValueError, match="positive"):
+        model.fit(X, y, sample_weight=np.zeros(3))
+
+
 def test_feature_importance_reads_native_tree_splits():
     """feature_importances_ must be derived from real fitted tree nodes, not a mock summary."""
 
@@ -262,6 +303,27 @@ def test_binary_classifier_trains_predicts_probabilities_and_scores():
     assert predictions.tolist() == y.tolist()
     assert model.score(X, y) == 1.0
     assert model.feature_importances_.shape == (1,)
+
+
+def test_sample_weight_changes_classifier_score():
+    """Classifier score should use weighted accuracy when sample_weight is provided."""
+
+    X = np.array([[0.0], [1.0], [2.0], [3.0]], dtype=np.float32)
+    y = np.array([0, 0, 1, 1], dtype=np.int64)
+    model = MPSBoostClassifier(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    assert model.score(X, np.array([0, 1, 1, 1])) == 0.75
+    assert model.score(
+        X,
+        np.array([0, 1, 1, 1]),
+        sample_weight=np.array([10.0, 1.0, 1.0, 1.0]),
+    ) == pytest.approx(3.0 / 13.0)
 
 
 def test_binary_classifier_rejects_non_binary_training_labels():
@@ -466,6 +528,26 @@ def test_random_forest_regressor_trains_independent_native_trees():
     assert predictions.shape == (6,)
     assert model.score(X, y) > 0.0
     assert model.feature_importances_.shape == (2,)
+
+
+def test_random_forest_forwards_sample_weight_to_native_trees():
+    """Forest row sampling should slice sample weights together with labels and features."""
+
+    X = np.ones((4, 1), dtype=np.float32)
+    y = np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32)
+    model = RandomForestRegressor(
+        n_estimators=2,
+        max_depth=0,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        bootstrap=False,
+        random_state=19,
+        device="cpu",
+    ).fit(X, y, sample_weight=np.array([10.0, 10.0, 1.0, 1.0]))
+
+    assert float(model.predict(X)[0]) < 5.0
+    assert model.training_summary_["weighted"] is True
 
 
 def test_random_forest_classifier_trains_independent_native_trees():

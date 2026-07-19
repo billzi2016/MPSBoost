@@ -58,6 +58,10 @@ restored.load_model("model.mb")
 `MPSBoostRegressor` remains available as a backwards-compatible project-branded alias for
 the same implementation.
 
+`fit(..., sample_weight=...)` and `score(..., sample_weight=...)` are supported by the shared
+CPU/MPS training path. Weights are applied to native gradients, Hessians, split gains, leaf values,
+and default estimator scores rather than handled as a Python-only post-processing step.
+
 ## sklearn model selection
 
 MPSBoost estimators are designed to follow the sklearn estimator protocol, so users should be
