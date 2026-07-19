@@ -365,8 +365,35 @@ def test_random_forest_classifier_trains_independent_native_trees():
     assert model.score(X, y) >= 5.0 / 6.0
 
 
-def test_random_forest_validates_parameters_and_model_io_boundary(tmp_path):
-    """Forest parameter and model I/O boundaries should fail explicitly."""
+def test_random_forest_random_state_is_deterministic():
+    """The same random_state should reproduce row and feature sampling exactly."""
+
+    X = np.array(
+        [[0.0, 1.0], [0.1, 1.0], [1.0, 0.0], [1.1, 0.0], [2.0, 1.0], [2.1, 1.0]],
+        dtype=np.float32,
+    )
+    y = np.array([0.0, 0.0, 4.0, 4.0, 8.0, 8.0], dtype=np.float32)
+    parameters = dict(
+        n_estimators=3,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        max_features=0.5,
+        sample_fraction=0.8,
+        random_state=23,
+        device="cpu",
+    )
+    first = RandomForestRegressor(**parameters).fit(X, y)
+    second = RandomForestRegressor(**parameters).fit(X, y)
+
+    np.testing.assert_allclose(first.predict(X), second.predict(X))
+    assert [item.tolist() for item in first.feature_subsets_] == [
+        item.tolist() for item in second.feature_subsets_
+    ]
+
+
+def test_random_forest_validates_parameters():
+    """Forest parameter boundaries should fail explicitly."""
 
     X = np.ones((4, 1), dtype=np.float32)
     y = np.array([0.0, 0.0, 1.0, 1.0], dtype=np.float32)
@@ -374,12 +401,3 @@ def test_random_forest_validates_parameters_and_model_io_boundary(tmp_path):
         RandomForestRegressor(max_features=0.0, device="cpu").fit(X, y)
     with pytest.raises(TypeError, match="bootstrap"):
         RandomForestRegressor(bootstrap=1, device="cpu").fit(X, y)
-
-    fitted = RandomForestRegressor(
-        n_estimators=1,
-        max_depth=0,
-        min_samples_leaf=1,
-        device="cpu",
-    ).fit(X, y)
-    with pytest.raises(NotImplementedError, match="model I/O"):
-        fitted.save_model(tmp_path / "forest.mb")

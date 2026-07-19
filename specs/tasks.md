@@ -124,7 +124,7 @@
 - [x] S11.2 Implement `RandomForestRegressor.fit/predict` using independent native decision trees.
 - [x] S11.3 Implement `RandomForestClassifier.fit/predict/predict_proba` using independent native decision trees.
 - [ ] S11.4 实现独立树批量训练调度和共享 MPS 热路径。
-- [ ] S11.5 完成回归平均、分类投票、随机种子和模型 I/O 测试。
+- [x] S11.5 Complete regression averaging, classification probability aggregation, random seed, and model I/O tests.
 - [ ] S11.6 验收 G10：Random Forest 端到端真实可用，性能和退化区间有记录。
 
 ## S12：ExtraTrees

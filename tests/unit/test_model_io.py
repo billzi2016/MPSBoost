@@ -14,6 +14,8 @@ from mpsboost import (
     DecisionTreeRegressor,
     MPSBoostClassifier,
     MPSBoostRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
 )
 
 
@@ -116,6 +118,69 @@ def test_decision_tree_classifier_round_trip(tmp_path):
     restored = DecisionTreeClassifier(device="cpu").load_model(path)
 
     np.testing.assert_allclose(restored.predict_proba(X), original.predict_proba(X))
+
+
+def test_random_forest_regressor_round_trip_preserves_predictions(tmp_path):
+    """Forest containers should preserve native per-tree model bytes and feature subsets."""
+
+    X = np.array([[0.0, 1.0], [0.1, 1.0], [1.0, 0.0], [1.1, 0.0]], dtype=np.float32)
+    y = np.array([0.0, 0.0, 4.0, 4.0], dtype=np.float32)
+    original = RandomForestRegressor(
+        n_estimators=2,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=13,
+        device="cpu",
+    ).fit(X, y)
+    path = tmp_path / "forest_regressor.mb"
+    original.save_model(path)
+    restored = RandomForestRegressor(device="cpu").load_model(path)
+
+    np.testing.assert_allclose(restored.predict(X), original.predict(X))
+    assert restored.feature_subsets_[0].tolist() == original.feature_subsets_[0].tolist()
+
+
+def test_random_forest_classifier_round_trip_preserves_probabilities(tmp_path):
+    """Classifier forest containers should restore class probabilities exactly enough."""
+
+    X = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y = np.array([0, 0, 1, 1], dtype=np.int64)
+    original = RandomForestClassifier(
+        n_estimators=2,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=17,
+        device="cpu",
+    ).fit(X, y)
+    path = tmp_path / "forest_classifier.mb"
+    original.save_model(path)
+    restored = RandomForestClassifier(device="cpu").load_model(path)
+
+    np.testing.assert_allclose(restored.predict_proba(X), original.predict_proba(X))
+
+
+def test_random_forest_rejects_incompatible_container_type(tmp_path):
+    """Regressor and classifier forest containers must not be interchangeable."""
+
+    X = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y = np.array([0, 0, 1, 1], dtype=np.int64)
+    path = tmp_path / "forest_classifier.mb"
+    RandomForestClassifier(
+        n_estimators=1,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=19,
+        device="cpu",
+    ).fit(X, y).save_model(path)
+
+    with pytest.raises(ValueError, match="incompatible"):
+        RandomForestRegressor(device="cpu").load_model(path)
 
 
 @pytest.mark.parametrize("mutation", ["truncate", "checksum", "major"])
