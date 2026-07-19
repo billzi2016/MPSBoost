@@ -5,7 +5,7 @@
 
 MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its current accelerated backend uses custom Metal compute kernels for squared-error gradients and two-stage histogram construction while keeping one deterministic tree-building implementation shared with the CPU oracle.
 
-> **Development status:** `0.2.0rc0` is the cache and stability release candidate. It supports dense numeric regression with a real MPS training path, split-scan and partition kernels, histogram subtraction, buffer reuse, explicit cache management, and documented performance boundaries.
+> **Development status:** `0.2.0` is the first stable 0.x MPS histogram engine release. It supports dense numeric regression with a real MPS training path, split-scan and partition kernels, histogram subtraction, buffer reuse, explicit cache management, and documented performance boundaries.
 
 ## Installation
 
@@ -69,6 +69,16 @@ The public API currently includes `MPSBoostRegressor`, cache diagnostics and man
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 
 Classification, missing values, sparse matrices, categorical features, sampling, early stopping, public GPU prediction, and full third-party API compatibility are not implemented in this milestone. Small datasets are expected to be slower on the GPU because fixed device setup and synchronization costs dominate; the checked-in benchmark report preserves this regression region alongside larger wins.
+
+## Release audits
+
+The `0.2.0` release gate includes:
+
+- CPU, packaging, integration, and real Metal GPU tests on Python 3.10 and 3.13.
+- Wheel content checks excluding specs, tests, caches, and build artifacts.
+- Dynamic-link checks for the native extension.
+- Apache-2.0 project licensing and runtime dependency review.
+- Fresh PyPI installation and real MPS smoke validation.
 
 ## Independence notice
 

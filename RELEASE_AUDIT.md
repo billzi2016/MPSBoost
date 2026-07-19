@@ -1,0 +1,86 @@
+# MPSBoost 0.2.0 Release Audit
+
+This document records the release gate for the `0.2.0` MPS histogram engine
+milestone.
+
+## Scope
+
+`0.2.0` supports:
+
+- dense numeric regression;
+- squared-error objective;
+- deterministic quantization;
+- depth-limited histogram trees;
+- real MPS gradient, histogram, split-scan, partition, and buffer-pool paths;
+- explicit CPU oracle mode;
+- model save/load;
+- cache diagnostics, explicit cache creation, and safe cache clearing.
+
+Not included:
+
+- classification;
+- sparse matrices;
+- missing values;
+- categorical features;
+- sampling;
+- early stopping;
+- public GPU prediction;
+- full third-party API compatibility.
+
+## License
+
+- Project license: Apache-2.0.
+- Runtime dependency: NumPy, with permissive license expression reported by
+  package metadata.
+- Build/test-only dependencies are not bundled into runtime wheels.
+- The wheel must include the project `LICENSE` file.
+
+## Wheel Content Rules
+
+The release wheel must contain only runtime package files:
+
+- Python package files;
+- the native extension;
+- the compiled Metal shader library;
+- package metadata and license metadata.
+
+The release wheel must not contain:
+
+- `specs/`;
+- `tests/`;
+- `benchmarks/`;
+- `.github/`;
+- build directories;
+- cache directories;
+- raw `.metal`, `.air`, or temporary shader files;
+- credentials or runner files.
+
+## Dynamic Link Rules
+
+The native extension may link to macOS system libraries and frameworks required
+for Python, C++, Objective-C runtime, Foundation, CoreFoundation, and Metal.
+It must not link to heavyweight ML runtimes or private project-local absolute
+paths.
+
+## Validation Matrix
+
+Required before publishing `0.2.0`:
+
+- local full test suite;
+- GitHub hosted CPU/package tests for Python 3.10 and 3.13;
+- self-hosted real Metal GPU tests for Python 3.10 and 3.13;
+- `twine check` for the exact uploaded wheels;
+- fresh PyPI install and real MPS smoke test.
+
+## Benchmark Evidence
+
+Checked-in benchmark results:
+
+- `benchmarks/results/s4-m2-ultra-py313.json`
+- `benchmarks/results/s4-m2-ultra-py313.md`
+- `benchmarks/results/s6-m2-ultra-py313.json`
+- `benchmarks/results/s6-m2-ultra-py313.md`
+
+The S6 report records both GPU wins and small-data regressions. The
+`gbdt-large-wide` end-to-end scenario reached a 1.629x median speedup on the
+recorded M2 Ultra validation machine.

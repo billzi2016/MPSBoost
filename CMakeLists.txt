@@ -36,7 +36,7 @@ if(DEFINED SKBUILD_PROJECT_VERSION_FULL)
   # FULL 保留 a1、rc1 等预发布后缀；非 FULL 变量只含基础三段版本。
   set(MPSBOOST_VERSION "${SKBUILD_PROJECT_VERSION_FULL}")
 else()
-  set(MPSBOOST_VERSION "0.2.0rc0")
+  set(MPSBOOST_VERSION "0.2.0")
 endif()
 
 configure_file(
