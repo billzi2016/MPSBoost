@@ -133,7 +133,7 @@ The intended long-term policy is:
 
 - `device="cpu"` forces the in-project CPU backend.
 - `device="mps"` forces the in-project MPS/Metal backend.
-- `device="auto"` will choose CPU for small or synchronization-heavy workloads and MPS for
+- `device="auto"` chooses CPU for small or synchronization-heavy workloads and MPS for
   workloads where the measured tree hot path can dominate transfer and launch overhead.
 
 MPS is an acceleration backend, not a requirement. If CPU is faster or more stable for a given

@@ -78,3 +78,20 @@ def test_dense_adapter_rejects_sparse_complex_and_invalid_rank():
         model.fit(np.ones((2, 1), dtype=np.complex64), np.ones(2))
     with pytest.raises(ValueError, match="二维"):
         model.fit(np.ones(2), np.ones(2))
+
+
+def test_auto_device_selects_cpu_for_small_workloads():
+    """device='auto' should select CPU for small jobs and record the decision."""
+
+    model = MPSBoostRegressor(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        max_bins=16,
+        device="auto",
+    ).fit(np.ones((3, 1), dtype=np.float32), np.array([1.0, 2.0, 3.0]))
+
+    assert model.device_ == "cpu"
+    assert model.device_decision_["requested"] == "auto"
+    assert model.device_decision_["selected"] == "cpu"
+    assert model.training_summary_["device_decision"] == model.device_decision_

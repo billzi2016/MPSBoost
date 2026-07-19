@@ -16,6 +16,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from . import _native
+from .device_policy import choose_device, decision_to_dict
 from .diagnostics import _metallib_path, is_available
 from .matrix import as_dense_matrix, as_labels
 
@@ -120,9 +121,18 @@ class MPSBoostRegressor:
                 self.min_child_weight,
                 self.reg_lambda,
             )
+            mps_available = is_available()
+            device_decision = choose_device(
+                requested=self.device,
+                n_samples=matrix.shape[0],
+                n_features=matrix.shape[1],
+                n_estimators=self.n_estimators,
+                max_bins=self.max_bins,
+                mps_available=mps_available,
+            )
             started = perf_counter()
-            if self.device == "mps":
-                if not is_available():
+            if device_decision.selected == "mps":
+                if not mps_available:
                     raise _native.BackendError(
                         "MPS 后端不可用；请在受支持的 Apple Silicon Mac 上运行"
                     )
@@ -138,12 +148,14 @@ class MPSBoostRegressor:
             # input errors must not leave a half-trained model behind.
             self.model_ = candidate
             self.n_features_in_ = matrix.shape[1]
-            self.device_ = self.device
+            self.device_ = device_decision.selected
+            self.device_decision_ = decision_to_dict(device_decision)
             self.n_estimators_ = candidate.tree_count
             self.training_summary_ = {
                 "fit_seconds": elapsed,
                 "input_contiguous": bool(matrix.flags.c_contiguous),
-                "device": self.device,
+                "device": device_decision.selected,
+                "device_decision": self.device_decision_,
                 "n_estimators": candidate.tree_count,
             }
             return self
@@ -206,9 +218,9 @@ class MPSBoostRegressor:
             candidate = _native._load_regression_model(str(path))
             self.model_ = candidate
             self.n_features_in_ = candidate.feature_count
-            self.device_ = self.device
+            self.device_ = self.device if self.device != "auto" else "cpu"
             self.n_estimators_ = candidate.tree_count
-            self.training_summary_ = {"loaded": True, "device": self.device}
+            self.training_summary_ = {"loaded": True, "device": self.device_}
             return self
         finally:
             self._fit_lock.release()
@@ -227,6 +239,7 @@ class MPSBoostRegressor:
             "model_",
             "n_features_in_",
             "device_",
+            "device_decision_",
             "n_estimators_",
             "training_summary_",
         ):
@@ -261,8 +274,8 @@ class MPSBoostRegressor:
             if not np.isfinite(numeric) or not valid_lower or numeric > upper:
                 bracket = "[" if lower_inclusive else "("
                 raise ValueError(f"{name} 必须位于 {bracket}{lower}, {upper}]")
-        if self.device not in {"mps", "cpu"}:
-            raise ValueError("device 只能是 'mps' 或 'cpu'")
+        if self.device not in {"mps", "cpu", "auto"}:
+            raise ValueError("device 只能是 'mps'、'cpu' 或 'auto'")
         if self.random_state is not None and (
             isinstance(self.random_state, bool) or not isinstance(self.random_state, int)
         ):

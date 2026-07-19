@@ -27,6 +27,7 @@ from .diagnostics import (
     is_available,
     system_info,
 )
+from .device_policy import DeviceDecision, choose_device
 from .estimator import MPSBoostRegressor
 from .families import (
     TreeFamilySpec,
@@ -55,6 +56,7 @@ GradientBoostingRegressor = MPSBoostRegressor
 
 # Maintain __all__ explicitly so ``from mpsboost import *`` does not leak helper modules.
 __all__ = [
+    "DeviceDecision",
     "EarlyStoppingDecision",
     "EarlyStoppingMonitor",
     "EstimatorCapability",
@@ -67,6 +69,7 @@ __all__ = [
     "bootstrap_sample_indices",
     "cache_info",
     "clear_cache",
+    "choose_device",
     "create_cache",
     "estimator_capability",
     "estimator_capabilities",
