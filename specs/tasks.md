@@ -114,7 +114,7 @@
 - [x] S10.1 实现二分类 logistic objective 的唯一数学语义。
 - [x] S10.2 Implement `GradientBoostingClassifier` / `MPSBoostClassifier` fit, predict, and predict_proba for strict binary 0/1 labels.
 - [x] S10.3 实现 early stopping、验证集监控和训练诊断。
-- [ ] S10.4 完成 CPU oracle、真实 MPS、模型 I/O 和集成测试。
+- [x] S10.4 Complete CPU oracle, real MPS, model I/O, and integration tests.
 - [ ] S10.5 验收 G9：分类 GBDT 正确、稳定、真实 MPS 加速且无静默回退。
 
 ## S11：Random Forest
