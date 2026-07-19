@@ -1,9 +1,14 @@
 """Real sklearn compatibility tests for estimator protocol behavior."""
 
 import numpy as np
-from sklearn.base import clone
-from sklearn.model_selection import GridSearchCV, cross_val_score
-from sklearn.utils import get_tags
+import pytest
+
+sklearn = pytest.importorskip("sklearn")
+clone = pytest.importorskip("sklearn.base").clone
+model_selection = pytest.importorskip("sklearn.model_selection")
+GridSearchCV = model_selection.GridSearchCV
+cross_val_score = model_selection.cross_val_score
+get_tags = pytest.importorskip("sklearn.utils").get_tags
 
 import mpsboost as mb
 
