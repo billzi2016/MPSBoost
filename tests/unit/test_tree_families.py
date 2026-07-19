@@ -89,8 +89,6 @@ def test_planned_tree_families_are_specs_not_fake_classes():
 
     planned = set(mb.planned_estimators())
     assert {
-        "CatBoostRegressor",
-        "CatBoostClassifier",
         "IsolationForest",
         "LearningToRankRegressor",
     } <= planned
@@ -99,6 +97,22 @@ def test_planned_tree_families_are_specs_not_fake_classes():
         assert not hasattr(mb, name)
         capability = mb.estimator_capability(name)
         assert capability.family.supports_mps_training is False
+
+
+def test_available_catboost_like_estimators_have_ordered_boosting_contracts():
+    """CatBoost-like estimators should be public and wired to ordered-boosting specs."""
+
+    regressor = mb.estimator_capability("CatBoostRegressor")
+    classifier = mb.estimator_capability("CatBoostClassifier")
+
+    assert mb.CatBoostRegressor.__name__ == "CatBoostRegressor"
+    assert mb.CatBoostClassifier.__name__ == "CatBoostClassifier"
+    assert regressor.family_key == "catboost_regression"
+    assert regressor.family.growth == "ordered_boosting"
+    assert regressor.family.supports_mps_training is True
+    assert classifier.family_key == "catboost_classification"
+    assert classifier.family.task == "classification"
+    assert classifier.family.supports_mps_training is True
 
 
 def test_family_specs_cover_every_estimator_capability_once():

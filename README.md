@@ -106,7 +106,7 @@ libraries by changing the import and keeping familiar model names.
 | Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Available |
 | Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Available |
 | Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Available |
-| CatBoost-like ordered boosting | `CatBoostRegressor`, `CatBoostClassifier` | Planned |
+| CatBoost-like ordered boosting | `CatBoostRegressor`, `CatBoostClassifier` | Available for numeric features |
 | Isolation forest | `IsolationForest` | Planned |
 | Ranking trees | `LearningToRankRegressor` | Planned |
 
@@ -121,7 +121,7 @@ import mpsboost as mb
 
 print(mb.available_estimators())
 print(mb.planned_estimators())
-mb.require_estimator_supported("CatBoostRegressor")  # raises NotImplementedError today
+mb.require_estimator_supported("CatBoostRegressor")
 ```
 
 The `0.3.0` milestone is reserved for the v2 arboretum foundation: one shared tree-family
@@ -130,8 +130,9 @@ and early-failure behavior for models that are not implemented yet. It should no
 a pile of placeholder classes.
 
 Random forest row sampling, feature subsampling, ExtraTrees random thresholds, and CatBoost-like
-ordered permutations share one deterministic randomization contract. This keeps planned model
-families aligned before their MPS training kernels are exposed as public estimators.
+ordered permutations share one deterministic randomization contract. CatBoost-like estimators use
+the native histogram boosting path today and reject categorical-feature parameters until native
+categorical split semantics are implemented.
 
 Validation metric history and early stopping also share one estimator-independent monitoring
 contract, so future classifiers and tree ensembles do not duplicate callback semantics.

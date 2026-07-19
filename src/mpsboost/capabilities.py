@@ -112,13 +112,13 @@ _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
     EstimatorCapability(
         name="CatBoostRegressor",
         family_key="catboost_regression",
-        status="planned",
+        status="available",
         primary=True,
     ),
     EstimatorCapability(
         name="CatBoostClassifier",
         family_key="catboost_classification",
-        status="planned",
+        status="available",
         primary=True,
     ),
     EstimatorCapability(

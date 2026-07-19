@@ -20,6 +20,8 @@ def test_completed_estimators_are_public():
     assert mb.MPSBoostRegressor.__name__ == "MPSBoostRegressor"
     assert mb.GradientBoostingClassifier.__name__ == "MPSBoostClassifier"
     assert set(mb.__all__) == {
+        "CatBoostClassifier",
+        "CatBoostRegressor",
         "DecisionTreeClassifier",
         "DecisionTreeRegressor",
         "EstimatorCapability",
@@ -64,8 +66,8 @@ def test_completed_estimators_are_public():
     }
 
 
-def test_estimator_capability_registry_fails_early_for_planned_models():
-    """Planned tree names must be discoverable without exporting fake estimator classes."""
+def test_estimator_capability_registry_reports_available_and_planned_models():
+    """The registry should expose completed estimators and still fail early for planned names."""
 
     assert mb.estimator_status("GradientBoostingRegressor") == "available"
     assert mb.estimator_capability("GradientBoostingRegressor").family.task == (
@@ -84,21 +86,18 @@ def test_estimator_capability_registry_fails_early_for_planned_models():
         "ExtraTreeClassifier",
         "DecisionTreeRegressor",
         "DecisionTreeClassifier",
+        "CatBoostRegressor",
+        "CatBoostClassifier",
     )
     assert mb.estimator_status("GradientBoostingClassifier") == "available"
     assert mb.estimator_status("DecisionTreeRegressor") == "available"
     assert mb.estimator_status("RandomForestRegressor") == "available"
     assert mb.estimator_status("ExtraTreesClassifier") == "available"
-    assert "CatBoostRegressor" in mb.planned_estimators()
-    assert "CatBoostClassifier" in mb.planned_estimators()
-    assert not hasattr(mb, "CatBoostRegressor")
-
-    try:
-        mb.require_estimator_supported("CatBoostRegressor")
-    except NotImplementedError as exc:
-        assert "planned for MPSBoost v2" in str(exc)
-    else:
-        raise AssertionError("planned estimator did not fail early")
+    assert mb.estimator_status("CatBoostRegressor") == "available"
+    assert mb.estimator_status("CatBoostClassifier") == "available"
+    assert hasattr(mb, "CatBoostRegressor")
+    assert hasattr(mb, "CatBoostClassifier")
+    mb.require_estimator_supported("CatBoostRegressor")
 
     try:
         mb.estimator_status("DefinitelyNotAnEstimator")

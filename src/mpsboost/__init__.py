@@ -29,6 +29,8 @@ from .diagnostics import (
 )
 from .device_policy import DeviceDecision, choose_device
 from .estimator import (
+    CatBoostClassifier,
+    CatBoostRegressor,
     DecisionTreeClassifier,
     DecisionTreeRegressor,
     ExtraTreeClassifier,
@@ -68,6 +70,8 @@ GradientBoostingClassifier = MPSBoostClassifier
 
 # Maintain __all__ explicitly so ``from mpsboost import *`` does not leak helper modules.
 __all__ = [
+    "CatBoostClassifier",
+    "CatBoostRegressor",
     "DeviceDecision",
     "DecisionTreeClassifier",
     "DecisionTreeRegressor",
