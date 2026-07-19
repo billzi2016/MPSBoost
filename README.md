@@ -2,8 +2,11 @@
 
 [![PyPI](https://img.shields.io/pypi/v/mpsboost)](https://pypi.org/project/mpsboost/)
 [![Python](https://img.shields.io/pypi/pyversions/mpsboost)](https://pypi.org/project/mpsboost/)
+[![README](https://img.shields.io/badge/README-English%20%7C%20%E4%B8%AD%E6%96%87-blue)](#mpsboost)
 
 MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its current accelerated backend uses custom Metal compute kernels for squared-error gradients and two-stage histogram construction while keeping one deterministic tree-building implementation shared with the CPU oracle.
+
+中文：MPSBoost 是面向 Apple Silicon 的树模型加速项目，目标是在低依赖、低权限、易安装的前提下，为 GBDT、分类树、随机森林等模型提供统一的 CPU/MPS 后端。
 
 > **Development status:** `0.2.0` is the first stable 0.x MPS histogram engine release. It supports dense numeric regression with a real MPS training path, split-scan and partition kernels, histogram subtraction, buffer reuse, explicit cache management, and documented performance boundaries.
 
@@ -96,7 +99,7 @@ libraries by changing the import and keeping familiar model names.
 | --- | --- | --- |
 | Histogram gradient boosting | `GradientBoostingRegressor` | Available |
 | Histogram gradient boosting classification | `GradientBoostingClassifier` | Available for strict binary 0/1 labels |
-| Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Available; model I/O is planned |
+| Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Available |
 | Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Planned |
 | Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Available |
 | CatBoost-like ordered boosting | `CatBoostRegressor`, `CatBoostClassifier` | Planned |
