@@ -85,6 +85,12 @@ add_custom_target(mpsboost_metallib ALL DEPENDS "${MPSBOOST_METALLIB_OUTPUT}")
 pybind11_add_module(
   _native MODULE
   src/python/bindings.cpp
+  src/python/binding_backend.cpp
+  src/python/binding_dataset.cpp
+  src/python/binding_dataset_tools.cpp
+  src/python/binding_helpers.cpp
+  src/python/binding_model.cpp
+  src/python/binding_objective.cpp
   src/core/binned_dataset.cpp
   src/core/objective.cpp
   src/core/tree.cpp
