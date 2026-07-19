@@ -121,8 +121,8 @@
 
 - [x] S11.1 实现 bootstrap/无放回采样和特征子采样。
 - [x] S11.1a Implement `DecisionTreeRegressor` and `DecisionTreeClassifier` as one-tree native estimators.
-- [ ] S11.2 实现 `MPSRandomForestRegressor`。
-- [ ] S11.3 实现 `MPSRandomForestClassifier`。
+- [x] S11.2 Implement `RandomForestRegressor.fit/predict` using independent native decision trees.
+- [x] S11.3 Implement `RandomForestClassifier.fit/predict/predict_proba` using independent native decision trees.
 - [ ] S11.4 实现独立树批量训练调度和共享 MPS 热路径。
 - [ ] S11.5 完成回归平均、分类投票、随机种子和模型 I/O 测试。
 - [ ] S11.6 验收 G10：Random Forest 端到端真实可用，性能和退化区间有记录。

@@ -29,6 +29,8 @@ def test_completed_estimators_are_public():
         "MPSBoostRegressor",
         "MetricHistory",
         "MetricObservation",
+        "RandomForestClassifier",
+        "RandomForestRegressor",
         "EarlyStoppingDecision",
         "EarlyStoppingMonitor",
         "DeviceDecision",
@@ -70,20 +72,21 @@ def test_estimator_capability_registry_fails_early_for_planned_models():
         "MPSBoostRegressor",
         "GradientBoostingClassifier",
         "MPSBoostClassifier",
+        "RandomForestRegressor",
+        "RandomForestClassifier",
         "DecisionTreeRegressor",
         "DecisionTreeClassifier",
     )
     assert mb.estimator_status("GradientBoostingClassifier") == "available"
     assert mb.estimator_status("DecisionTreeRegressor") == "available"
-    assert "RandomForestRegressor" in mb.planned_estimators()
+    assert mb.estimator_status("RandomForestRegressor") == "available"
     assert "ExtraTreesClassifier" in mb.planned_estimators()
     assert "CatBoostRegressor" in mb.planned_estimators()
     assert "CatBoostClassifier" in mb.planned_estimators()
-    assert not hasattr(mb, "RandomForestRegressor")
     assert not hasattr(mb, "CatBoostRegressor")
 
     try:
-        mb.require_estimator_supported("RandomForestRegressor")
+        mb.require_estimator_supported("ExtraTreesRegressor")
     except NotImplementedError as exc:
         assert "planned for MPSBoost v2" in str(exc)
     else:

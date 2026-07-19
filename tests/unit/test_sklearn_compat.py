@@ -151,3 +151,40 @@ def test_decision_tree_estimators_follow_standard_sklearn_protocol():
     classifier_search.fit(X_clf, y_clf)
 
     assert isinstance(classifier_search.best_estimator_, mb.DecisionTreeClassifier)
+
+
+def test_random_forest_estimators_follow_standard_sklearn_protocol():
+    """Random forest estimators should clone and tune through standard sklearn tools."""
+
+    X_reg = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y_reg = np.array([0.0, 0.0, 4.0, 4.0], dtype=np.float32)
+    regressor = mb.RandomForestRegressor(
+        n_estimators=2,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=1,
+        device="cpu",
+    )
+    assert clone(regressor).get_params() == regressor.get_params()
+    assert cross_val_score(regressor, X_reg, y_reg, cv=2).shape == (2,)
+
+    X_clf = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y_clf = np.array([0, 0, 1, 1], dtype=np.int64)
+    classifier_search = GridSearchCV(
+        mb.RandomForestClassifier(
+            n_estimators=2,
+            min_samples_leaf=1,
+            min_child_weight=0.0,
+            sample_fraction=1.0,
+            random_state=2,
+            device="cpu",
+        ),
+        param_grid={"max_depth": [0, 1]},
+        cv=2,
+        n_jobs=1,
+    )
+    classifier_search.fit(X_clf, y_clf)
+
+    assert isinstance(classifier_search.best_estimator_, mb.RandomForestClassifier)

@@ -62,13 +62,13 @@ _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
     EstimatorCapability(
         name="RandomForestRegressor",
         family_key="random_forest_regression",
-        status="planned",
+        status="available",
         primary=True,
     ),
     EstimatorCapability(
         name="RandomForestClassifier",
         family_key="random_forest_classification",
-        status="planned",
+        status="available",
         primary=True,
     ),
     EstimatorCapability(

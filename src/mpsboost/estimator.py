@@ -19,6 +19,11 @@ from . import _native
 from .device_policy import choose_device, decision_to_dict
 from .diagnostics import _metallib_path, is_available
 from .matrix import as_dense_matrix, as_labels
+from .randomization import (
+    bootstrap_sample_indices,
+    sample_without_replacement_indices,
+    subsample_feature_indices,
+)
 
 
 class NotFittedError(RuntimeError):
@@ -574,3 +579,251 @@ class DecisionTreeClassifier(MPSBoostClassifier):
 
         if model.tree_count != 1:
             raise ValueError("DecisionTreeClassifier can only load one-tree models")
+
+
+class _ForestMixin:
+    """Shared random-forest training, prediction, and importance logic."""
+
+    _tree_type: type[DecisionTreeRegressor] | type[DecisionTreeClassifier]
+    _PARAMETER_NAMES = (
+        "n_estimators",
+        "max_depth",
+        "max_bins",
+        "min_child_weight",
+        "min_samples_leaf",
+        "reg_lambda",
+        "max_features",
+        "sample_fraction",
+        "bootstrap",
+        "random_state",
+        "device",
+        "verbosity",
+    )
+
+    def __init__(
+        self,
+        n_estimators: int = 100,
+        max_depth: int = 6,
+        max_bins: int = 256,
+        min_child_weight: float = 1.0,
+        min_samples_leaf: int = 20,
+        reg_lambda: float = 1.0,
+        max_features: float = 1.0,
+        sample_fraction: float = 1.0,
+        bootstrap: bool = True,
+        random_state: int | None = None,
+        device: str = "mps",
+        verbosity: int = 1,
+    ) -> None:
+        """Store forest parameters without allocating trees or device resources."""
+
+        super().__init__(
+            n_estimators=n_estimators,
+            learning_rate=1.0,
+            max_depth=max_depth,
+            max_bins=max_bins,
+            min_child_weight=min_child_weight,
+            min_samples_leaf=min_samples_leaf,
+            reg_lambda=reg_lambda,
+            random_state=random_state,
+            device=device,
+            verbosity=verbosity,
+        )
+        self.max_features = max_features
+        self.sample_fraction = sample_fraction
+        self.bootstrap = bootstrap
+
+    def fit(self, X: Any, y: Any) -> "_ForestMixin":
+        """Train independent native decision trees on sampled rows and feature subsets."""
+
+        if not self._fit_lock.acquire(blocking=False):
+            raise RuntimeError("concurrent fit is not supported for one estimator")
+        try:
+            self._validate_forest_parameters()
+            matrix = as_dense_matrix(X)
+            labels = self._training_labels(y, matrix.shape[0])
+            generator = np.random.default_rng(self.random_state)
+            estimators: list[DecisionTreeRegressor | DecisionTreeClassifier] = []
+            feature_subsets: list[NDArray[np.int64]] = []
+            for _ in range(self.n_estimators):
+                row_seed = int(generator.integers(0, np.iinfo(np.int32).max))
+                feature_seed = int(generator.integers(0, np.iinfo(np.int32).max))
+                rows = self._sample_rows(labels, row_seed)
+                features = self._sample_features(matrix.shape[1], feature_seed)
+                tree = self._make_tree(feature_seed).fit(
+                    matrix[rows][:, features],
+                    labels[rows],
+                )
+                estimators.append(tree)
+                feature_subsets.append(features)
+            self.estimators_ = tuple(estimators)
+            self.feature_subsets_ = tuple(feature_subsets)
+            self.n_features_in_ = matrix.shape[1]
+            self.n_estimators_ = len(estimators)
+            self.device_ = self.device
+            self.training_summary_ = {
+                "n_estimators": len(estimators),
+                "bootstrap": self.bootstrap,
+                "sample_fraction": float(self.sample_fraction),
+                "max_features": float(self.max_features),
+            }
+            self._finalize_fitted_metadata()
+            return self
+        except Exception:
+            self._clear_fitted_state()
+            raise
+        finally:
+            self._fit_lock.release()
+
+    def feature_importance(self, kind: str = "gain") -> NDArray[np.float32]:
+        """Aggregate native per-tree feature importance back into original feature space."""
+
+        self._require_model()
+        if kind not in {"gain", "split"}:
+            raise ValueError("feature importance kind must be 'gain' or 'split'")
+        values = np.zeros(self.n_features_in_, dtype=np.float64)
+        for tree, features in zip(self.estimators_, self.feature_subsets_):
+            local = tree.feature_importance(kind=kind).astype(np.float64, copy=False)
+            values[features] += local
+        total = float(values.sum())
+        if total > 0.0:
+            values /= total
+        return values.astype(np.float32, copy=False)
+
+    def save_model(self, path: str | Path) -> None:
+        """Fail explicitly until the stable multi-tree forest model format is implemented."""
+
+        del path
+        raise NotImplementedError("random forest model I/O is not implemented yet")
+
+    def load_model(self, path: str | Path) -> "_ForestMixin":
+        """Fail explicitly until the stable multi-tree forest model format is implemented."""
+
+        del path
+        raise NotImplementedError("random forest model I/O is not implemented yet")
+
+    def _require_model(self) -> tuple[DecisionTreeRegressor | DecisionTreeClassifier, ...]:
+        """Return fitted trees or raise the same stable unfitted exception contract."""
+
+        if not hasattr(self, "estimators_"):
+            raise NotFittedError(self._fitted_error_message)
+        return self.estimators_
+
+    def _clear_fitted_state(self) -> None:
+        """Delete fitted forest state in addition to base estimator fields."""
+
+        super()._clear_fitted_state()
+        for name in ("estimators_", "feature_subsets_"):
+            self.__dict__.pop(name, None)
+
+    def _make_tree(self, random_state: int) -> DecisionTreeRegressor | DecisionTreeClassifier:
+        """Create one native decision tree with the forest's tree parameters."""
+
+        return self._tree_type(
+            max_depth=self.max_depth,
+            max_bins=self.max_bins,
+            min_child_weight=self.min_child_weight,
+            min_samples_leaf=self.min_samples_leaf,
+            reg_lambda=self.reg_lambda,
+            random_state=random_state,
+            device=self.device,
+            verbosity=self.verbosity,
+        )
+
+    def _sample_rows(self, labels: NDArray[np.float32], random_state: int) -> NDArray[np.int64]:
+        """Sample training rows for one tree."""
+
+        if self.bootstrap:
+            return bootstrap_sample_indices(
+                labels.shape[0],
+                sample_fraction=float(self.sample_fraction),
+                random_state=random_state,
+            )
+        return sample_without_replacement_indices(
+            labels.shape[0],
+            sample_fraction=float(self.sample_fraction),
+            random_state=random_state,
+        )
+
+    def _sample_features(self, n_features: int, random_state: int) -> NDArray[np.int64]:
+        """Sample feature columns for one tree."""
+
+        return subsample_feature_indices(
+            n_features,
+            feature_fraction=float(self.max_features),
+            random_state=random_state,
+        )
+
+    def _validate_forest_parameters(self) -> None:
+        """Validate forest-specific parameters plus shared tree parameters."""
+
+        if isinstance(self.n_estimators, bool) or not isinstance(self.n_estimators, int):
+            raise TypeError("n_estimators must be an integer")
+        if self.n_estimators <= 0:
+            raise ValueError("n_estimators must be positive")
+        if not isinstance(self.bootstrap, bool):
+            raise TypeError("bootstrap must be a boolean")
+        for name in ("max_features", "sample_fraction"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise TypeError(f"{name} must be numeric")
+            numeric = float(value)
+            if not np.isfinite(numeric) or not 0.0 < numeric <= 1.0:
+                raise ValueError(f"{name} must be in (0, 1]")
+        saved_n_estimators = self.n_estimators
+        self.learning_rate = 1.0
+        try:
+            super()._validate_parameters()
+        finally:
+            self.n_estimators = saved_n_estimators
+
+
+class RandomForestRegressor(_ForestMixin, MPSBoostRegressor):
+    """Train a random forest regressor from independent native decision trees."""
+
+    _tree_type = DecisionTreeRegressor
+    _fitted_error_message = "RandomForestRegressor is not fitted"
+
+    def predict(self, X: Any) -> NDArray[np.float32]:
+        """Return the mean prediction across fitted native decision trees."""
+
+        self._require_model()
+        matrix = as_dense_matrix(X)
+        if matrix.shape[1] != self.n_features_in_:
+            raise ValueError("prediction feature count does not match training data")
+        predictions = np.zeros(matrix.shape[0], dtype=np.float64)
+        for tree, features in zip(self.estimators_, self.feature_subsets_):
+            predictions += tree.predict(matrix[:, features]).astype(np.float64, copy=False)
+        predictions /= float(len(self.estimators_))
+        return predictions.astype(np.float32)
+
+
+class RandomForestClassifier(_ForestMixin, MPSBoostClassifier):
+    """Train a binary random forest classifier from independent native decision trees."""
+
+    _tree_type = DecisionTreeClassifier
+    _fitted_error_message = "RandomForestClassifier is not fitted"
+
+    def _sample_rows(self, labels: NDArray[np.float32], random_state: int) -> NDArray[np.int64]:
+        """Sample rows while ensuring every classifier tree sees both binary classes."""
+
+        for attempt in range(16):
+            rows = super()._sample_rows(labels, random_state + attempt)
+            if np.unique(labels[rows]).size == 2:
+                return rows
+        return np.arange(labels.shape[0], dtype=np.int64)
+
+    def predict_proba(self, X: Any) -> NDArray[np.float32]:
+        """Return mean class probabilities across fitted native decision trees."""
+
+        self._require_model()
+        matrix = as_dense_matrix(X)
+        if matrix.shape[1] != self.n_features_in_:
+            raise ValueError("prediction feature count does not match training data")
+        probabilities = np.zeros((matrix.shape[0], 2), dtype=np.float64)
+        for tree, features in zip(self.estimators_, self.feature_subsets_):
+            probabilities += tree.predict_proba(matrix[:, features]).astype(
+                np.float64, copy=False
+            )
+        probabilities /= float(len(self.estimators_))
+        return probabilities.astype(np.float32)

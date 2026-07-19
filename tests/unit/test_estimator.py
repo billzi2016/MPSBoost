@@ -12,6 +12,8 @@ from mpsboost import (
     DecisionTreeRegressor,
     MPSBoostClassifier,
     MPSBoostRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
 )
 from mpsboost.estimator import NotFittedError
 
@@ -302,3 +304,82 @@ def test_decision_tree_classifier_trains_exactly_one_native_tree():
     assert model.predict_proba(X).shape == (4, 2)
     assert model.predict(X).tolist() == y.tolist()
     assert model.score(X, y) == 1.0
+
+
+def test_random_forest_regressor_trains_independent_native_trees():
+    """RandomForestRegressor should aggregate real native decision trees."""
+
+    X = np.array(
+        [
+            [0.0, 1.0],
+            [0.1, 1.0],
+            [1.0, 0.0],
+            [1.1, 0.0],
+            [2.0, 1.0],
+            [2.1, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    y = np.array([0.0, 0.0, 4.0, 4.0, 8.0, 8.0], dtype=np.float32)
+    model = RandomForestRegressor(
+        n_estimators=3,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        max_features=1.0,
+        sample_fraction=1.0,
+        random_state=3,
+        device="cpu",
+    ).fit(X, y)
+
+    predictions = model.predict(X)
+
+    assert model.n_estimators_ == 3
+    assert len(model.estimators_) == 3
+    assert predictions.shape == (6,)
+    assert model.score(X, y) > 0.0
+    assert model.feature_importances_.shape == (2,)
+
+
+def test_random_forest_classifier_trains_independent_native_trees():
+    """RandomForestClassifier should average real native tree probabilities."""
+
+    X = np.array([[0.0], [0.1], [0.2], [1.0], [1.1], [1.2]], dtype=np.float32)
+    y = np.array([0, 0, 0, 1, 1, 1], dtype=np.int64)
+    model = RandomForestClassifier(
+        n_estimators=3,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        sample_fraction=1.0,
+        random_state=5,
+        device="cpu",
+    ).fit(X, y)
+
+    probabilities = model.predict_proba(X)
+
+    assert model.n_estimators_ == 3
+    assert probabilities.shape == (6, 2)
+    assert np.allclose(probabilities.sum(axis=1), 1.0)
+    assert probabilities[:3, 1].mean() < probabilities[3:, 1].mean()
+    assert model.score(X, y) >= 5.0 / 6.0
+
+
+def test_random_forest_validates_parameters_and_model_io_boundary(tmp_path):
+    """Forest parameter and model I/O boundaries should fail explicitly."""
+
+    X = np.ones((4, 1), dtype=np.float32)
+    y = np.array([0.0, 0.0, 1.0, 1.0], dtype=np.float32)
+    with pytest.raises(ValueError, match="max_features"):
+        RandomForestRegressor(max_features=0.0, device="cpu").fit(X, y)
+    with pytest.raises(TypeError, match="bootstrap"):
+        RandomForestRegressor(bootstrap=1, device="cpu").fit(X, y)
+
+    fitted = RandomForestRegressor(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        device="cpu",
+    ).fit(X, y)
+    with pytest.raises(NotImplementedError, match="model I/O"):
+        fitted.save_model(tmp_path / "forest.mb")

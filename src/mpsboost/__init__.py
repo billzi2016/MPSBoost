@@ -33,6 +33,8 @@ from .estimator import (
     DecisionTreeRegressor,
     MPSBoostClassifier,
     MPSBoostRegressor,
+    RandomForestClassifier,
+    RandomForestRegressor,
 )
 from .families import (
     TreeFamilySpec,
@@ -74,6 +76,8 @@ __all__ = [
     "MPSBoostRegressor",
     "MetricHistory",
     "MetricObservation",
+    "RandomForestClassifier",
+    "RandomForestRegressor",
     "__version__",
     "available_estimators",
     "bootstrap_sample_indices",

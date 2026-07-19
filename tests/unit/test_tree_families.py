@@ -55,13 +55,25 @@ def test_available_decision_trees_have_single_tree_family_contracts():
     assert classifier.family.supports_mps_training is True
 
 
+def test_available_random_forests_have_independent_tree_family_contracts():
+    """Random forest estimators should expose implemented bagging semantics."""
+
+    regressor = mb.estimator_capability("RandomForestRegressor")
+    classifier = mb.estimator_capability("RandomForestClassifier")
+
+    assert regressor.family_key == "random_forest_regression"
+    assert regressor.family.aggregation == "mean"
+    assert regressor.family.supports_mps_training is True
+    assert classifier.family_key == "random_forest_classification"
+    assert classifier.family.aggregation == "vote"
+    assert classifier.family.supports_mps_training is True
+
+
 def test_planned_tree_families_are_specs_not_fake_classes():
     """Planned models must be queryable without appearing as importable estimators."""
 
     planned = set(mb.planned_estimators())
     assert {
-        "RandomForestRegressor",
-        "RandomForestClassifier",
         "ExtraTreesRegressor",
         "ExtraTreesClassifier",
         "CatBoostRegressor",
