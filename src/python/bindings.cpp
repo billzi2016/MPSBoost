@@ -233,11 +233,23 @@ PYBIND11_MODULE(_native, module) {
                        std::uint32_t max_bins, std::uint32_t max_depth,
                        std::uint64_t min_samples_leaf,
                        double min_child_weight, double reg_lambda,
-                       double gamma) {
+                       double gamma, const std::string& objective) {
+             mpsboost::TrainingParameters::Objective objective_kind =
+                 mpsboost::TrainingParameters::Objective::kSquaredError;
+             if (objective == "squared_error") {
+               objective_kind =
+                   mpsboost::TrainingParameters::Objective::kSquaredError;
+             } else if (objective == "binary_logistic") {
+               objective_kind =
+                   mpsboost::TrainingParameters::Objective::kBinaryLogistic;
+             } else {
+               throw std::invalid_argument("unknown training objective");
+             }
              return mpsboost::TrainingParameters{
                  n_estimators,
                  learning_rate,
                  max_bins,
+                 objective_kind,
                  mpsboost::TreeTrainingParameters{
                      max_depth, min_samples_leaf, min_child_weight,
                      reg_lambda, gamma}};
@@ -246,6 +258,7 @@ PYBIND11_MODULE(_native, module) {
            py::arg("max_bins"), py::arg("max_depth"),
            py::arg("min_samples_leaf"), py::arg("min_child_weight"),
            py::arg("reg_lambda"), py::arg("gamma") = 0.0,
+           py::arg("objective") = "squared_error",
            "创建已命名字段的内部训练参数值对象。");
 
   py::class_<mpsboost::MpsBackend>(module, "_MpsBackend")
@@ -286,6 +299,12 @@ PYBIND11_MODULE(_native, module) {
       .def_property_readonly("tree_count",
                              &mpsboost::RegressionModel::tree_count)
       .def_property_readonly("trees", &ModelTrees)
+      .def_property_readonly("objective", [](const mpsboost::RegressionModel& model) {
+        return model.objective() ==
+                       mpsboost::TrainingParameters::Objective::kBinaryLogistic
+                   ? "binary_logistic"
+                   : "squared_error";
+      })
       .def("predict", [](const mpsboost::RegressionModel& model, const py::buffer& matrix) {
              const mpsboost::DenseMatrixView view = MakeDenseView(matrix);
              py::gil_scoped_release release;

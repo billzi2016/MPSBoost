@@ -1,4 +1,4 @@
-"""sklearn-style regression estimator for MPSBoost.
+"""sklearn-style estimators for MPSBoost.
 
 This module owns parameter storage, input adaptation, concurrent-fit protection, fitted-state
 replacement, and sklearn protocol methods. Quantization, boosting, Metal scheduling, and model
@@ -34,6 +34,8 @@ class MPSBoostRegressor:
     """
 
     _estimator_type = "regressor"
+    _native_objective = "squared_error"
+    _fitted_error_message = "MPSBoostRegressor is not fitted or loaded"
     _PARAMETER_NAMES = (
         "n_estimators",
         "learning_rate",
@@ -112,7 +114,7 @@ class MPSBoostRegressor:
         try:
             self._validate_parameters()
             matrix = as_dense_matrix(X)
-            labels = as_labels(y, matrix.shape[0])
+            labels = self._training_labels(y, matrix.shape[0])
             parameters = _native._TrainingParameters(
                 self.n_estimators,
                 self.learning_rate,
@@ -121,6 +123,7 @@ class MPSBoostRegressor:
                 self.min_samples_leaf,
                 self.min_child_weight,
                 self.reg_lambda,
+                objective=self._native_objective,
             )
             mps_available = is_available()
             device_decision = choose_device(
@@ -152,6 +155,7 @@ class MPSBoostRegressor:
             self.device_ = device_decision.selected
             self.device_decision_ = decision_to_dict(device_decision)
             self.n_estimators_ = candidate.tree_count
+            self._finalize_fitted_metadata()
             self.training_summary_ = {
                 "fit_seconds": elapsed,
                 "input_contiguous": bool(matrix.flags.c_contiguous),
@@ -169,11 +173,7 @@ class MPSBoostRegressor:
     def predict(self, X: Any) -> NDArray[np.float32]:
         """Return one-dimensional float32 predictions using the frozen training schema."""
 
-        model = self._require_model()
-        matrix = as_dense_matrix(X)
-        if matrix.shape[1] != self.n_features_in_:
-            raise ValueError("预测特征数量与训练数据不一致")
-        return np.asarray(model.predict(matrix), dtype=np.float32)
+        return self._predict_raw(X)
 
     def score(self, X: Any, y: Any) -> float:
         """Return the default regression R² score for sklearn model-selection tools."""
@@ -265,10 +265,16 @@ class MPSBoostRegressor:
             raise RuntimeError("模型训练或加载正在进行")
         try:
             candidate = _native._load_regression_model(str(path))
+            if candidate.objective != self._native_objective:
+                raise ValueError(
+                    f"model objective '{candidate.objective}' is incompatible with "
+                    f"{type(self).__name__}"
+                )
             self.model_ = candidate
             self.n_features_in_ = candidate.feature_count
             self.device_ = self.device if self.device != "auto" else "cpu"
             self.n_estimators_ = candidate.tree_count
+            self._finalize_fitted_metadata()
             self.training_summary_ = {"loaded": True, "device": self.device_}
             return self
         finally:
@@ -278,8 +284,25 @@ class MPSBoostRegressor:
         """Return the complete native model or raise a stable unfitted exception."""
 
         if not hasattr(self, "model_"):
-            raise NotFittedError("MPSBoostRegressor 尚未拟合或加载模型")
+            raise NotFittedError(self._fitted_error_message)
         return self.model_
+
+    def _predict_raw(self, X: Any) -> NDArray[np.float32]:
+        """Return native raw margins or regression values after feature-count validation."""
+
+        model = self._require_model()
+        matrix = as_dense_matrix(X)
+        if matrix.shape[1] != self.n_features_in_:
+            raise ValueError("prediction feature count does not match training data")
+        return np.asarray(model.predict(matrix), dtype=np.float32)
+
+    def _training_labels(self, y: Any, n_samples: int) -> NDArray[np.float32]:
+        """Normalize labels for the native training objective."""
+
+        return as_labels(y, n_samples)
+
+    def _finalize_fitted_metadata(self) -> None:
+        """Attach estimator-specific fitted metadata after native model assignment."""
 
     def _clear_fitted_state(self) -> None:
         """Delete every fitted field through one path to avoid stale partial state."""
@@ -291,6 +314,7 @@ class MPSBoostRegressor:
             "device_decision_",
             "n_estimators_",
             "training_summary_",
+            "classes_",
         ):
             self.__dict__.pop(name, None)
 
@@ -329,3 +353,74 @@ class MPSBoostRegressor:
             isinstance(self.random_state, bool) or not isinstance(self.random_state, int)
         ):
             raise TypeError("random_state 必须是整数或 None")
+
+
+class MPSBoostClassifier(MPSBoostRegressor):
+    """Train a binary-logistic histogram GBDT classifier on the shared native backend."""
+
+    _estimator_type = "classifier"
+    _native_objective = "binary_logistic"
+    _fitted_error_message = "MPSBoostClassifier is not fitted or loaded"
+
+    def _training_labels(self, y: Any, n_samples: int) -> NDArray[np.float32]:
+        """Validate and encode strict binary 0/1 labels for the native logistic objective."""
+
+        labels = as_labels(y, n_samples)
+        if not np.all((labels == 0.0) | (labels == 1.0)):
+            raise ValueError("binary classification labels must be exactly 0 and 1")
+        if np.unique(labels).size != 2:
+            raise ValueError("binary classification requires both class 0 and class 1")
+        return labels
+
+    def _finalize_fitted_metadata(self) -> None:
+        """Store the fixed binary class mapping used by the current model format."""
+
+        self.classes_ = np.array([0, 1], dtype=np.int64)
+
+    def predict_proba(self, X: Any) -> NDArray[np.float32]:
+        """Return binary probabilities from native raw margins using stable sigmoid semantics."""
+
+        margins = self._predict_raw(X).astype(np.float64, copy=False)
+        probabilities = np.empty_like(margins, dtype=np.float64)
+        positive = margins >= 0.0
+        probabilities[positive] = 1.0 / (1.0 + np.exp(-margins[positive]))
+        exp_margin = np.exp(margins[~positive])
+        probabilities[~positive] = exp_margin / (1.0 + exp_margin)
+        return np.column_stack((1.0 - probabilities, probabilities)).astype(np.float32)
+
+    def predict(self, X: Any) -> NDArray[np.int64]:
+        """Return class labels by thresholding class-1 probability at 0.5."""
+
+        probabilities = self.predict_proba(X)[:, 1]
+        return self.classes_[(probabilities >= 0.5).astype(np.int64)]
+
+    def score(self, X: Any, y: Any) -> float:
+        """Return binary classification accuracy for sklearn model-selection tools."""
+
+        predictions = self.predict(X)
+        labels = as_labels(y, predictions.shape[0])
+        if not np.all((labels == 0.0) | (labels == 1.0)):
+            raise ValueError("binary classification labels must be exactly 0 and 1")
+        return float(np.mean(predictions == labels.astype(np.int64)))
+
+    def _more_tags(self) -> dict[str, Any]:
+        """Return old-style sklearn classifier tags without importing sklearn."""
+
+        tags = super()._more_tags()
+        tags["binary_only"] = True
+        return tags
+
+    def __sklearn_tags__(self) -> Any:
+        """Return sklearn 1.6+ structured classifier tags while keeping sklearn optional."""
+
+        try:
+            from sklearn.utils import ClassifierTags, InputTags, Tags, TargetTags
+        except ImportError as exc:  # pragma: no cover - only reachable when sklearn is absent.
+            raise AttributeError("sklearn tag classes are unavailable") from exc
+        return Tags(
+            estimator_type="classifier",
+            target_tags=TargetTags(required=True, one_d_labels=True, single_output=True),
+            classifier_tags=ClassifierTags(poor_score=False),
+            input_tags=InputTags(two_d_array=True, allow_nan=False, sparse=False),
+            requires_fit=True,
+        )

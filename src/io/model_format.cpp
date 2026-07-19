@@ -26,7 +26,7 @@ namespace {
 
 constexpr std::array<std::uint8_t, 8> kMagic{'M', 'P', 'S', 'B', 'M', 'O', 'D', 0};
 constexpr std::uint16_t kFormatMajor = 1;
-constexpr std::uint16_t kFormatMinor = 0;
+constexpr std::uint16_t kFormatMinor = 1;
 constexpr std::uint64_t kFnvOffset = 14695981039346656037ULL;
 constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
 
@@ -100,6 +100,10 @@ std::vector<std::uint8_t> BuildPayload(const RegressionModel& model) {
   AppendUnsigned(&payload, model.schema().max_bins());
   AppendFloat<double, std::uint64_t>(&payload, model.base_score());
   AppendFloat<double, std::uint64_t>(&payload, model.learning_rate());
+  AppendUnsigned(
+      &payload,
+      static_cast<std::uint32_t>(
+          model.objective() == TrainingParameters::Objective::kBinaryLogistic ? 1 : 0));
   AppendUnsigned(&payload,
                  static_cast<std::uint64_t>(model.schema().boundaries().size()));
   for (const FeatureBinMetadata& item : model.schema().feature_metadata()) {
@@ -158,7 +162,7 @@ RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes) {
   }
   Reader header(bytes.data() + kMagic.size(), bytes.size() - kMagic.size());
   const std::uint16_t major = header.ReadUnsigned<std::uint16_t>("major");
-  static_cast<void>(header.ReadUnsigned<std::uint16_t>("minor"));
+  const std::uint16_t minor = header.ReadUnsigned<std::uint16_t>("minor");
   static_cast<void>(header.ReadUnsigned<std::uint32_t>("reserved"));
   const std::uint64_t payload_size = header.ReadUnsigned<std::uint64_t>("payload size");
   const std::uint64_t checksum = header.ReadUnsigned<std::uint64_t>("checksum");
@@ -179,6 +183,18 @@ RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes) {
   const double base_score = reader.ReadFloat<double, std::uint64_t>("base_score");
   const double learning_rate =
       reader.ReadFloat<double, std::uint64_t>("learning_rate");
+  TrainingParameters::Objective objective = TrainingParameters::Objective::kSquaredError;
+  if (minor >= 1) {
+    const std::uint32_t objective_code =
+        reader.ReadUnsigned<std::uint32_t>("objective");
+    if (objective_code == 0) {
+      objective = TrainingParameters::Objective::kSquaredError;
+    } else if (objective_code == 1) {
+      objective = TrainingParameters::Objective::kBinaryLogistic;
+    } else {
+      throw TrainingError("model objective is unsupported");
+    }
+  }
   const std::uint64_t boundary_count =
       reader.ReadUnsigned<std::uint64_t>("boundary_count");
   if (boundary_count > payload_size / sizeof(float)) {
@@ -235,7 +251,7 @@ RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes) {
     throw TrainingError("模型包含未识别的尾部字节");
   }
   return RegressionModel::Restore(
-      std::move(schema), base_score, learning_rate, std::move(trees));
+      std::move(schema), base_score, learning_rate, objective, std::move(trees));
 }
 
 void SaveModelFile(const RegressionModel& model, const std::string& path) {

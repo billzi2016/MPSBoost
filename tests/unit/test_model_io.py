@@ -9,7 +9,7 @@ import os
 import numpy as np
 import pytest
 
-from mpsboost import MPSBoostRegressor
+from mpsboost import MPSBoostClassifier, MPSBoostRegressor
 
 
 def _fitted_model():
@@ -38,6 +38,44 @@ def test_save_load_round_trip_and_file_permissions(tmp_path):
     np.testing.assert_array_equal(original.predict(X), restored.predict(X))
     assert os.stat(path).st_mode & 0o077 == 0
     assert list(tmp_path.iterdir()) == [path]
+
+
+def test_classifier_model_round_trip_preserves_probabilities(tmp_path):
+    """Binary-logistic models must persist objective metadata for safe classifier loading."""
+
+    X = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y = np.array([0, 0, 1, 1], dtype=np.int64)
+    model = MPSBoostClassifier(
+        n_estimators=2,
+        learning_rate=0.5,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+    path = tmp_path / "classifier.mb"
+    model.save_model(path)
+
+    restored = MPSBoostClassifier(device="cpu").load_model(path)
+
+    np.testing.assert_allclose(restored.predict_proba(X), model.predict_proba(X))
+    assert restored.classes_.tolist() == [0, 1]
+
+
+def test_regressor_rejects_classifier_model_file(tmp_path):
+    """A regressor must not load binary-logistic raw margins as regression values."""
+
+    X = np.array([[0.0], [1.0]], dtype=np.float32)
+    path = tmp_path / "classifier.mb"
+    MPSBoostClassifier(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        device="cpu",
+    ).fit(X, np.array([0, 1])).save_model(path)
+
+    with pytest.raises(ValueError, match="incompatible"):
+        MPSBoostRegressor(device="cpu").load_model(path)
 
 
 @pytest.mark.parametrize("mutation", ["truncate", "checksum", "major"])

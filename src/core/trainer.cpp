@@ -5,6 +5,7 @@
 
 #include "mpsboost/trainer.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <numeric>
@@ -45,6 +46,52 @@ double MeanLabel(const std::vector<double>& labels) {
   return sum / static_cast<double>(labels.size());
 }
 
+double BinaryLogitBaseScore(const std::vector<double>& labels) {
+  if (labels.empty()) {
+    throw TrainingError("labels must be non-empty");
+  }
+  double positive_count = 0.0;
+  for (const double label : labels) {
+    if (label == 0.0) {
+      continue;
+    }
+    if (label == 1.0) {
+      positive_count += 1.0;
+      continue;
+    }
+    throw TrainingError("binary-logistic labels must be 0 or 1");
+  }
+  const double epsilon = 1e-15;
+  double probability = positive_count / static_cast<double>(labels.size());
+  probability = std::min(1.0 - epsilon, std::max(epsilon, probability));
+  return std::log(probability / (1.0 - probability));
+}
+
+double InitialBaseScore(const std::vector<double>& labels,
+                        TrainingParameters::Objective objective) {
+  switch (objective) {
+    case TrainingParameters::Objective::kSquaredError:
+      return MeanLabel(labels);
+    case TrainingParameters::Objective::kBinaryLogistic:
+      return BinaryLogitBaseScore(labels);
+  }
+  throw TrainingError("unknown training objective");
+}
+
+std::vector<GradientPair> ComputeObjectiveGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& predictions,
+    const GradientComputer& gradient_computer,
+    TrainingParameters::Objective objective) {
+  switch (objective) {
+    case TrainingParameters::Objective::kSquaredError:
+      return gradient_computer.ComputeSquaredError(labels, predictions);
+    case TrainingParameters::Objective::kBinaryLogistic:
+      return ComputeBinaryLogisticGradients(labels, predictions);
+  }
+  throw TrainingError("unknown training objective");
+}
+
 }  // namespace
 
 RegressionModel TrainRegressionModel(
@@ -60,14 +107,15 @@ RegressionModel TrainRegressionModel(
 
   RegressionModel model;
   model.schema_ = dataset.schema();
-  model.base_score_ = MeanLabel(labels);
+  model.base_score_ = InitialBaseScore(labels, parameters.objective);
   model.learning_rate_ = parameters.learning_rate;
+  model.objective_ = parameters.objective;
   model.trees_.reserve(parameters.n_estimators);
   std::vector<double> predictions(labels.size(), model.base_score_);
 
   for (std::uint32_t round = 0; round < parameters.n_estimators; ++round) {
-    const std::vector<GradientPair> gradients =
-        gradient_computer.ComputeSquaredError(labels, predictions);
+    const std::vector<GradientPair> gradients = ComputeObjectiveGradients(
+        labels, predictions, gradient_computer, parameters.objective);
     RegressionTree tree = TrainSingleRegressionTree(
         dataset, gradients, parameters.tree, histogram_builder);
     const std::vector<double> update = tree.Predict(dataset);
@@ -101,6 +149,7 @@ std::vector<double> RegressionModel::Predict(const BinnedDataset& dataset) const
 RegressionModel RegressionModel::Restore(QuantizationSchema schema,
                                          double base_score,
                                          double learning_rate,
+                                         TrainingParameters::Objective objective,
                                          std::vector<RegressionTree> trees) {
   if (!std::isfinite(base_score) || !std::isfinite(learning_rate) ||
       learning_rate <= 0.0 || learning_rate > 1.0 || trees.empty()) {
@@ -122,6 +171,7 @@ RegressionModel RegressionModel::Restore(QuantizationSchema schema,
   model.schema_ = std::move(schema);
   model.base_score_ = base_score;
   model.learning_rate_ = learning_rate;
+  model.objective_ = objective;
   model.trees_ = std::move(trees);
   return model;
 }

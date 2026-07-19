@@ -7,7 +7,7 @@ native handle 或 mock 设备让公共 fit 路径成功。
 import numpy as np
 import pytest
 
-from mpsboost import MPSBoostRegressor
+from mpsboost import MPSBoostClassifier, MPSBoostRegressor
 from mpsboost.estimator import NotFittedError
 
 
@@ -31,7 +31,7 @@ def test_unfitted_and_wrong_feature_prediction_fail_explicitly():
     with pytest.raises(NotFittedError):
         model.predict(np.ones((1, 1), dtype=np.float32))
     model.fit(np.ones((2, 1), dtype=np.float32), np.array([1.0, 2.0]))
-    with pytest.raises(ValueError, match="特征数量"):
+    with pytest.raises(ValueError, match="feature count"):
         model.predict(np.ones((2, 2), dtype=np.float32))
 
 
@@ -145,3 +145,43 @@ def test_auto_device_selects_cpu_for_small_workloads():
     assert model.device_decision_["requested"] == "auto"
     assert model.device_decision_["selected"] == "cpu"
     assert model.training_summary_["device_decision"] == model.device_decision_
+
+
+def test_binary_classifier_trains_predicts_probabilities_and_scores():
+    """GradientBoostingClassifier must use the real native binary-logistic objective."""
+
+    X = np.array(
+        [[0.0], [0.1], [0.2], [1.0], [1.1], [1.2]],
+        dtype=np.float32,
+    )
+    y = np.array([0, 0, 0, 1, 1, 1], dtype=np.int64)
+    model = MPSBoostClassifier(
+        n_estimators=3,
+        learning_rate=0.5,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    probabilities = model.predict_proba(X)
+    predictions = model.predict(X)
+
+    assert model.classes_.tolist() == [0, 1]
+    assert probabilities.shape == (6, 2)
+    assert np.allclose(probabilities.sum(axis=1), 1.0)
+    assert probabilities[:3, 1].mean() < probabilities[3:, 1].mean()
+    assert predictions.tolist() == y.tolist()
+    assert model.score(X, y) == 1.0
+    assert model.feature_importances_.shape == (1,)
+
+
+def test_binary_classifier_rejects_non_binary_training_labels():
+    """Classifier fit should fail before native training when labels are outside strict 0/1."""
+
+    model = MPSBoostClassifier(device="cpu")
+    X = np.ones((3, 1), dtype=np.float32)
+    with pytest.raises(ValueError, match="exactly 0 and 1"):
+        model.fit(X, np.array([0, 1, 2]))
+    with pytest.raises(ValueError, match="requires both class"):
+        model.fit(X, np.array([1, 1, 1]))

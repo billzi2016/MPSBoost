@@ -22,7 +22,23 @@ def test_available_regressor_and_alias_share_one_family_contract():
     assert primary.family.growth == "level_wise"
     assert primary.family.aggregation == "sum"
     assert primary.family.supports_mps_training is True
-    assert mb.mps_training_families() == ("histogram_gbdt_regression",)
+    assert "histogram_gbdt_regression" in mb.mps_training_families()
+
+
+def test_available_classifier_and_alias_share_one_family_contract():
+    """The binary classifier should be represented as a real available estimator family."""
+
+    primary = mb.estimator_capability("GradientBoostingClassifier")
+    branded = mb.estimator_capability("MPSBoostClassifier")
+
+    assert primary.family_key == "histogram_gbdt_classification"
+    assert branded.family_key == primary.family_key
+    assert branded.alias_for == "GradientBoostingClassifier"
+    assert primary.family is branded.family
+    assert primary.family.task == "classification"
+    assert primary.family.objective == "logistic"
+    assert primary.family.supports_mps_training is True
+    assert "histogram_gbdt_classification" in mb.mps_training_families()
 
 
 def test_planned_tree_families_are_specs_not_fake_classes():
@@ -30,7 +46,6 @@ def test_planned_tree_families_are_specs_not_fake_classes():
 
     planned = set(mb.planned_estimators())
     assert {
-        "GradientBoostingClassifier",
         "RandomForestRegressor",
         "RandomForestClassifier",
         "ExtraTreesRegressor",

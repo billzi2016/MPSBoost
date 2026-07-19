@@ -28,7 +28,7 @@ from .diagnostics import (
     system_info,
 )
 from .device_policy import DeviceDecision, choose_device
-from .estimator import MPSBoostRegressor
+from .estimator import MPSBoostClassifier, MPSBoostRegressor
 from .families import (
     TreeFamilySpec,
     mps_training_families,
@@ -53,6 +53,7 @@ from .randomization import (
 # Keep one implementation and expose a shorter sklearn-style public name. This is an alias,
 # not a wrapper, so model behavior, serialization, and type checks remain identical.
 GradientBoostingRegressor = MPSBoostRegressor
+GradientBoostingClassifier = MPSBoostClassifier
 
 # Maintain __all__ explicitly so ``from mpsboost import *`` does not leak helper modules.
 __all__ = [
@@ -60,7 +61,9 @@ __all__ = [
     "EarlyStoppingDecision",
     "EarlyStoppingMonitor",
     "EstimatorCapability",
+    "GradientBoostingClassifier",
     "GradientBoostingRegressor",
+    "MPSBoostClassifier",
     "MPSBoostRegressor",
     "MetricHistory",
     "MetricObservation",

@@ -17,9 +17,15 @@ class GradientComputer;
 class HistogramBuilder;
 
 struct TrainingParameters final {
+  enum class Objective : std::uint32_t {
+    kSquaredError = 0,
+    kBinaryLogistic = 1,
+  };
+
   std::uint32_t n_estimators{100};
   double learning_rate{0.1};
   std::uint32_t max_bins{256};
+  Objective objective{Objective::kSquaredError};
   TreeTrainingParameters tree;
 };
 
@@ -31,6 +37,7 @@ class RegressionModel final {
   }
   double base_score() const noexcept { return base_score_; }
   double learning_rate() const noexcept { return learning_rate_; }
+  TrainingParameters::Objective objective() const noexcept { return objective_; }
   const QuantizationSchema& schema() const noexcept { return schema_; }
   const std::vector<RegressionTree>& trees() const noexcept { return trees_; }
 
@@ -42,6 +49,7 @@ class RegressionModel final {
   static RegressionModel Restore(QuantizationSchema schema,
                                  double base_score,
                                  double learning_rate,
+                                 TrainingParameters::Objective objective,
                                  std::vector<RegressionTree> trees);
 
  private:
@@ -55,6 +63,7 @@ class RegressionModel final {
   QuantizationSchema schema_;
   double base_score_{0.0};
   double learning_rate_{0.1};
+  TrainingParameters::Objective objective_{TrainingParameters::Objective::kSquaredError};
   std::vector<RegressionTree> trees_;
 };
 

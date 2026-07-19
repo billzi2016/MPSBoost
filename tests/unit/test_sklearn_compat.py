@@ -88,3 +88,33 @@ def test_grid_search_cv_runs_with_standard_estimator_protocol():
     assert isinstance(search.best_estimator_, mb.GradientBoostingRegressor)
     assert search.best_params_["n_estimators"] in {1, 2}
     assert np.isfinite(search.best_score_)
+
+
+def test_classifier_works_with_standard_sklearn_protocol():
+    """Binary classifier should work with sklearn tags, clone, and GridSearchCV."""
+
+    X = np.array([[0.0], [0.1], [0.2], [1.0], [1.1], [1.2]], dtype=np.float32)
+    y = np.array([0, 0, 0, 1, 1, 1], dtype=np.int64)
+    classifier = mb.GradientBoostingClassifier(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    )
+
+    tags = get_tags(classifier)
+    cloned = clone(classifier)
+
+    assert _tag_value(tags, "estimator_type") == "classifier"
+    assert cloned.get_params() == classifier.get_params()
+
+    search = GridSearchCV(
+        classifier,
+        param_grid={"n_estimators": [1, 2], "learning_rate": [0.5]},
+        cv=2,
+        n_jobs=1,
+    )
+    search.fit(X, y)
+
+    assert isinstance(search.best_estimator_, mb.GradientBoostingClassifier)
+    assert search.best_score_ >= 0.0

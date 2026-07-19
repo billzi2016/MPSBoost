@@ -49,8 +49,15 @@ _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
     EstimatorCapability(
         name="GradientBoostingClassifier",
         family_key="histogram_gbdt_classification",
-        status="planned",
+        status="available",
         primary=True,
+    ),
+    EstimatorCapability(
+        name="MPSBoostClassifier",
+        family_key="histogram_gbdt_classification",
+        status="available",
+        primary=False,
+        alias_for="GradientBoostingClassifier",
     ),
     EstimatorCapability(
         name="RandomForestRegressor",
@@ -177,5 +184,5 @@ def require_estimator_supported(name: str) -> None:
         return
     raise NotImplementedError(
         f"{name} is planned for MPSBoost v2 but is not implemented yet. "
-        "Use GradientBoostingRegressor for the current 0.2.x release."
+        "Use GradientBoostingRegressor or GradientBoostingClassifier in this release."
     )
