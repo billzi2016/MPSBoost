@@ -14,7 +14,7 @@ from time import perf_counter
 
 import numpy as np
 
-import mpsboost as mps
+import mpsboost as mb
 from mpsboost import _native
 from mpsboost.diagnostics import _metallib_path
 
@@ -38,14 +38,14 @@ def run(repeats: int) -> dict:
 
     if repeats < 3:
         raise ValueError("repeats 必须至少为 3，避免单次偶然值主导结论")
-    if not mps.is_available():
+    if not mb.is_available():
         raise RuntimeError("真实 MPS 设备不可用，benchmark 不允许 CPU mock")
     report = {
         "system": {
             "platform": platform.platform(),
             "python": platform.python_version(),
-            "mpsboost": mps.__version__,
-            "backend": mps.system_info(),
+            "mpsboost": mb.__version__,
+            "backend": mb.system_info(),
         },
         "repeats": repeats,
         "scenarios": [],
@@ -114,19 +114,19 @@ def run(repeats: int) -> dict:
             min_child_weight=1.0,
             reg_lambda=1.0,
         )
-        mps.MPSBoostRegressor(device="cpu", **parameters).fit(scenario.X, scenario.y)
-        mps.MPSBoostRegressor(device="mps", **parameters).fit(scenario.X, scenario.y)
+        mb.MPSBoostRegressor(device="cpu", **parameters).fit(scenario.X, scenario.y)
+        mb.MPSBoostRegressor(device="mps", **parameters).fit(scenario.X, scenario.y)
         cpu_times = []
         mps_times = []
         max_prediction_differences = []
         for _ in range(repeats):
             cpu_model, cpu_elapsed = _elapsed(
-                lambda: mps.MPSBoostRegressor(device="cpu", **parameters).fit(
+                lambda: mb.MPSBoostRegressor(device="cpu", **parameters).fit(
                     scenario.X, scenario.y
                 )
             )
             mps_model, mps_elapsed = _elapsed(
-                lambda: mps.MPSBoostRegressor(device="mps", **parameters).fit(
+                lambda: mb.MPSBoostRegressor(device="mps", **parameters).fit(
                     scenario.X, scenario.y
                 )
             )

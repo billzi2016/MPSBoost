@@ -7,9 +7,9 @@
 ## 2. 公共入口
 
 ```python
-import mpsboost as mps
+import mpsboost as mb
 
-model = mps.MPSBoostRegressor(
+model = mb.MPSBoostRegressor(
     n_estimators=100,
     learning_rate=0.1,
     max_depth=6,

@@ -6,7 +6,7 @@
 
 import pytest
 
-import mpsboost as mps
+import mpsboost as mb
 from mpsboost.diagnostics import _run_vector_add_for_test
 
 # 整个文件覆盖同一条真实设备链路。使用文件级标记可以保证新增用例默认进入 GPU 作业，
@@ -17,8 +17,8 @@ pytestmark = pytest.mark.gpu
 def test_backend_reports_real_available_device():
     """受支持构建必须发现真实设备并返回最小非敏感能力。"""
 
-    assert mps.is_available() is True
-    info = mps.system_info()
+    assert mb.is_available() is True
+    info = mb.system_info()
     assert info["backend"] == "mps"
     assert isinstance(info["device_name"], str)
     assert info["device_name"]
@@ -40,5 +40,5 @@ def test_real_gpu_vector_add_handles_partial_threadgroups(length):
 def test_gpu_vector_add_rejects_mismatched_lengths():
     """跨语言输入契约错误必须在提交 command 前明确失败。"""
 
-    with pytest.raises(mps._native.BackendError, match="长度不一致"):
+    with pytest.raises(mb._native.BackendError, match="长度不一致"):
         _run_vector_add_for_test([1.0], [1.0, 2.0])

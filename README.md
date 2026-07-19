@@ -7,6 +7,12 @@ MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its curr
 
 > **Development status:** `0.2.0` is the first stable 0.x MPS histogram engine release. It supports dense numeric regression with a real MPS training path, split-scan and partition kernels, histogram subtraction, buffer reuse, explicit cache management, and documented performance boundaries.
 
+## Project origin
+
+MPSBoost was started by a Purdue CS PhD student working across systems, AI, compilers, and formal verification. The immediate motivation is practical: Apple Silicon has a strong GPU stack, but common tree-based machine learning workloads still lack a simple, fast, low-permission MPS-accelerated path.
+
+The project is built with an SDD workflow. Work is split into clear stages: first validate real MPS/Metal kernels and runtime behavior, then lock the specs and product requirements, then settle the technical stack, and finally execute the task list against those specs. Specs are treated as the project contract, not as after-the-fact notes.
+
 ## Installation
 
 ```bash
@@ -18,9 +24,9 @@ Accelerated releases provide prebuilt Apple Silicon wheels; normal users will no
 ## Estimator-style API
 
 ```python
-import mpsboost as mps
+import mpsboost as mb
 
-model = mps.MPSBoostRegressor(
+model = mb.MPSBoostRegressor(
     n_estimators=200,
     learning_rate=0.05,
     max_depth=6,
@@ -31,7 +37,7 @@ model.fit(X_train, y_train)
 prediction = model.predict(X_test)
 model.save_model("model.mpsb")
 
-restored = mps.MPSBoostRegressor(device="mps")
+restored = mb.MPSBoostRegressor(device="mps")
 restored.load_model("model.mpsb")
 ```
 
@@ -40,12 +46,12 @@ restored.load_model("model.mpsb")
 The native backend exposes non-sensitive device and cache diagnostics:
 
 ```python
-import mpsboost as mps
+import mpsboost as mb
 
-print(mps.__version__)
-print(mps.is_available())
-print(mps.system_info())
-print(mps.cache_info())
+print(mb.__version__)
+print(mb.is_available())
+print(mb.system_info())
+print(mb.cache_info())
 ```
 
 `cache_info()` only reports paths and existence; it does not create directories. `create_cache()`
