@@ -37,11 +37,18 @@ struct TreeNode final {
 // 单树训练参数。min_child_weight 约束子节点 Hessian 和；平方误差下 Hessian 恒为 1，
 // 但保留独立字段才能让后续目标函数不改变树生长契约。
 struct TreeTrainingParameters final {
+  enum class SplitStrategy : std::uint32_t {
+    kBestGain = 0,
+    kRandomThreshold = 1,
+  };
+
   std::uint32_t max_depth{6};
   std::uint64_t min_samples_leaf{1};
   double min_child_weight{0.0};
   double reg_lambda{1.0};
   double gamma{0.0};
+  SplitStrategy split_strategy{SplitStrategy::kBestGain};
+  std::uint32_t random_seed{0};
 };
 
 class RegressionTree final {

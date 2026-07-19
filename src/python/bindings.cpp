@@ -233,7 +233,9 @@ PYBIND11_MODULE(_native, module) {
                        std::uint32_t max_bins, std::uint32_t max_depth,
                        std::uint64_t min_samples_leaf,
                        double min_child_weight, double reg_lambda,
-                       double gamma, const std::string& objective) {
+                       double gamma, const std::string& objective,
+                       const std::string& split_strategy,
+                       std::uint32_t random_seed) {
              mpsboost::TrainingParameters::Objective objective_kind =
                  mpsboost::TrainingParameters::Objective::kSquaredError;
              if (objective == "squared_error") {
@@ -245,6 +247,17 @@ PYBIND11_MODULE(_native, module) {
              } else {
                throw std::invalid_argument("unknown training objective");
              }
+             mpsboost::TreeTrainingParameters::SplitStrategy split_kind =
+                 mpsboost::TreeTrainingParameters::SplitStrategy::kBestGain;
+             if (split_strategy == "best_gain") {
+               split_kind =
+                   mpsboost::TreeTrainingParameters::SplitStrategy::kBestGain;
+             } else if (split_strategy == "random_threshold") {
+               split_kind = mpsboost::TreeTrainingParameters::SplitStrategy::
+                   kRandomThreshold;
+             } else {
+               throw std::invalid_argument("unknown split strategy");
+             }
              return mpsboost::TrainingParameters{
                  n_estimators,
                  learning_rate,
@@ -252,13 +265,15 @@ PYBIND11_MODULE(_native, module) {
                  objective_kind,
                  mpsboost::TreeTrainingParameters{
                      max_depth, min_samples_leaf, min_child_weight,
-                     reg_lambda, gamma}};
+                     reg_lambda, gamma, split_kind, random_seed}};
            }),
            py::arg("n_estimators"), py::arg("learning_rate"),
            py::arg("max_bins"), py::arg("max_depth"),
            py::arg("min_samples_leaf"), py::arg("min_child_weight"),
            py::arg("reg_lambda"), py::arg("gamma") = 0.0,
            py::arg("objective") = "squared_error",
+           py::arg("split_strategy") = "best_gain",
+           py::arg("random_seed") = 0,
            "创建已命名字段的内部训练参数值对象。");
 
   py::class_<mpsboost::MpsBackend>(module, "_MpsBackend")
@@ -416,11 +431,24 @@ PYBIND11_MODULE(_native, module) {
          std::uint64_t min_samples_leaf,
          double min_child_weight,
          double reg_lambda,
-         double gamma) {
+         double gamma,
+         const std::string& split_strategy,
+         std::uint32_t random_seed) {
         const std::vector<mpsboost::GradientPair> gradients =
             mpsboost::ComputeSquaredErrorGradients(labels, predictions);
+        mpsboost::TreeTrainingParameters::SplitStrategy split_kind =
+            mpsboost::TreeTrainingParameters::SplitStrategy::kBestGain;
+        if (split_strategy == "best_gain") {
+          split_kind = mpsboost::TreeTrainingParameters::SplitStrategy::kBestGain;
+        } else if (split_strategy == "random_threshold") {
+          split_kind =
+              mpsboost::TreeTrainingParameters::SplitStrategy::kRandomThreshold;
+        } else {
+          throw std::invalid_argument("unknown split strategy");
+        }
         const mpsboost::TreeTrainingParameters parameters{
-            max_depth, min_samples_leaf, min_child_weight, reg_lambda, gamma};
+            max_depth, min_samples_leaf, min_child_weight, reg_lambda, gamma,
+            split_kind, random_seed};
         const mpsboost::CpuReferenceBackend backend;
         return mpsboost::TrainSingleRegressionTree(dataset, gradients, parameters,
                                                    backend);
@@ -428,7 +456,8 @@ PYBIND11_MODULE(_native, module) {
       py::arg("dataset"), py::arg("labels"), py::arg("predictions"),
       py::arg("max_depth"), py::arg("min_samples_leaf") = 1,
       py::arg("min_child_weight") = 0.0, py::arg("reg_lambda") = 1.0,
-      py::arg("gamma") = 0.0,
+      py::arg("gamma") = 0.0, py::arg("split_strategy") = "best_gain",
+      py::arg("random_seed") = 0,
       "使用 CPU FP64 histogram oracle 训练一棵真实深度受限回归树。");
 
   module.def(

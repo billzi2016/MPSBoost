@@ -101,6 +101,46 @@ def test_stable_tie_break_prefers_smaller_feature_then_threshold():
     assert root["threshold_bin"] == 0
 
 
+def test_random_threshold_split_strategy_is_seeded_and_native():
+    """Random-threshold trees must use native split selection with deterministic seeds."""
+
+    dataset = _native._quantize_dense(
+        np.asarray([[float(value)] for value in range(8)], dtype=np.float32),
+        max_bins=8,
+    )
+    labels = [0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 3.0]
+    first = _native._train_single_tree_cpu(
+        dataset,
+        labels,
+        [0.0] * 8,
+        max_depth=1,
+        reg_lambda=0.0,
+        split_strategy="random_threshold",
+        random_seed=101,
+    )
+    second = _native._train_single_tree_cpu(
+        dataset,
+        labels,
+        [0.0] * 8,
+        max_depth=1,
+        reg_lambda=0.0,
+        split_strategy="random_threshold",
+        random_seed=101,
+    )
+    different = _native._train_single_tree_cpu(
+        dataset,
+        labels,
+        [0.0] * 8,
+        max_depth=1,
+        reg_lambda=0.0,
+        split_strategy="random_threshold",
+        random_seed=202,
+    )
+
+    assert first.nodes == second.nodes
+    assert first.nodes[0]["threshold_bin"] != different.nodes[0]["threshold_bin"]
+
+
 def test_depth_gamma_and_constant_feature_keep_valid_leaf():
     """禁止生长或无正增益时只保留根叶，叶值仍由全部样本统计计算。"""
 

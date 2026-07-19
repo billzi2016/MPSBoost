@@ -63,6 +63,23 @@ void ValidateParameters(const TreeTrainingParameters& parameters) {
   }
 }
 
+std::uint32_t StableRandomThreshold(std::uint32_t seed,
+                                    std::uint32_t feature,
+                                    std::uint32_t node_index,
+                                    std::uint32_t depth,
+                                    std::uint32_t candidate_count) {
+  if (candidate_count == 0) {
+    throw TrainingError("random threshold candidate count must be positive");
+  }
+  std::uint64_t value = seed;
+  value ^= (static_cast<std::uint64_t>(feature) + 0x9E3779B97F4A7C15ULL);
+  value *= 0xBF58476D1CE4E5B9ULL;
+  value ^= (static_cast<std::uint64_t>(node_index) << 32U) | depth;
+  value *= 0x94D049BB133111EBULL;
+  value ^= value >> 31U;
+  return static_cast<std::uint32_t>(value % candidate_count);
+}
+
 NodeStatistics SumRows(const std::vector<std::uint64_t>& rows,
                        const std::vector<GradientPair>& gradients) {
   NodeStatistics result;
@@ -105,6 +122,8 @@ bool IsBetterSplit(const SplitCandidate& candidate,
 SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                              const BinnedDataset& dataset,
                              const NodeStatistics& parent,
+                             std::uint32_t node_index,
+                             std::uint32_t depth,
                              const TreeTrainingParameters& parameters) {
   if (histograms.size() != dataset.features()) {
     throw TrainingError("Histogram 特征数量与数据集不一致");
@@ -153,6 +172,13 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
           left.hessian_sum < parameters.min_child_weight ||
           right.hessian_sum < parameters.min_child_weight ||
           left.hessian_sum <= 0.0 || right.hessian_sum <= 0.0) {
+        continue;
+      }
+      if (parameters.split_strategy ==
+              TreeTrainingParameters::SplitStrategy::kRandomThreshold &&
+          threshold != StableRandomThreshold(parameters.random_seed, feature,
+                                             node_index, depth,
+                                             static_cast<std::uint32_t>(bins.size() - 1))) {
         continue;
       }
       const double gain = SplitGain(
@@ -335,7 +361,8 @@ RegressionTree TrainSingleRegressionTree(
         throw TrainingError("Histogram 特征数量与数据集不一致");
       }
       const SplitCandidate split =
-          FindBestSplit(histograms, dataset, active.statistics, parameters);
+          FindBestSplit(histograms, dataset, active.statistics, active.node_index,
+                        active.depth, parameters);
       if (!split.valid) {
         continue;
       }
