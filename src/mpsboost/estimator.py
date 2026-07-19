@@ -222,6 +222,51 @@ class MPSBoostRegressor:
             values /= total
         return values.astype(np.float32, copy=False)
 
+    def permutation_importance(
+        self,
+        X: Any,
+        y: Any,
+        *,
+        n_repeats: int = 5,
+        random_state: int | None = None,
+    ) -> dict[str, NDArray[np.float32] | float]:
+        """Estimate score drop after permuting each feature with the estimator's own score.
+
+        This method intentionally delegates all prediction and scoring semantics to ``score``.
+        Regression therefore uses R², classification uses accuracy, and future estimators can reuse
+        the same implementation without copying metric logic into the explanation layer.
+        """
+
+        self._require_model()
+        if isinstance(n_repeats, bool) or not isinstance(n_repeats, int):
+            raise TypeError("n_repeats must be an integer")
+        if n_repeats <= 0:
+            raise ValueError("n_repeats must be positive")
+        if random_state is not None and (
+            isinstance(random_state, bool) or not isinstance(random_state, int)
+        ):
+            raise TypeError("random_state must be an integer or None")
+        matrix = as_dense_matrix(X)
+        if matrix.shape[1] != self.n_features_in_:
+            raise ValueError("permutation feature count does not match training data")
+        baseline_score = float(self.score(matrix, y))
+        generator = np.random.default_rng(random_state)
+        importances = np.zeros((self.n_features_in_, n_repeats), dtype=np.float32)
+        for feature_index in range(self.n_features_in_):
+            for repeat_index in range(n_repeats):
+                permuted = np.array(matrix, copy=True)
+                order = generator.permutation(matrix.shape[0])
+                permuted[:, feature_index] = permuted[order, feature_index]
+                importances[feature_index, repeat_index] = baseline_score - float(
+                    self.score(permuted, y)
+                )
+        return {
+            "baseline_score": baseline_score,
+            "importances": importances,
+            "importances_mean": importances.mean(axis=1),
+            "importances_std": importances.std(axis=1),
+        }
+
     def _more_tags(self) -> dict[str, Any]:
         """Return sklearn compatibility tags without importing sklearn at runtime."""
 

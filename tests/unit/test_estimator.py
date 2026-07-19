@@ -99,6 +99,81 @@ def test_feature_importance_requires_fitted_model_and_valid_kind():
         fitted.feature_importance(kind="permutation")
 
 
+def test_permutation_importance_uses_estimator_score_for_regression():
+    """Permutation importance should use score() instead of duplicating prediction metrics."""
+
+    X = np.array(
+        [
+            [0.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [1.0, 1.0],
+            [2.0, 0.0],
+            [2.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    y = np.array([0.0, 0.0, 5.0, 5.0, 10.0, 10.0], dtype=np.float32)
+    model = MPSBoostRegressor(
+        n_estimators=2,
+        learning_rate=0.5,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    result = model.permutation_importance(X, y, n_repeats=4, random_state=7)
+
+    assert result["importances"].shape == (2, 4)
+    assert np.isfinite(result["baseline_score"])
+    assert result["importances_mean"][0] > result["importances_mean"][1]
+
+
+def test_permutation_importance_uses_classifier_accuracy():
+    """Classifier permutation importance should reuse accuracy score through the shared method."""
+
+    X = np.array([[0.0], [0.1], [0.2], [1.0], [1.1], [1.2]], dtype=np.float32)
+    y = np.array([0, 0, 0, 1, 1, 1], dtype=np.int64)
+    model = MPSBoostClassifier(
+        n_estimators=3,
+        learning_rate=0.5,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    result = model.permutation_importance(X, y, n_repeats=3, random_state=11)
+
+    assert result["importances"].shape == (1, 3)
+    assert result["baseline_score"] == 1.0
+    assert result["importances_mean"][0] >= 0.0
+
+
+def test_permutation_importance_validates_state_and_arguments():
+    """Permutation importance should share fitted-state and input validation contracts."""
+
+    model = MPSBoostRegressor(device="cpu")
+    with pytest.raises(NotFittedError):
+        model.permutation_importance(np.ones((2, 1), dtype=np.float32), np.ones(2))
+
+    fitted = MPSBoostRegressor(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        device="cpu",
+    ).fit(np.ones((2, 1), dtype=np.float32), np.array([1.0, 2.0]))
+    with pytest.raises(ValueError, match="n_repeats"):
+        fitted.permutation_importance(
+            np.ones((2, 1), dtype=np.float32), np.array([1.0, 2.0]), n_repeats=0
+        )
+    with pytest.raises(ValueError, match="feature count"):
+        fitted.permutation_importance(
+            np.ones((2, 2), dtype=np.float32), np.array([1.0, 2.0])
+        )
+
+
 def test_sklearn_tags_are_available_without_sklearn_dependency():
     """The estimator should expose old-style lightweight tags without importing sklearn."""
 

@@ -168,9 +168,9 @@
 - [ ] S16.1 实现 quantile objective。
 - [ ] S16.2 实现 Poisson objective。
 - [ ] S16.3 实现 Tweedie objective。
-- [ ] S16.4 Complete feature importance: gain, split count, and permutation.
+- [x] S16.4 Complete feature importance: gain, split count, and permutation.
 - [x] S16.4a Implement gain and split-count feature importance from native fitted tree nodes.
-- [ ] S16.4b Implement permutation importance without duplicating prediction or scoring logic.
+- [x] S16.4b Implement permutation importance without duplicating prediction or scoring logic.
 - [ ] S16.5 设计并实现 SHAP-like 近似解释的受控版本。
 - [ ] S16.6 验收 G15：高级目标与解释能力有真实测试、文档和性能边界。
 
