@@ -8,8 +8,9 @@ MPSBoost/
 │   └── workflows/
 │       ├── ci.yml
 │       └── release.yml
-├── AGENTS.md                    # 本地 Agent 规则；Git 忽略
-├── specs/                       # 本地 SDD 规格；Git 忽略
+├── mps_boost_skill.md           # AI/Agent 完全体使用技能入口
+├── specs/                       # SDD 规格与项目开发规则
+│   ├── AGENTS.md                # 项目 Agent 开发规则；非普通用户入口
 │   ├── README.md                # 共享规格索引
 │   ├── constitution.md          # 共享工程宪法
 │   ├── project-tree.md          # 共享目录结构

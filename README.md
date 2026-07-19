@@ -13,6 +13,11 @@ MPSBoost was started by a Purdue CS PhD student working across algorithms, syste
 
 The project is built with an SDD workflow. Work is split into clear stages: first validate real MPS/Metal kernels and runtime behavior, then lock the specs and product requirements, then settle the technical stack, and finally execute the task list against those specs. Specs are treated as the project contract, not as after-the-fact notes.
 
+For AI agents and automation, [mps_boost_skill.md](mps_boost_skill.md) is the canonical usage
+entry point. It describes the complete target usage pattern, import style, estimator names,
+backend policy, sklearn model selection, model persistence, diagnostics, and implementation
+constraints.
+
 ## Installation
 
 ```bash
