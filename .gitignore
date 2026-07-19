@@ -1,0 +1,25 @@
+# Local project specifications
+/specs/
+/AGENTS.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Build and release artifacts (L3 cache)
+/build/
+/dist/
+/.cache/
+/_skbuild/
+CMakeUserPresets.json
+
+# Optional project-local MPSBoost runtime cache (L2 cache)
+/.mpsboost-cache/
+
+# macOS
+.DS_Store
