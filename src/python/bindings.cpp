@@ -10,6 +10,8 @@
 
 #include "mpsboost/backend.hpp"
 #include "mpsboost/binned_dataset.hpp"
+#include "mpsboost/objective.hpp"
+#include "mpsboost/tree.hpp"
 #include "mpsboost/version.hpp"
 
 namespace py = pybind11;
@@ -88,6 +90,42 @@ py::list BinsByFeature(const mpsboost::BinnedDataset& dataset) {
   return result;
 }
 
+// 把扁平节点转换为只读 Python 字典，供 CPU oracle 手算测试逐字段断言。该函数不
+// 暴露可写节点，避免测试绕过 C++ 结构验证制造生产路径不存在的模型。
+py::list TreeNodes(const mpsboost::RegressionTree& tree) {
+  py::list result;
+  for (const mpsboost::TreeNode& node : tree.nodes()) {
+    py::dict item;
+    item["is_leaf"] = node.IsLeaf();
+    item["feature_index"] = node.feature_index;
+    item["threshold_bin"] = node.threshold_bin;
+    item["left_child"] = node.left_child;
+    item["right_child"] = node.right_child;
+    item["leaf_value"] = node.leaf_value;
+    item["gain"] = node.gain;
+    result.append(std::move(item));
+  }
+  return result;
+}
+
+// 将 CPU oracle histogram 转换为不可变语义的嵌套 Python 值，供测试逐 bin 对照。
+// 转换只发生在内部测试入口，不进入训练热路径，也不向 Python 复制计算公式。
+py::list HistogramsToPython(const mpsboost::NodeHistograms& histograms) {
+  py::list result;
+  for (const mpsboost::FeatureHistogram& feature : histograms) {
+    py::list bins;
+    for (const mpsboost::HistogramBin& bin : feature) {
+      py::dict item;
+      item["count"] = bin.count;
+      item["gradient_sum"] = bin.gradient_sum;
+      item["hessian_sum"] = bin.hessian_sum;
+      bins.append(std::move(item));
+    }
+    result.append(std::move(bins));
+  }
+  return result;
+}
+
 }  // namespace
 
 PYBIND11_MODULE(_native, module) {
@@ -97,6 +135,8 @@ PYBIND11_MODULE(_native, module) {
   // 统一注册后端异常，使 Python 可以明确区分设备执行失败与普通参数错误。
   py::register_exception<mpsboost::BackendError>(module, "BackendError");
   py::register_exception<mpsboost::DataError>(module, "DataError", PyExc_ValueError);
+  py::register_exception<mpsboost::TrainingError>(module, "TrainingError",
+                                                  PyExc_ValueError);
 
   py::class_<mpsboost::BinnedDataset>(module, "_BinnedDataset")
       .def_property_readonly("rows", &mpsboost::BinnedDataset::rows)
@@ -118,6 +158,79 @@ PYBIND11_MODULE(_native, module) {
              const std::vector<std::uint8_t> bytes = dataset.Serialize();
              return py::bytes(reinterpret_cast<const char*>(bytes.data()), bytes.size());
            });
+
+  py::class_<mpsboost::RegressionTree>(module, "_RegressionTree")
+      .def_property_readonly("feature_count",
+                             &mpsboost::RegressionTree::feature_count)
+      .def_property_readonly("nodes", &TreeNodes)
+      .def("predict", &mpsboost::RegressionTree::Predict, py::arg("dataset"),
+           "对内部量化数据执行唯一 C++ 扁平树预测。");
+
+  module.def(
+      "_squared_error_gradients",
+      [](const std::vector<double>& labels,
+         const std::vector<double>& predictions) {
+        py::list result;
+        for (const mpsboost::GradientPair& pair :
+             mpsboost::ComputeSquaredErrorGradients(labels, predictions)) {
+          result.append(py::make_tuple(pair.gradient, pair.hessian));
+        }
+        return result;
+      },
+      py::arg("labels"), py::arg("predictions"),
+      "计算平方误差 FP64 gradient/Hessian，仅供领域语义测试和后端对照。");
+
+  module.def("_node_score", &mpsboost::NodeScore, py::arg("gradient_sum"),
+             py::arg("hessian_sum"), py::arg("reg_lambda"),
+             "调用唯一 C++ 节点分数公式。");
+  module.def("_leaf_weight", &mpsboost::LeafWeight,
+             py::arg("gradient_sum"), py::arg("hessian_sum"),
+             py::arg("reg_lambda"), "调用唯一 C++ 叶值公式。");
+  module.def("_split_gain", &mpsboost::SplitGain,
+             py::arg("left_gradient"), py::arg("left_hessian"),
+             py::arg("right_gradient"), py::arg("right_hessian"),
+             py::arg("reg_lambda"), py::arg("gamma"),
+             "调用唯一 C++ 切分增益公式。");
+
+  module.def(
+      "_cpu_histograms",
+      [](const mpsboost::BinnedDataset& dataset,
+         const std::vector<double>& labels,
+         const std::vector<double>& predictions,
+         const std::vector<std::uint64_t>& rows) {
+        const std::vector<mpsboost::GradientPair> gradients =
+            mpsboost::ComputeSquaredErrorGradients(labels, predictions);
+        const mpsboost::CpuReferenceBackend backend;
+        return HistogramsToPython(
+            backend.BuildHistograms(dataset, rows, gradients));
+      },
+      py::arg("dataset"), py::arg("labels"), py::arg("predictions"),
+      py::arg("rows"),
+      "构建指定行集合的 CPU FP64 histogram，仅供逐 bin 正确性对照。");
+
+  module.def(
+      "_train_single_tree_cpu",
+      [](const mpsboost::BinnedDataset& dataset,
+         const std::vector<double>& labels,
+         const std::vector<double>& predictions,
+         std::uint32_t max_depth,
+         std::uint64_t min_samples_leaf,
+         double min_child_weight,
+         double reg_lambda,
+         double gamma) {
+        const std::vector<mpsboost::GradientPair> gradients =
+            mpsboost::ComputeSquaredErrorGradients(labels, predictions);
+        const mpsboost::TreeTrainingParameters parameters{
+            max_depth, min_samples_leaf, min_child_weight, reg_lambda, gamma};
+        const mpsboost::CpuReferenceBackend backend;
+        return mpsboost::TrainSingleRegressionTree(dataset, gradients, parameters,
+                                                   backend);
+      },
+      py::arg("dataset"), py::arg("labels"), py::arg("predictions"),
+      py::arg("max_depth"), py::arg("min_samples_leaf") = 1,
+      py::arg("min_child_weight") = 0.0, py::arg("reg_lambda") = 1.0,
+      py::arg("gamma") = 0.0,
+      "使用 CPU FP64 histogram oracle 训练一棵真实深度受限回归树。");
 
   module.def(
       "_quantize_dense",

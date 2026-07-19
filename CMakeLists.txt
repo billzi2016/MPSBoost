@@ -68,6 +68,9 @@ pybind11_add_module(
   _native MODULE
   src/python/bindings.cpp
   src/core/binned_dataset.cpp
+  src/core/objective.cpp
+  src/core/tree.cpp
+  src/cpu/reference_backend.cpp
   src/mps/metal_context.mm
 )
 add_dependencies(_native mpsboost_metallib)

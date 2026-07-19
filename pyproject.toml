@@ -54,6 +54,8 @@ sdist.include = [
   "CMakeLists.txt",
   "include/mpsboost/*.hpp",
   "include/mpsboost/*.in",
+  "src/core/*.cpp",
+  "src/cpu/*.cpp",
   "src/mps/*.mm",
   "src/mps/kernels/*.metal",
   "src/python/*.cpp",

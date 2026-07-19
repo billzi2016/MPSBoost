@@ -1,0 +1,7 @@
+# MPSBoost C++/Objective-C++ 稳定格式规则。
+# 保留维护者对中文解释性注释和复杂表达式的人工分段，避免工具改写语义说明。
+BasedOnStyle: Google
+ColumnLimit: 0
+ReflowComments: false
+DerivePointerAlignment: false
+PointerAlignment: Left

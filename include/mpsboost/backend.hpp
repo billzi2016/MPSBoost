@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+#include "mpsboost/binned_dataset.hpp"
+#include "mpsboost/objective.hpp"
+
 namespace mpsboost {
 
 // 后端执行失败的统一异常。设备层必须保留具体阶段信息，但不能让 Python 用户只看到
@@ -25,6 +28,41 @@ struct BackendInfo final {
   std::string device_name;
   std::uint64_t recommended_max_working_set_size{0};
   bool has_unified_memory{false};
+};
+
+// 单个特征 bin 的确定性二阶统计。count 使用无符号 64 位计数，G/H 使用 FP64，
+// 以便 CPU oracle 为后续设备 kernel 提供不依赖累计顺序的高精度对照。
+struct HistogramBin final {
+  std::uint64_t count{0};
+  double gradient_sum{0.0};
+  double hessian_sum{0.0};
+};
+
+using FeatureHistogram = std::vector<HistogramBin>;
+using NodeHistograms = std::vector<FeatureHistogram>;
+
+// 训练核心当前只依赖 histogram 能力，避免为了未来方法建立臃肿后端接口。S4 的
+// MPS 实现和本 CPU oracle 必须实现同一最小契约，后续能力通过接口隔离继续扩展。
+class HistogramBuilder {
+ public:
+  virtual ~HistogramBuilder() = default;
+
+  // 为指定节点的行集合构建全部特征 histogram。实现不得改变 rows 顺序或保存任何
+  // 借用指针；返回形状必须与数据集特征及各自 bin_count 完全一致。
+  virtual NodeHistograms BuildHistograms(
+      const BinnedDataset& dataset,
+      const std::vector<std::uint64_t>& rows,
+      const std::vector<GradientPair>& gradients) const = 0;
+};
+
+// 唯一 CPU histogram oracle。它只实现计算能力，不包含树生长、split 选择或参数
+// 语义，从而避免 CPU 与 MPS 各维护一套训练控制流。
+class CpuReferenceBackend final : public HistogramBuilder {
+ public:
+  NodeHistograms BuildHistograms(
+      const BinnedDataset& dataset,
+      const std::vector<std::uint64_t>& rows,
+      const std::vector<GradientPair>& gradients) const override;
 };
 
 // 查询默认 Metal 设备。无设备属于正常的“不可用”状态，不抛异常；运行时初始化失败
