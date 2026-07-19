@@ -7,7 +7,12 @@ native handle 或 mock 设备让公共 fit 路径成功。
 import numpy as np
 import pytest
 
-from mpsboost import MPSBoostClassifier, MPSBoostRegressor
+from mpsboost import (
+    DecisionTreeClassifier,
+    DecisionTreeRegressor,
+    MPSBoostClassifier,
+    MPSBoostRegressor,
+)
 from mpsboost.estimator import NotFittedError
 
 
@@ -260,3 +265,40 @@ def test_binary_classifier_rejects_non_binary_training_labels():
         model.fit(X, np.array([0, 1, 2]))
     with pytest.raises(ValueError, match="requires both class"):
         model.fit(X, np.array([1, 1, 1]))
+
+
+def test_decision_tree_regressor_trains_exactly_one_native_tree():
+    """DecisionTreeRegressor should expose a one-tree estimator without duplicating training."""
+
+    X = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y = np.array([0.0, 0.0, 4.0, 4.0], dtype=np.float32)
+    model = DecisionTreeRegressor(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    assert model.n_estimators_ == 1
+    assert model.get_params()["max_depth"] == 1
+    assert "n_estimators" not in model.get_params()
+    assert model.feature_importances_.tolist() == [1.0]
+    assert model.score(X, y) > 0.0
+
+
+def test_decision_tree_classifier_trains_exactly_one_native_tree():
+    """DecisionTreeClassifier should reuse the binary-logistic one-tree objective."""
+
+    X = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y = np.array([0, 0, 1, 1], dtype=np.int64)
+    model = DecisionTreeClassifier(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    assert model.n_estimators_ == 1
+    assert model.predict_proba(X).shape == (4, 2)
+    assert model.predict(X).tolist() == y.tolist()
+    assert model.score(X, y) == 1.0

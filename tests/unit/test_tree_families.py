@@ -41,6 +41,20 @@ def test_available_classifier_and_alias_share_one_family_contract():
     assert "histogram_gbdt_classification" in mb.mps_training_families()
 
 
+def test_available_decision_trees_have_single_tree_family_contracts():
+    """Decision tree estimators should be available without placeholder classes."""
+
+    regressor = mb.estimator_capability("DecisionTreeRegressor")
+    classifier = mb.estimator_capability("DecisionTreeClassifier")
+
+    assert regressor.family_key == "decision_tree_regression"
+    assert regressor.family.task == "regression"
+    assert regressor.family.supports_mps_training is True
+    assert classifier.family_key == "decision_tree_classification"
+    assert classifier.family.task == "classification"
+    assert classifier.family.supports_mps_training is True
+
+
 def test_planned_tree_families_are_specs_not_fake_classes():
     """Planned models must be queryable without appearing as importable estimators."""
 
@@ -50,8 +64,6 @@ def test_planned_tree_families_are_specs_not_fake_classes():
         "RandomForestClassifier",
         "ExtraTreesRegressor",
         "ExtraTreesClassifier",
-        "DecisionTreeRegressor",
-        "DecisionTreeClassifier",
         "CatBoostRegressor",
         "CatBoostClassifier",
         "IsolationForest",

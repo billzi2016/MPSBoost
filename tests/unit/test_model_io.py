@@ -9,7 +9,12 @@ import os
 import numpy as np
 import pytest
 
-from mpsboost import MPSBoostClassifier, MPSBoostRegressor
+from mpsboost import (
+    DecisionTreeClassifier,
+    DecisionTreeRegressor,
+    MPSBoostClassifier,
+    MPSBoostRegressor,
+)
 
 
 def _fitted_model():
@@ -76,6 +81,41 @@ def test_regressor_rejects_classifier_model_file(tmp_path):
 
     with pytest.raises(ValueError, match="incompatible"):
         MPSBoostRegressor(device="cpu").load_model(path)
+
+
+def test_decision_tree_load_rejects_boosted_ensemble(tmp_path):
+    """Decision tree estimators must not accept multi-tree boosted model files."""
+
+    X = np.array([[0.0], [1.0], [2.0], [3.0]], dtype=np.float32)
+    path = tmp_path / "boosted.mb"
+    MPSBoostRegressor(
+        n_estimators=2,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, np.array([0.0, 0.0, 2.0, 2.0])).save_model(path)
+
+    with pytest.raises(ValueError, match="one-tree"):
+        DecisionTreeRegressor(device="cpu").load_model(path)
+
+
+def test_decision_tree_classifier_round_trip(tmp_path):
+    """One-tree classifier model files should restore as decision tree classifiers."""
+
+    X = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y = np.array([0, 0, 1, 1], dtype=np.int64)
+    path = tmp_path / "tree_classifier.mb"
+    original = DecisionTreeClassifier(
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+    original.save_model(path)
+    restored = DecisionTreeClassifier(device="cpu").load_model(path)
+
+    np.testing.assert_allclose(restored.predict_proba(X), original.predict_proba(X))
 
 
 @pytest.mark.parametrize("mutation", ["truncate", "checksum", "major"])

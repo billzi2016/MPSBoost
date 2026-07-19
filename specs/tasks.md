@@ -120,6 +120,7 @@
 ## S11：Random Forest
 
 - [x] S11.1 实现 bootstrap/无放回采样和特征子采样。
+- [x] S11.1a Implement `DecisionTreeRegressor` and `DecisionTreeClassifier` as one-tree native estimators.
 - [ ] S11.2 实现 `MPSRandomForestRegressor`。
 - [ ] S11.3 实现 `MPSRandomForestClassifier`。
 - [ ] S11.4 实现独立树批量训练调度和共享 MPS 热路径。

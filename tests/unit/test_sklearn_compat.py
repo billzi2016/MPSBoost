@@ -118,3 +118,36 @@ def test_classifier_works_with_standard_sklearn_protocol():
 
     assert isinstance(search.best_estimator_, mb.GradientBoostingClassifier)
     assert search.best_score_ >= 0.0
+
+
+def test_decision_tree_estimators_follow_standard_sklearn_protocol():
+    """Decision tree estimators should clone and tune through the standard protocol."""
+
+    X_reg = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y_reg = np.array([0.0, 0.0, 4.0, 4.0], dtype=np.float32)
+    regressor = mb.DecisionTreeRegressor(
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    )
+    cloned_regressor = clone(regressor)
+
+    assert cloned_regressor.get_params() == regressor.get_params()
+    assert "n_estimators" not in regressor.get_params()
+    assert cross_val_score(regressor, X_reg, y_reg, cv=2).shape == (2,)
+
+    X_clf = np.array([[0.0], [0.1], [1.0], [1.1]], dtype=np.float32)
+    y_clf = np.array([0, 0, 1, 1], dtype=np.int64)
+    classifier_search = GridSearchCV(
+        mb.DecisionTreeClassifier(
+            min_samples_leaf=1,
+            min_child_weight=0.0,
+            device="cpu",
+        ),
+        param_grid={"max_depth": [0, 1]},
+        cv=2,
+        n_jobs=1,
+    )
+    classifier_search.fit(X_clf, y_clf)
+
+    assert isinstance(classifier_search.best_estimator_, mb.DecisionTreeClassifier)

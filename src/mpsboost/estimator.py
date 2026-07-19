@@ -315,6 +315,7 @@ class MPSBoostRegressor:
                     f"model objective '{candidate.objective}' is incompatible with "
                     f"{type(self).__name__}"
                 )
+            self._validate_loaded_model(candidate)
             self.model_ = candidate
             self.n_features_in_ = candidate.feature_count
             self.device_ = self.device if self.device != "auto" else "cpu"
@@ -348,6 +349,9 @@ class MPSBoostRegressor:
 
     def _finalize_fitted_metadata(self) -> None:
         """Attach estimator-specific fitted metadata after native model assignment."""
+
+    def _validate_loaded_model(self, model: Any) -> None:
+        """Validate estimator-specific metadata before accepting a loaded native model."""
 
     def _clear_fitted_state(self) -> None:
         """Delete every fitted field through one path to avoid stale partial state."""
@@ -398,6 +402,61 @@ class MPSBoostRegressor:
             isinstance(self.random_state, bool) or not isinstance(self.random_state, int)
         ):
             raise TypeError("random_state 必须是整数或 None")
+
+
+class DecisionTreeRegressor(MPSBoostRegressor):
+    """Train one squared-error histogram tree through the shared native tree engine."""
+
+    _fitted_error_message = "DecisionTreeRegressor is not fitted or loaded"
+    _PARAMETER_NAMES = (
+        "max_depth",
+        "max_bins",
+        "min_child_weight",
+        "min_samples_leaf",
+        "reg_lambda",
+        "random_state",
+        "device",
+        "verbosity",
+    )
+
+    def __init__(
+        self,
+        max_depth: int = 6,
+        max_bins: int = 256,
+        min_child_weight: float = 1.0,
+        min_samples_leaf: int = 20,
+        reg_lambda: float = 1.0,
+        random_state: int | None = None,
+        device: str = "mps",
+        verbosity: int = 1,
+    ) -> None:
+        """Store decision-tree parameters while fixing the native trainer to one tree."""
+
+        super().__init__(
+            n_estimators=1,
+            learning_rate=1.0,
+            max_depth=max_depth,
+            max_bins=max_bins,
+            min_child_weight=min_child_weight,
+            min_samples_leaf=min_samples_leaf,
+            reg_lambda=reg_lambda,
+            random_state=random_state,
+            device=device,
+            verbosity=verbosity,
+        )
+
+    def fit(self, X: Any, y: Any) -> "DecisionTreeRegressor":
+        """Fit exactly one native tree even if private attributes were mutated."""
+
+        self.n_estimators = 1
+        self.learning_rate = 1.0
+        return super().fit(X, y)
+
+    def _validate_loaded_model(self, model: Any) -> None:
+        """Reject boosted ensembles because this estimator promises one tree."""
+
+        if model.tree_count != 1:
+            raise ValueError("DecisionTreeRegressor can only load one-tree models")
 
 
 class MPSBoostClassifier(MPSBoostRegressor):
@@ -469,3 +528,49 @@ class MPSBoostClassifier(MPSBoostRegressor):
             input_tags=InputTags(two_d_array=True, allow_nan=False, sparse=False),
             requires_fit=True,
         )
+
+
+class DecisionTreeClassifier(MPSBoostClassifier):
+    """Train one binary-logistic histogram tree through the shared native tree engine."""
+
+    _fitted_error_message = "DecisionTreeClassifier is not fitted or loaded"
+    _PARAMETER_NAMES = DecisionTreeRegressor._PARAMETER_NAMES
+
+    def __init__(
+        self,
+        max_depth: int = 6,
+        max_bins: int = 256,
+        min_child_weight: float = 1.0,
+        min_samples_leaf: int = 20,
+        reg_lambda: float = 1.0,
+        random_state: int | None = None,
+        device: str = "mps",
+        verbosity: int = 1,
+    ) -> None:
+        """Store classifier tree parameters while fixing the native trainer to one tree."""
+
+        super().__init__(
+            n_estimators=1,
+            learning_rate=1.0,
+            max_depth=max_depth,
+            max_bins=max_bins,
+            min_child_weight=min_child_weight,
+            min_samples_leaf=min_samples_leaf,
+            reg_lambda=reg_lambda,
+            random_state=random_state,
+            device=device,
+            verbosity=verbosity,
+        )
+
+    def fit(self, X: Any, y: Any) -> "DecisionTreeClassifier":
+        """Fit exactly one native logistic tree even if private attributes were mutated."""
+
+        self.n_estimators = 1
+        self.learning_rate = 1.0
+        return super().fit(X, y)
+
+    def _validate_loaded_model(self, model: Any) -> None:
+        """Reject boosted ensembles because this estimator promises one tree."""
+
+        if model.tree_count != 1:
+            raise ValueError("DecisionTreeClassifier can only load one-tree models")

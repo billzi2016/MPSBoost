@@ -98,7 +98,7 @@ libraries by changing the import and keeping familiar model names.
 | Histogram gradient boosting classification | `GradientBoostingClassifier` | Available for strict binary 0/1 labels |
 | Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Planned |
 | Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Planned |
-| Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Planned |
+| Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Available |
 | CatBoost-like ordered boosting | `CatBoostRegressor`, `CatBoostClassifier` | Planned |
 | Isolation forest | `IsolationForest` | Planned |
 | Ranking trees | `LearningToRankRegressor` | Planned |

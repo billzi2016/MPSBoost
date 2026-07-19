@@ -86,13 +86,13 @@ _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
     EstimatorCapability(
         name="DecisionTreeRegressor",
         family_key="decision_tree_regression",
-        status="planned",
+        status="available",
         primary=True,
     ),
     EstimatorCapability(
         name="DecisionTreeClassifier",
         family_key="decision_tree_classification",
-        status="planned",
+        status="available",
         primary=True,
     ),
     EstimatorCapability(

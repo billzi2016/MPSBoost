@@ -20,6 +20,8 @@ def test_completed_estimators_are_public():
     assert mb.MPSBoostRegressor.__name__ == "MPSBoostRegressor"
     assert mb.GradientBoostingClassifier.__name__ == "MPSBoostClassifier"
     assert set(mb.__all__) == {
+        "DecisionTreeClassifier",
+        "DecisionTreeRegressor",
         "EstimatorCapability",
         "GradientBoostingClassifier",
         "GradientBoostingRegressor",
@@ -68,8 +70,11 @@ def test_estimator_capability_registry_fails_early_for_planned_models():
         "MPSBoostRegressor",
         "GradientBoostingClassifier",
         "MPSBoostClassifier",
+        "DecisionTreeRegressor",
+        "DecisionTreeClassifier",
     )
     assert mb.estimator_status("GradientBoostingClassifier") == "available"
+    assert mb.estimator_status("DecisionTreeRegressor") == "available"
     assert "RandomForestRegressor" in mb.planned_estimators()
     assert "ExtraTreesClassifier" in mb.planned_estimators()
     assert "CatBoostRegressor" in mb.planned_estimators()
