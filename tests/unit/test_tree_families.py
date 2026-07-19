@@ -37,6 +37,8 @@ def test_planned_tree_families_are_specs_not_fake_classes():
         "ExtraTreesClassifier",
         "DecisionTreeRegressor",
         "DecisionTreeClassifier",
+        "CatBoostRegressor",
+        "CatBoostClassifier",
         "IsolationForest",
         "LearningToRankRegressor",
     } <= planned
@@ -59,6 +61,8 @@ def test_family_specs_cover_every_estimator_capability_once():
     assert mb.tree_family_spec("random_forest_regression").aggregation == "mean"
     assert mb.tree_family_spec("random_forest_classification").aggregation == "vote"
     assert mb.tree_family_spec("extra_trees_regression").objective == "random_split"
+    assert mb.tree_family_spec("catboost_regression").growth == "ordered_boosting"
+    assert mb.tree_family_spec("catboost_classification").task == "classification"
 
 
 def test_unknown_family_and_estimator_names_fail_early():

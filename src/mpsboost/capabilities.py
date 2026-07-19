@@ -89,6 +89,18 @@ _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
         primary=True,
     ),
     EstimatorCapability(
+        name="CatBoostRegressor",
+        family_key="catboost_regression",
+        status="planned",
+        primary=True,
+    ),
+    EstimatorCapability(
+        name="CatBoostClassifier",
+        family_key="catboost_classification",
+        status="planned",
+        primary=True,
+    ),
+    EstimatorCapability(
         name="IsolationForest",
         family_key="isolation_forest",
         status="planned",

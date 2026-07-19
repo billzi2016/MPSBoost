@@ -54,7 +54,10 @@ def test_estimator_capability_registry_fails_early_for_planned_models():
     )
     assert "RandomForestRegressor" in mb.planned_estimators()
     assert "ExtraTreesClassifier" in mb.planned_estimators()
+    assert "CatBoostRegressor" in mb.planned_estimators()
+    assert "CatBoostClassifier" in mb.planned_estimators()
     assert not hasattr(mb, "RandomForestRegressor")
+    assert not hasattr(mb, "CatBoostRegressor")
 
     try:
         mb.require_estimator_supported("RandomForestRegressor")

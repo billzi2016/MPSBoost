@@ -28,6 +28,26 @@ def test_score_weight_and_gain_match_hand_computation():
     assert _native._split_gain(0.0, 2.0, -4.0, 2.0, 0.0, 0.25) == 1.75
 
 
+def test_binary_logistic_gradients_match_hand_computation():
+    """Binary logistic uses raw margins, p-label gradients, and p*(1-p) Hessians."""
+
+    actual = _native._binary_logistic_gradients([0.0, 1.0, 1.0], [0.0, 2.0, -2.0])
+    assert actual[0] == pytest.approx((0.5, 0.25))
+    assert actual[1] == pytest.approx((-0.11920292202211755, 0.10499358540350662))
+    assert actual[2] == pytest.approx((-0.8807970779778824, 0.1049935854035065))
+
+
+def test_binary_logistic_probability_is_stable_for_extreme_logits():
+    """Extreme margins must not overflow or produce probabilities outside [0, 1]."""
+
+    assert _native._logistic_probability(-1000.0) == pytest.approx(0.0)
+    assert _native._logistic_probability(1000.0) == pytest.approx(1.0)
+    assert _native._binary_logistic_gradients([0.0, 1.0], [-1000.0, 1000.0]) == [
+        (0.0, 0.0),
+        (0.0, 0.0),
+    ]
+
+
 @pytest.mark.parametrize(
     "call, message",
     [
@@ -38,6 +58,11 @@ def test_score_weight_and_gain_match_hand_computation():
         (lambda: _native._leaf_weight(1.0, 0.0, 0.0), "有限正数"),
         (lambda: _native._split_gain(0.0, 0.0, 1.0, 1.0, 1.0, 0.0), "严格为正"),
         (lambda: _native._split_gain(1.0, 1.0, 1.0, 1.0, 0.0, -1.0), "gamma"),
+        (lambda: _native._binary_logistic_gradients([], []), "标签不能为空"),
+        (lambda: _native._binary_logistic_gradients([1.0], []), "长度不一致"),
+        (lambda: _native._binary_logistic_gradients([0.5], [0.0]), "0 或 1"),
+        (lambda: _native._binary_logistic_gradients([0.0], [math.inf]), "有限值"),
+        (lambda: _native._logistic_probability(math.nan), "有限值"),
     ],
 )
 def test_invalid_objective_inputs_fail_before_model_construction(call, message):

@@ -16,11 +16,12 @@ ObjectiveName = Literal[
     "squared_error",
     "logistic",
     "random_split",
+    "ordered_boosting",
     "path_length",
     "ranking",
 ]
 SamplingStrategy = Literal["none", "bootstrap", "feature_subsample", "random_threshold"]
-GrowthStrategy = Literal["level_wise", "leaf_wise", "independent_trees"]
+GrowthStrategy = Literal["level_wise", "leaf_wise", "independent_trees", "ordered_boosting"]
 PredictionAggregation = Literal["sum", "mean", "vote", "path_length", "rank_score"]
 
 
@@ -116,6 +117,26 @@ _TREE_FAMILY_SPECS: tuple[TreeFamilySpec, ...] = (
         sampling=("none",),
         growth="level_wise",
         aggregation="vote",
+        supports_mps_training=False,
+        supports_mps_prediction=False,
+    ),
+    TreeFamilySpec(
+        key="catboost_regression",
+        task="regression",
+        objective="ordered_boosting",
+        sampling=("none",),
+        growth="ordered_boosting",
+        aggregation="sum",
+        supports_mps_training=False,
+        supports_mps_prediction=False,
+    ),
+    TreeFamilySpec(
+        key="catboost_classification",
+        task="classification",
+        objective="ordered_boosting",
+        sampling=("none",),
+        growth="ordered_boosting",
+        aggregation="sum",
         supports_mps_training=False,
         supports_mps_prediction=False,
     ),

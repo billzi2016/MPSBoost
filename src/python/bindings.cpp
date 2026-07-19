@@ -331,6 +331,23 @@ PYBIND11_MODULE(_native, module) {
       py::arg("labels"), py::arg("predictions"),
       "计算平方误差 FP64 gradient/Hessian，仅供领域语义测试和后端对照。");
 
+  module.def(
+      "_binary_logistic_gradients",
+      [](const std::vector<double>& labels, const std::vector<double>& logits) {
+        py::list result;
+        for (const mpsboost::GradientPair& pair :
+             mpsboost::ComputeBinaryLogisticGradients(labels, logits)) {
+          result.append(py::make_tuple(pair.gradient, pair.hessian));
+        }
+        return result;
+      },
+      py::arg("labels"), py::arg("logits"),
+      "Compute binary-logistic FP64 gradient/Hessian for semantic tests.");
+
+  module.def("_logistic_probability", &mpsboost::LogisticProbability,
+             py::arg("logit"),
+             "Convert a raw binary-logistic margin to probability.");
+
   module.def("_node_score", &mpsboost::NodeScore, py::arg("gradient_sum"),
              py::arg("hessian_sum"), py::arg("reg_lambda"),
              "调用唯一 C++ 节点分数公式。");

@@ -17,10 +17,16 @@ authors = [
 ]
 keywords = [
   "apple-silicon",
+  "catboost",
+  "c-plus-plus",
+  "extra-trees",
+  "gbdt",
   "gradient-boosting",
   "machine-learning",
   "metal",
   "mps",
+  "random-forest",
+  "tree-models",
 ]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",

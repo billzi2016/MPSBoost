@@ -56,6 +56,7 @@ libraries by changing the import and keeping familiar model names.
 | Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Planned |
 | Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Planned |
 | Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Planned |
+| CatBoost-like ordered boosting | `CatBoostRegressor`, `CatBoostClassifier` | Planned |
 | Isolation forest | `IsolationForest` | Planned |
 | Ranking trees | `LearningToRankRegressor` | Planned |
 
@@ -130,7 +131,11 @@ The `0.2.0` release gate includes:
 
 ## Independence notice
 
-MPSBoost is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by Apple Inc., the XGBoost project, or the scikit-learn project. Apple, Metal, and Metal Performance Shaders may be trademarks of Apple Inc.
+MPSBoost is an independent open-source project. It is not affiliated with, endorsed by, or
+sponsored by Apple Inc., the XGBoost project, the LightGBM project, the CatBoost project, or the
+scikit-learn project. The MPS/Metal backend is an independent implementation based on public
+papers, public API documentation, and original engineering work; it is not derived from those
+libraries. Apple, Metal, and Metal Performance Shaders may be trademarks of Apple Inc.
 
 ## License
 

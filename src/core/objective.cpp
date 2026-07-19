@@ -1,11 +1,12 @@
-// MPSBoost 训练数学的唯一权威实现。
+// MPSBoost objective math implementation.
 //
-// 本文件集中实现平方误差统计、节点分数、叶值与切分增益，并在进入公式前统一检查
-// 有限值和参数不变量。其他模块只能调用这些函数，禁止复制近似公式。
+// This file is the single authority for objective statistics, node scores, leaf weights, and
+// split gains. Other modules must call these functions instead of copying approximate formulas.
 
 #include "mpsboost/objective.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <string>
 
 namespace mpsboost {
@@ -33,17 +34,30 @@ double ValidatedDenominator(double hessian_sum, double reg_lambda) {
   return denominator;
 }
 
-}  // namespace
-
-std::vector<GradientPair> ComputeSquaredErrorGradients(
-    const std::vector<double>& labels,
-    const std::vector<double>& predictions) {
+void RequireSameNonEmptyLength(const std::vector<double>& labels,
+                               const std::vector<double>& predictions) {
   if (labels.empty()) {
     throw TrainingError("标签不能为空");
   }
   if (labels.size() != predictions.size()) {
     throw TrainingError("标签与预测长度不一致");
   }
+}
+
+double RequireBinaryLabel(double label) {
+  RequireFinite(label, "标签");
+  if (label == 0.0 || label == 1.0) {
+    return label;
+  }
+  throw TrainingError("二分类 logistic 标签必须是 0 或 1");
+}
+
+}  // namespace
+
+std::vector<GradientPair> ComputeSquaredErrorGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& predictions) {
+  RequireSameNonEmptyLength(labels, predictions);
 
   std::vector<GradientPair> result;
   result.reserve(labels.size());
@@ -55,6 +69,36 @@ std::vector<GradientPair> ComputeSquaredErrorGradients(
       throw TrainingError("平方误差 gradient 发生浮点溢出");
     }
     result.push_back(GradientPair{gradient, 1.0});
+  }
+  return result;
+}
+
+double LogisticProbability(double logit) {
+  RequireFinite(logit, "logit");
+  if (logit >= 0.0) {
+    const double exp_negative = std::exp(-logit);
+    return 1.0 / (1.0 + exp_negative);
+  }
+  const double exp_positive = std::exp(logit);
+  return exp_positive / (1.0 + exp_positive);
+}
+
+std::vector<GradientPair> ComputeBinaryLogisticGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& logits) {
+  RequireSameNonEmptyLength(labels, logits);
+
+  std::vector<GradientPair> result;
+  result.reserve(labels.size());
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    const double label = RequireBinaryLabel(labels[index]);
+    const double probability = LogisticProbability(logits[index]);
+    const double gradient = probability - label;
+    const double hessian = probability * (1.0 - probability);
+    if (!std::isfinite(gradient) || !std::isfinite(hessian) || hessian < 0.0) {
+      throw TrainingError("二分类 logistic gradient/Hessian 发生浮点溢出");
+    }
+    result.push_back(GradientPair{gradient, hessian});
   }
   return result;
 }

@@ -111,7 +111,7 @@
 
 ## S10：分类 GBDT 与完整 boosting
 
-- [ ] S10.1 实现二分类 logistic objective 的唯一数学语义。
+- [x] S10.1 实现二分类 logistic objective 的唯一数学语义。
 - [ ] S10.2 实现 `MPSBoostClassifier.fit/predict/predict_proba`。
 - [ ] S10.3 实现 early stopping、验证集监控和训练诊断。
 - [ ] S10.4 完成 CPU oracle、真实 MPS、模型 I/O 和集成测试。
@@ -135,13 +135,15 @@
 - [ ] S12.5 与 Random Forest 共享采样、聚合和预测格式。
 - [ ] S12.6 验收 G11：ExtraTrees 正确、稳定、真实 MPS 路径可观测。
 
-## S13：LightGBM-like 训练策略
+## S13：LightGBM-like 与 CatBoost-like 训练策略
 
 - [ ] S13.1 实现受控 leaf-wise 生长策略。
 - [ ] S13.2 实现活跃叶队列、内存上限和过拟合控制。
 - [ ] S13.3 扩展 histogram subtraction 与小叶调度策略。
 - [ ] S13.4 对 level-wise 与 leaf-wise 做端到端 benchmark。
-- [ ] S13.5 验收 G12：LightGBM-like 策略真实加速且公开限制诚实。
+- [ ] S13.5 设计 CatBoost-like ordered boosting、类别特征友好路径和 permutation 语义。
+- [ ] S13.6 实现 `CatBoostRegressor` 与 `CatBoostClassifier` 的受控兼容入口。
+- [ ] S13.7 验收 G12：LightGBM-like 与 CatBoost-like 策略真实加速且公开限制诚实。
 
 ## S14：统一推理热路径
 
