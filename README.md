@@ -86,6 +86,23 @@ families aligned before their MPS training kernels are exposed as public estimat
 Validation metric history and early stopping also share one estimator-independent monitoring
 contract, so future classifiers and tree ensembles do not duplicate callback semantics.
 
+## CPU and MPS backends
+
+MPSBoost treats CPU as a first-class backend, not as a temporary fallback. The CPU oracle/backend
+is implemented inside this project and shares the same quantization, objective, sampling,
+monitoring, split-gain, and model-format contracts as the MPS backend. MPSBoost does not call
+XGBoost, LightGBM, CatBoost, or scikit-learn as hidden training engines.
+
+The intended long-term policy is:
+
+- `device="cpu"` forces the in-project CPU backend.
+- `device="mps"` forces the in-project MPS/Metal backend.
+- `device="auto"` will choose CPU for small or synchronization-heavy workloads and MPS for
+  workloads where the measured tree hot path can dominate transfer and launch overhead.
+
+MPS is an acceleration backend, not a requirement. If CPU is faster or more stable for a given
+workload, the project should say so and use CPU under `auto`.
+
 ## Backend diagnostics
 
 The native backend exposes non-sensitive device and cache diagnostics:
