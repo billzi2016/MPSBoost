@@ -30,6 +30,8 @@ TrainingParameters MakeTrainingParameters(std::uint32_t n_estimators,
                                           double gamma,
                                           const std::string& objective,
                                           const std::string& split_strategy,
+                                          const std::string& growth_strategy,
+                                          std::uint32_t max_leaves,
                                           std::uint32_t random_seed) {
   TrainingParameters::Objective objective_kind =
       TrainingParameters::Objective::kSquaredError;
@@ -51,16 +53,28 @@ TrainingParameters MakeTrainingParameters(std::uint32_t n_estimators,
     throw std::invalid_argument("unknown split strategy");
   }
 
+  TreeTrainingParameters::GrowthStrategy growth_kind =
+      TreeTrainingParameters::GrowthStrategy::kLevelWise;
+  if (growth_strategy == "level_wise") {
+    growth_kind = TreeTrainingParameters::GrowthStrategy::kLevelWise;
+  } else if (growth_strategy == "leaf_wise") {
+    growth_kind = TreeTrainingParameters::GrowthStrategy::kLeafWise;
+  } else {
+    throw std::invalid_argument("unknown growth strategy");
+  }
+
   return TrainingParameters{n_estimators,
                             learning_rate,
                             max_bins,
                             objective_kind,
                             TreeTrainingParameters{max_depth,
+                                                   max_leaves,
                                                    min_samples_leaf,
                                                    min_child_weight,
                                                    reg_lambda,
                                                    gamma,
                                                    split_kind,
+                                                   growth_kind,
                                                    random_seed}};
 }
 
@@ -98,6 +112,8 @@ void RegisterDatasetBindings(py::module_& module) {
            py::arg("min_child_weight"), py::arg("reg_lambda"),
            py::arg("gamma") = 0.0, py::arg("objective") = "squared_error",
            py::arg("split_strategy") = "best_gain",
+           py::arg("growth_strategy") = "level_wise",
+           py::arg("max_leaves") = 0,
            py::arg("random_seed") = 0,
            "Create the internal named training-parameter value object.");
 }

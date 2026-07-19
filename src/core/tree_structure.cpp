@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -16,6 +17,9 @@ namespace mpsboost::tree_internal {
 void ValidateParameters(const TreeTrainingParameters& parameters) {
   if (parameters.min_samples_leaf == 0) {
     throw TrainingError("min_samples_leaf 必须至少为 1");
+  }
+  if (parameters.max_leaves == 1) {
+    throw TrainingError("max_leaves must be zero or at least 2");
   }
   if (!std::isfinite(parameters.min_child_weight) ||
       parameters.min_child_weight < 0.0) {
@@ -27,6 +31,16 @@ void ValidateParameters(const TreeTrainingParameters& parameters) {
   if (!std::isfinite(parameters.gamma) || parameters.gamma < 0.0) {
     throw TrainingError("gamma 必须是有限非负数");
   }
+}
+
+std::uint32_t EffectiveMaxLeaves(const TreeTrainingParameters& parameters) {
+  if (parameters.max_leaves != 0) {
+    return parameters.max_leaves;
+  }
+  if (parameters.max_depth >= 31) {
+    return std::numeric_limits<std::uint32_t>::max();
+  }
+  return std::uint32_t{1} << parameters.max_depth;
 }
 
 TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda) {
@@ -43,6 +57,39 @@ std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node) {
   const auto index = static_cast<std::uint32_t>(nodes->size());
   nodes->push_back(std::move(node));
   return index;
+}
+
+RegressionTree TreeTrainingAccess::Create(std::uint32_t feature_count,
+                                          const NodeStatistics& root_statistics,
+                                          double reg_lambda) {
+  RegressionTree tree;
+  tree.feature_count_ = feature_count;
+  tree.nodes_.reserve(1);
+  AppendNode(&tree.nodes_, MakeLeaf(root_statistics, reg_lambda));
+  return tree;
+}
+
+void TreeTrainingAccess::ApplySplit(RegressionTree* tree,
+                                    const ActiveNode& active,
+                                    const PreparedSplit& prepared,
+                                    const TreeTrainingParameters& parameters,
+                                    std::uint32_t* left_index,
+                                    std::uint32_t* right_index) {
+  if (!prepared.valid || left_index == nullptr || right_index == nullptr) {
+    throw TrainingError("internal split application contract failed");
+  }
+  *left_index = AppendNode(&tree->nodes_,
+                           MakeLeaf(prepared.split.left, parameters.reg_lambda));
+  *right_index = AppendNode(
+      &tree->nodes_, MakeLeaf(prepared.split.right, parameters.reg_lambda));
+  TreeNode& parent = tree->nodes_[active.node_index];
+  parent.feature_index = prepared.split.feature;
+  parent.threshold_bin = prepared.split.threshold_bin;
+  parent.left_child = *left_index;
+  parent.right_child = *right_index;
+  parent.leaf_value = 0.0;
+  parent.gain = prepared.split.gain;
+  parent.flags = 0;
 }
 
 void ValidateTreeStructure(std::uint32_t feature_count,

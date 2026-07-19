@@ -38,6 +38,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "learning_rate",
         "max_depth",
         "max_bins",
+        "growth_strategy",
+        "max_leaves",
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
@@ -52,6 +54,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         learning_rate: float = 0.1,
         max_depth: int = 6,
         max_bins: int = 256,
+        growth_strategy: str = "level_wise",
+        max_leaves: int | None = None,
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
@@ -65,6 +69,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.learning_rate = learning_rate
         self.max_depth = max_depth
         self.max_bins = max_bins
+        self.growth_strategy = growth_strategy
+        self.max_leaves = max_leaves
         self.min_child_weight = min_child_weight
         self.min_samples_leaf = min_samples_leaf
         self.reg_lambda = reg_lambda
@@ -128,6 +134,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 self.reg_lambda,
                 objective=self._native_objective,
                 split_strategy=self._split_strategy,
+                growth_strategy=self.growth_strategy,
+                max_leaves=0 if self.max_leaves is None else self.max_leaves,
                 random_seed=0 if self.random_state is None else self.random_state,
             )
             mps_available = is_available()

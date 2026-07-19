@@ -45,6 +45,26 @@ struct PendingChildHistogram final {
   NodeHistograms parent_histograms;
 };
 
+struct PreparedSplit final {
+  bool valid{false};
+  SplitCandidate split;
+  std::vector<std::uint64_t> left_rows;
+  std::vector<std::uint64_t> right_rows;
+};
+
+class TreeTrainingAccess final {
+ public:
+  static RegressionTree Create(std::uint32_t feature_count,
+                               const NodeStatistics& root_statistics,
+                               double reg_lambda);
+  static void ApplySplit(RegressionTree* tree,
+                         const ActiveNode& active,
+                         const PreparedSplit& prepared,
+                         const TreeTrainingParameters& parameters,
+                         std::uint32_t* left_index,
+                         std::uint32_t* right_index);
+};
+
 void ValidateParameters(const TreeTrainingParameters& parameters);
 
 NodeStatistics SumRows(const std::vector<std::uint64_t>& rows,
@@ -67,6 +87,8 @@ std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node);
 void ValidateTreeStructure(std::uint32_t feature_count,
                            const std::vector<TreeNode>& nodes);
 
+std::uint32_t EffectiveMaxLeaves(const TreeTrainingParameters& parameters);
+
 std::vector<NodeHistograms> BuildCurrentLayerHistograms(
     const BinnedDataset& dataset,
     const std::vector<ActiveNode>& current_layer,
@@ -77,6 +99,17 @@ std::vector<NodeHistograms> BuildPendingChildHistograms(
     const BinnedDataset& dataset,
     const std::vector<PendingChildHistogram>& pending,
     const std::vector<GradientPair>& gradients,
+    const HistogramBuilder& histogram_builder);
+
+PreparedSplit PrepareSplitRows(const BinnedDataset& dataset,
+                               const ActiveNode& active,
+                               const NodeHistograms& histograms,
+                               const TreeTrainingParameters& parameters);
+
+RegressionTree TrainLeafWiseRegressionTree(
+    const BinnedDataset& dataset,
+    const std::vector<GradientPair>& gradients,
+    const TreeTrainingParameters& parameters,
     const HistogramBuilder& histogram_builder);
 
 }  // namespace mpsboost::tree_internal

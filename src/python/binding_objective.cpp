@@ -29,6 +29,8 @@ RegressionTree TrainSingleTreeCpu(const BinnedDataset& dataset,
                                   double reg_lambda,
                                   double gamma,
                                   const std::string& split_strategy,
+                                  const std::string& growth_strategy,
+                                  std::uint32_t max_leaves,
                                   std::uint32_t random_seed) {
   const std::vector<GradientPair> gradients =
       ComputeSquaredErrorGradients(labels, predictions);
@@ -41,9 +43,19 @@ RegressionTree TrainSingleTreeCpu(const BinnedDataset& dataset,
   } else {
     throw std::invalid_argument("unknown split strategy");
   }
-  const TreeTrainingParameters parameters{max_depth, min_samples_leaf,
-                                          min_child_weight, reg_lambda, gamma,
-                                          split_kind, random_seed};
+  TreeTrainingParameters::GrowthStrategy growth_kind =
+      TreeTrainingParameters::GrowthStrategy::kLevelWise;
+  if (growth_strategy == "level_wise") {
+    growth_kind = TreeTrainingParameters::GrowthStrategy::kLevelWise;
+  } else if (growth_strategy == "leaf_wise") {
+    growth_kind = TreeTrainingParameters::GrowthStrategy::kLeafWise;
+  } else {
+    throw std::invalid_argument("unknown growth strategy");
+  }
+  const TreeTrainingParameters parameters{max_depth, max_leaves,
+                                          min_samples_leaf, min_child_weight,
+                                          reg_lambda, gamma, split_kind,
+                                          growth_kind, random_seed};
   const CpuReferenceBackend backend;
   return TrainSingleRegressionTree(dataset, gradients, parameters, backend);
 }
@@ -93,6 +105,8 @@ void RegisterObjectiveBindings(py::module_& module) {
              py::arg("min_child_weight") = 0.0,
              py::arg("reg_lambda") = 1.0, py::arg("gamma") = 0.0,
              py::arg("split_strategy") = "best_gain",
+             py::arg("growth_strategy") = "level_wise",
+             py::arg("max_leaves") = 0,
              py::arg("random_seed") = 0,
              "Train one real CPU-oracle depth-limited regression tree.");
 }

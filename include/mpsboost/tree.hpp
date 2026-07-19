@@ -15,6 +15,9 @@ namespace mpsboost {
 class BinnedDataset;
 class HistogramBuilder;
 class LayerHistogramBuilder;
+namespace tree_internal {
+class TreeTrainingAccess;
+}
 
 constexpr std::uint32_t kInvalidNodeIndex =
     std::numeric_limits<std::uint32_t>::max();
@@ -41,13 +44,19 @@ struct TreeTrainingParameters final {
     kBestGain = 0,
     kRandomThreshold = 1,
   };
+  enum class GrowthStrategy : std::uint32_t {
+    kLevelWise = 0,
+    kLeafWise = 1,
+  };
 
   std::uint32_t max_depth{6};
+  std::uint32_t max_leaves{0};
   std::uint64_t min_samples_leaf{1};
   double min_child_weight{0.0};
   double reg_lambda{1.0};
   double gamma{0.0};
   SplitStrategy split_strategy{SplitStrategy::kBestGain};
+  GrowthStrategy growth_strategy{GrowthStrategy::kLevelWise};
   std::uint32_t random_seed{0};
 };
 
@@ -66,6 +75,7 @@ class RegressionTree final {
                                 std::vector<TreeNode> nodes);
 
  private:
+  friend class tree_internal::TreeTrainingAccess;
   friend RegressionTree TrainSingleRegressionTree(
       const BinnedDataset&,
       const std::vector<GradientPair>&,

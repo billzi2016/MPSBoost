@@ -33,6 +33,31 @@ def test_get_and_set_params_follow_estimator_protocol():
         model.set_params(unknown=1)
 
 
+def test_leaf_wise_parameters_are_sklearn_visible_and_train_native_model():
+    """Leaf-wise parameters should be constructor-visible and routed to native training."""
+
+    X = np.asarray([[float(value)] for value in range(8)], dtype=np.float32)
+    y = np.asarray([0.0, 0.0, 0.0, 10.0, 10.0, 10.0, 11.0, 12.0], dtype=np.float32)
+    model = MPSBoostRegressor(
+        n_estimators=1,
+        learning_rate=1.0,
+        max_depth=3,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        growth_strategy="leaf_wise",
+        max_leaves=3,
+        device="cpu",
+    ).fit(X, y)
+
+    parameters = model.get_params()
+    assert parameters["growth_strategy"] == "leaf_wise"
+    assert parameters["max_leaves"] == 3
+    predictions = model.predict(X)
+    assert predictions.shape == (8,)
+    assert np.all(np.isfinite(predictions))
+    assert float(predictions[:3].mean()) < float(predictions[3:].mean())
+
+
 def test_unfitted_and_wrong_feature_prediction_fail_explicitly():
     """未拟合与特征数变化必须给出稳定异常。"""
 

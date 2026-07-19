@@ -151,4 +151,39 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
   return best;
 }
 
+PreparedSplit PrepareSplitRows(const BinnedDataset& dataset,
+                               const ActiveNode& active,
+                               const NodeHistograms& histograms,
+                               const TreeTrainingParameters& parameters) {
+  if (histograms.size() != dataset.features()) {
+    throw TrainingError("Histogram 特征数量与数据集不一致");
+  }
+  const SplitCandidate split =
+      FindBestSplit(histograms, dataset, active.statistics, active.node_index,
+                    active.depth, parameters);
+  if (!split.valid) {
+    return {};
+  }
+
+  PreparedSplit prepared;
+  prepared.valid = true;
+  prepared.split = split;
+  prepared.left_rows.reserve(static_cast<std::size_t>(split.left.count));
+  prepared.right_rows.reserve(static_cast<std::size_t>(split.right.count));
+  for (const std::uint64_t row : active.rows) {
+    // Binning uses lower-bound semantics, so values equal to a boundary stay in
+    // the lower bin. Training and prediction must route bin <= threshold left.
+    if (dataset.GetBin(row, split.feature) <= split.threshold_bin) {
+      prepared.left_rows.push_back(row);
+    } else {
+      prepared.right_rows.push_back(row);
+    }
+  }
+  if (prepared.left_rows.size() != split.left.count ||
+      prepared.right_rows.size() != split.right.count) {
+    throw TrainingError("样本分区数量与 histogram 统计不一致");
+  }
+  return prepared;
+}
+
 }  // namespace mpsboost::tree_internal

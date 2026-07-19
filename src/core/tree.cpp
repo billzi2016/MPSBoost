@@ -16,43 +16,51 @@
 
 namespace mpsboost {
 using tree_internal::ActiveNode;
-using tree_internal::AppendNode;
 using tree_internal::BuildCurrentLayerHistograms;
 using tree_internal::BuildPendingChildHistograms;
-using tree_internal::FindBestSplit;
-using tree_internal::MakeLeaf;
+using tree_internal::EffectiveMaxLeaves;
 using tree_internal::NodeStatistics;
 using tree_internal::PendingChildHistogram;
-using tree_internal::SplitCandidate;
+using tree_internal::PreparedSplit;
+using tree_internal::PrepareSplitRows;
 using tree_internal::SubtractHistograms;
 using tree_internal::SumRows;
+using tree_internal::TreeTrainingAccess;
+using tree_internal::TrainLeafWiseRegressionTree;
 using tree_internal::ValidateParameters;
 using tree_internal::ValidateTreeStructure;
 
-RegressionTree TrainSingleRegressionTree(
+namespace {
+
+RegressionTree InitializeTree(const BinnedDataset& dataset,
+                              std::vector<std::uint64_t>* root_rows,
+                              NodeStatistics* root_statistics,
+                              const std::vector<GradientPair>& gradients,
+                              const TreeTrainingParameters& parameters) {
+  root_rows->resize(static_cast<std::size_t>(dataset.rows()));
+  std::iota(root_rows->begin(), root_rows->end(), std::uint64_t{0});
+  *root_statistics = SumRows(*root_rows, gradients);
+  return TreeTrainingAccess::Create(dataset.features(), *root_statistics,
+                                    parameters.reg_lambda);
+}
+
+RegressionTree TrainLevelWiseRegressionTree(
     const BinnedDataset& dataset,
     const std::vector<GradientPair>& gradients,
     const TreeTrainingParameters& parameters,
     const HistogramBuilder& histogram_builder) {
-  ValidateParameters(parameters);
-  if (dataset.rows() != static_cast<std::uint64_t>(gradients.size())) {
-    throw TrainingError("Gradient 数量与分箱数据行数不一致");
-  }
-
-  std::vector<std::uint64_t> root_rows(static_cast<std::size_t>(dataset.rows()));
-  std::iota(root_rows.begin(), root_rows.end(), std::uint64_t{0});
-  const NodeStatistics root_statistics = SumRows(root_rows, gradients);
-
-  RegressionTree tree;
-  tree.feature_count_ = dataset.features();
-  tree.nodes_.reserve(1);
-  AppendNode(&tree.nodes_, MakeLeaf(root_statistics, parameters.reg_lambda));
+  std::vector<std::uint64_t> root_rows;
+  NodeStatistics root_statistics;
+  RegressionTree tree =
+      InitializeTree(dataset, &root_rows, &root_statistics, gradients, parameters);
 
   std::vector<ActiveNode> current_layer;
   current_layer.push_back(
       ActiveNode{0, 0, std::move(root_rows), root_statistics, {}});
+  std::uint32_t leaf_count = 1;
+  const std::uint32_t max_leaves = EffectiveMaxLeaves(parameters);
 
-  while (!current_layer.empty()) {
+  while (!current_layer.empty() && leaf_count < max_leaves) {
     if (current_layer.front().depth >= parameters.max_depth) {
       break;
     }
@@ -67,60 +75,36 @@ RegressionTree TrainSingleRegressionTree(
       if (active.depth >= parameters.max_depth) {
         continue;
       }
-      const NodeHistograms& histograms = layer_histograms[active_index];
-      if (histograms.size() != dataset.features()) {
-        throw TrainingError("Histogram 特征数量与数据集不一致");
+      if (leaf_count >= max_leaves) {
+        break;
       }
-      const SplitCandidate split =
-          FindBestSplit(histograms, dataset, active.statistics, active.node_index,
-                        active.depth, parameters);
-      if (!split.valid) {
+      const PreparedSplit prepared =
+          PrepareSplitRows(dataset, active, layer_histograms[active_index], parameters);
+      if (!prepared.valid) {
         continue;
       }
 
-      std::vector<std::uint64_t> left_rows;
-      std::vector<std::uint64_t> right_rows;
-      left_rows.reserve(static_cast<std::size_t>(split.left.count));
-      right_rows.reserve(static_cast<std::size_t>(split.right.count));
-      for (const std::uint64_t row : active.rows) {
-        // Binning uses lower-bound semantics, so values equal to a boundary
-        // stay in the lower bin. Training and prediction must both route
-        // bin <= threshold left to keep boundary samples on one stable path.
-        if (dataset.GetBin(row, split.feature) <= split.threshold_bin) {
-          left_rows.push_back(row);
-        } else {
-          right_rows.push_back(row);
-        }
-      }
-      if (left_rows.size() != split.left.count ||
-          right_rows.size() != split.right.count) {
-        throw TrainingError("样本分区数量与 histogram 统计不一致");
-      }
-
-      const std::uint32_t left_index =
-          AppendNode(&tree.nodes_, MakeLeaf(split.left, parameters.reg_lambda));
-      const std::uint32_t right_index =
-          AppendNode(&tree.nodes_, MakeLeaf(split.right, parameters.reg_lambda));
-      TreeNode& parent = tree.nodes_[active.node_index];
-      parent.feature_index = split.feature;
-      parent.threshold_bin = split.threshold_bin;
-      parent.left_child = left_index;
-      parent.right_child = right_index;
-      parent.leaf_value = 0.0;
-      parent.gain = split.gain;
-      parent.flags = 0;
+      std::uint32_t left_index = 0;
+      std::uint32_t right_index = 0;
+      TreeTrainingAccess::ApplySplit(&tree, active, prepared, parameters,
+                                     &left_index, &right_index);
+      ++leaf_count;
 
       const std::uint32_t child_depth = active.depth + 1;
       next_layer.push_back(ActiveNode{
-          left_index, child_depth, std::move(left_rows), split.left, {}});
+          left_index, child_depth, std::move(prepared.left_rows),
+          prepared.split.left, {}});
       next_layer.push_back(ActiveNode{
-          right_index, child_depth, std::move(right_rows), split.right, {}});
+          right_index, child_depth, std::move(prepared.right_rows),
+          prepared.split.right, {}});
       if (child_depth < parameters.max_depth) {
-        const bool build_left = split.left.count <= split.right.count;
+        const bool build_left =
+            prepared.split.left.count <= prepared.split.right.count;
         const std::size_t child_index =
             next_layer.size() - (build_left ? 2U : 1U);
         pending_child_histograms.push_back(PendingChildHistogram{
-            child_index, next_layer[child_index].rows, histograms});
+            child_index, next_layer[child_index].rows,
+            layer_histograms[active_index]});
       }
     }
     if (!pending_child_histograms.empty()) {
@@ -151,6 +135,26 @@ RegressionTree TrainSingleRegressionTree(
     current_layer = std::move(next_layer);
   }
   return tree;
+}
+
+}  // namespace
+
+RegressionTree TrainSingleRegressionTree(
+    const BinnedDataset& dataset,
+    const std::vector<GradientPair>& gradients,
+    const TreeTrainingParameters& parameters,
+    const HistogramBuilder& histogram_builder) {
+  ValidateParameters(parameters);
+  if (dataset.rows() != static_cast<std::uint64_t>(gradients.size())) {
+    throw TrainingError("Gradient 数量与分箱数据行数不一致");
+  }
+  if (parameters.growth_strategy ==
+      TreeTrainingParameters::GrowthStrategy::kLeafWise) {
+    return TrainLeafWiseRegressionTree(dataset, gradients, parameters,
+                                       histogram_builder);
+  }
+  return TrainLevelWiseRegressionTree(dataset, gradients, parameters,
+                                      histogram_builder);
 }
 
 std::vector<double> RegressionTree::Predict(const BinnedDataset& dataset) const {
