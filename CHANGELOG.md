@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 - Replace preview mock APIs with a real compiled MPS/Metal backend foundation.
 - Add native device diagnostics and a real GPU vector smoke kernel.
 - Build Metal shaders at package build time and bundle the resulting library.
+- Add deterministic native quantization for strided float32/float64 buffers.
+- Add compact uint8/uint16 feature-major bins and validated serialization.
+- Reject invalid values, unsupported layouts, corrupted data, and size overflows.
 
 ## 0.1.0a0 - 2026-07-19
 

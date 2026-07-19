@@ -35,6 +35,12 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
+[project.optional-dependencies]
+test = [
+  "numpy>=1.24",
+  "pytest>=8",
+]
+
 [project.urls]
 Homepage = "https://github.com/billzi2016/MPSBoost"
 Repository = "https://github.com/billzi2016/MPSBoost"
