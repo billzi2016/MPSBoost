@@ -9,7 +9,7 @@ MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its curr
 
 ## Project origin
 
-MPSBoost was started by a Purdue CS PhD student working across systems, AI, compilers, and formal verification. The immediate motivation is practical: Apple Silicon has a strong GPU stack, but common tree-based machine learning workloads still lack a simple, fast, low-permission MPS-accelerated path.
+MPSBoost was started by a Purdue CS PhD student working across algorithms, systems, AI, compilers, and formal verification. The immediate motivation is practical: Apple Silicon has a strong GPU stack, but common tree-based machine learning workloads still lack a simple, fast, low-permission MPS-accelerated path.
 
 The project is built with an SDD workflow. Work is split into clear stages: first validate real MPS/Metal kernels and runtime behavior, then lock the specs and product requirements, then settle the technical stack, and finally execute the task list against those specs. Specs are treated as the project contract, not as after-the-fact notes.
 
