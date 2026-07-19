@@ -22,8 +22,8 @@ jobs:
       matrix:
         python-version: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           # 这里只缓存可安全重建的 pip 下载，不缓存 wheel 或测试结果。
@@ -43,7 +43,7 @@ jobs:
       - name: Validate wheel metadata
         run: python -m twine check dist/*.whl
       - name: Save hosted validation wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mpsboost-hosted-wheel-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -61,12 +61,12 @@ jobs:
       matrix:
         python-version: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: pyproject.toml
+          # 自托管机器的 pip 缓存属于用户级共享状态，可能包含其他项目的大量文件。
+          # 禁止将它作为 Actions cache 扫描或上传；Python tool cache 仍由 Runner 复用。
       - run: python -m pip install --upgrade pip
       - name: Install build and test tools
         run: python -m pip install build twine pytest numpy
@@ -79,7 +79,7 @@ jobs:
       - name: Validate ARM64 wheel metadata
         run: python -m twine check dist/*.whl
       - name: Save GPU-validated ARM64 wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mpsboost-arm64-wheel-py${{ matrix.python-version }}
           path: dist/*.whl
