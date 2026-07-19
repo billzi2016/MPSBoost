@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased - 0.2.0b0 development
+## Unreleased - 0.2.0rc0 development
 
 - Replace preview mock APIs with a real compiled MPS/Metal backend foundation.
 - Add native device diagnostics and a real GPU vector smoke kernel.
@@ -14,6 +14,9 @@ All notable changes to this project will be documented in this file.
 - Add histogram subtraction and layer-aware training hooks.
 - Add an L1 temporary buffer pool for MPS histogram and hot-path workspaces.
 - Add S6 end-to-end regressor benchmarks with documented small-data regressions and large-wide wins.
+- Add versioned L2 cache keys, atomic writes, checksum validation, and damaged-cache invalidation.
+- Add public cache diagnostics, explicit cache directory creation, and safe cache clearing.
+- Tighten CI cache boundaries so self-hosted GPU jobs do not write or upload user-level pip caches.
 
 ## 0.1.0a0 - 2026-07-19
 

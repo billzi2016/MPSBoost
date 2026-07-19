@@ -28,7 +28,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           # 这里只缓存可安全重建的 pip 下载，不缓存 wheel 或测试结果。
           cache: pip
-          cache-dependency-path: pyproject.toml
+          cache-dependency-path: |
+            pyproject.toml
+            CMakeLists.txt
+            src/mps/kernels/*.metal
       - run: python -m pip install --upgrade pip
       - name: Install build and test tools
         run: python -m pip install build twine pytest numpy
@@ -57,6 +60,9 @@ jobs:
     needs: hosted-validation
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
+    env:
+      # 自托管机器不写 pip 下载缓存，避免再次扫描或积累用户级大缓存目录。
+      PIP_NO_CACHE_DIR: "1"
     strategy:
       fail-fast: false
       matrix:

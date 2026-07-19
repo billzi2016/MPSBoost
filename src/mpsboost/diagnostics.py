@@ -11,6 +11,11 @@ from importlib.resources import as_file, files
 from typing import Any, Iterator, Sequence
 
 from . import _native
+from ._cache import (
+    cache_info as _cache_info,
+    clear_cache as _clear_cache,
+    ensure_cache_directories as _ensure_cache_directories,
+)
 
 
 def is_available() -> bool:
@@ -38,6 +43,41 @@ def system_info() -> dict[str, Any]:
         }
     )
     return info
+
+
+def cache_info() -> dict[str, Any]:
+    """返回非敏感 L2 缓存路径摘要，不创建目录。"""
+
+    info = _cache_info()
+    return {
+        "root": str(info.root),
+        "exists": info.exists,
+        "pipelines": str(info.pipelines),
+        "quantization": str(info.quantization),
+        "tuning": str(info.tuning),
+    }
+
+
+def create_cache() -> dict[str, str]:
+    """显式创建 L2 缓存目录，并返回创建后的路径。
+
+    该函数是有文件系统副作用的公共入口，因此不会被 ``import``、``system_info`` 或
+    ``cache_info`` 自动调用。
+    """
+
+    layout = _ensure_cache_directories()
+    return {
+        "root": str(layout.root),
+        "pipelines": str(layout.pipelines),
+        "quantization": str(layout.quantization),
+        "tuning": str(layout.tuning),
+    }
+
+
+def clear_cache() -> int:
+    """显式清理 L2 缓存根目录，返回移除的普通文件数量估计值。"""
+
+    return _clear_cache()
 
 
 @contextmanager

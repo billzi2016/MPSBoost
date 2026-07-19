@@ -9,13 +9,22 @@
 """
 
 from ._native import __version__  # type: ignore[import-not-found]
-from .diagnostics import is_available, system_info
+from .diagnostics import (
+    cache_info,
+    clear_cache,
+    create_cache,
+    is_available,
+    system_info,
+)
 from .estimator import MPSBoostRegressor
 
 # 明确维护 __all__，避免 ``from mpsboost import *`` 泄露内部辅助函数和模块。
 __all__ = [
     "MPSBoostRegressor",
     "__version__",
+    "cache_info",
+    "clear_cache",
+    "create_cache",
     "is_available",
     "system_info",
 ]

@@ -5,7 +5,7 @@
 
 MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its current accelerated backend uses custom Metal compute kernels for squared-error gradients and two-stage histogram construction while keeping one deterministic tree-building implementation shared with the CPU oracle.
 
-> **Development status:** `0.2.0b0` is the first GPU hot-path beta milestone. It supports dense numeric regression with a real MPS training path, split-scan and partition kernels, histogram subtraction, buffer reuse, and documented performance boundaries.
+> **Development status:** `0.2.0rc0` is the cache and stability release candidate. It supports dense numeric regression with a real MPS training path, split-scan and partition kernels, histogram subtraction, buffer reuse, explicit cache management, and documented performance boundaries.
 
 ## Installation
 
@@ -37,7 +37,7 @@ restored.load_model("model.mpsb")
 
 ## Backend diagnostics
 
-The native backend exposes non-sensitive device diagnostics:
+The native backend exposes non-sensitive device and cache diagnostics:
 
 ```python
 import mpsboost as mps
@@ -45,7 +45,13 @@ import mpsboost as mps
 print(mps.__version__)
 print(mps.is_available())
 print(mps.system_info())
+print(mps.cache_info())
 ```
+
+`cache_info()` only reports paths and existence; it does not create directories. `create_cache()`
+explicitly creates the L2 cache directories, and `clear_cache()` safely removes the MPSBoost cache
+root after rejecting dangerous targets such as the filesystem root, the user home directory, or
+symlinks. Cache deletion never changes model results.
 
 ## Project principles
 
@@ -58,7 +64,7 @@ print(mps.system_info())
 
 ## Status
 
-The public API currently includes `MPSBoostRegressor`, `is_available`, `system_info`, and `__version__`. Training supports dense finite `float32`/`float64`-compatible data, squared error, deterministic quantization, depth-limited histogram trees, model save/load, and explicit `device="mps"` or diagnostic `device="cpu"` selection.
+The public API currently includes `MPSBoostRegressor`, cache diagnostics and management helpers, `is_available`, `system_info`, and `__version__`. Training supports dense finite `float32`/`float64`-compatible data, squared error, deterministic quantization, depth-limited histogram trees, model save/load, and explicit `device="mps"` or diagnostic `device="cpu"` selection.
 
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 

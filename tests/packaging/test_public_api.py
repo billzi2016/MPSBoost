@@ -19,6 +19,9 @@ def test_only_completed_regressor_is_public():
     assert set(mps.__all__) == {
         "MPSBoostRegressor",
         "__version__",
+        "cache_info",
+        "clear_cache",
+        "create_cache",
         "is_available",
         "system_info",
     }
