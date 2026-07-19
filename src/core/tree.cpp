@@ -306,4 +306,47 @@ std::vector<double> RegressionTree::Predict(const BinnedDataset& dataset) const 
   return predictions;
 }
 
+RegressionTree RegressionTree::Restore(std::uint32_t feature_count,
+                                       std::vector<TreeNode> nodes) {
+  if (feature_count == 0 || nodes.empty() || nodes.size() >= kInvalidNodeIndex) {
+    throw TrainingError("模型树的特征数或节点数不合法");
+  }
+  std::vector<std::uint8_t> state(nodes.size(), 0);
+  const auto visit = [&](const auto& self, std::uint32_t index) -> void {
+    if (index >= nodes.size()) {
+      throw TrainingError("模型树的子节点索引越界");
+    }
+    if (state[index] == 1) {
+      throw TrainingError("模型树结构包含环");
+    }
+    if (state[index] == 2) {
+      return;
+    }
+    state[index] = 1;
+    const TreeNode& node = nodes[index];
+    if (node.IsLeaf()) {
+      if (node.flags != kTreeNodeLeafFlag || !std::isfinite(node.leaf_value)) {
+        throw TrainingError("模型树叶值不是有限数");
+      }
+    } else {
+      if (node.flags != 0 || node.feature_index >= feature_count ||
+          !std::isfinite(node.gain) || node.gain <= 0.0 ||
+          node.left_child == node.right_child) {
+        throw TrainingError("模型树分支字段不合法");
+      }
+      self(self, node.left_child);
+      self(self, node.right_child);
+    }
+    state[index] = 2;
+  };
+  visit(visit, 0);
+  if (std::find(state.begin(), state.end(), std::uint8_t{0}) != state.end()) {
+    throw TrainingError("模型树包含不可达节点");
+  }
+  RegressionTree tree;
+  tree.feature_count_ = feature_count;
+  tree.nodes_ = std::move(nodes);
+  return tree;
+}
+
 }  // namespace mpsboost

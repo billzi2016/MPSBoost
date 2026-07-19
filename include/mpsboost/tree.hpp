@@ -52,6 +52,11 @@ class RegressionTree final {
   // 不修改树或数据集，因此同一模型可被多个只读调用方安全共享。
   std::vector<double> Predict(const BinnedDataset& dataset) const;
 
+  // 从模型文件字段恢复扁平树。该入口完整验证根节点、索引、环、可达性和叶值，只有
+  // 通过验证的树才能进入 RegressionModel，loader 不能直接写私有节点。
+  static RegressionTree Restore(std::uint32_t feature_count,
+                                std::vector<TreeNode> nodes);
+
  private:
   friend RegressionTree TrainSingleRegressionTree(
       const BinnedDataset&,

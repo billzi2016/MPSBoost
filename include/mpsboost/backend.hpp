@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -41,6 +42,16 @@ struct HistogramBin final {
 using FeatureHistogram = std::vector<HistogramBin>;
 using NodeHistograms = std::vector<FeatureHistogram>;
 
+// 目标函数设备执行的最小接口。训练状态机只请求数学结果，不知道 gradient 是由 CPU
+// oracle 还是 Metal kernel 产生，从而让设备选择保持在应用装配层。
+class GradientComputer {
+ public:
+  virtual ~GradientComputer() = default;
+  virtual std::vector<GradientPair> ComputeSquaredError(
+      const std::vector<double>& labels,
+      const std::vector<double>& predictions) const = 0;
+};
+
 // 训练核心当前只依赖 histogram 能力，避免为了未来方法建立臃肿后端接口。S4 的
 // MPS 实现和本 CPU oracle 必须实现同一最小契约，后续能力通过接口隔离继续扩展。
 class HistogramBuilder {
@@ -57,12 +68,64 @@ class HistogramBuilder {
 
 // 唯一 CPU histogram oracle。它只实现计算能力，不包含树生长、split 选择或参数
 // 语义，从而避免 CPU 与 MPS 各维护一套训练控制流。
-class CpuReferenceBackend final : public HistogramBuilder {
+class CpuReferenceBackend final : public GradientComputer,
+                                  public HistogramBuilder {
  public:
+  std::vector<GradientPair> ComputeSquaredError(
+      const std::vector<double>& labels,
+      const std::vector<double>& predictions) const override;
+
   NodeHistograms BuildHistograms(
       const BinnedDataset& dataset,
       const std::vector<std::uint64_t>& rows,
       const std::vector<GradientPair>& gradients) const override;
+};
+
+// 最近一次同步设备工作的非敏感耗时。它只用于诊断和 benchmark，不参与训练结果、
+// cache key 或调度决策，避免测量逻辑反向影响正确性。
+struct BackendTiming final {
+  double gradient_seconds{0.0};
+  double histogram_encode_seconds{0.0};
+  double histogram_command_seconds{0.0};
+};
+
+// 真实 MPS 计算后端。Objective-C/Metal 对象全部隐藏在 Impl 中，稳定 C++ 头文件不
+// 暴露平台类型；对象不可复制，但可在单个训练会话中重复使用 pipeline 和 command queue。
+class MpsBackend final : public GradientComputer, public HistogramBuilder {
+ public:
+  explicit MpsBackend(std::string metallib_path);
+  ~MpsBackend() override;
+  MpsBackend(MpsBackend&&) noexcept;
+  MpsBackend& operator=(MpsBackend&&) noexcept;
+  MpsBackend(const MpsBackend&) = delete;
+  MpsBackend& operator=(const MpsBackend&) = delete;
+
+  std::vector<GradientPair> ComputeSquaredError(
+      const std::vector<double>& labels,
+      const std::vector<double>& predictions) const override;
+  NodeHistograms BuildHistograms(
+      const BinnedDataset& dataset,
+      const std::vector<std::uint64_t>& rows,
+      const std::vector<GradientPair>& gradients) const override;
+  BackendTiming last_timing() const noexcept;
+
+  // 复用同一 context/pipeline/command 实现验证 wheel 的最小 GPU 链路。该方法只由
+  // 内部测试绑定调用，不属于 Python 公共数值 API。
+  std::vector<float> RunVectorAddForTest(const std::vector<float>& left,
+                                         const std::vector<float>& right) const;
+  NodeHistograms BuildBaselineHistogramsForTest(
+      const BinnedDataset& dataset,
+      const std::vector<std::uint64_t>& rows,
+      const std::vector<GradientPair>& gradients) const;
+
+ private:
+  NodeHistograms BuildHistogramsInternal(
+      const BinnedDataset& dataset,
+      const std::vector<std::uint64_t>& rows,
+      const std::vector<GradientPair>& gradients,
+      bool baseline) const;
+  class Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
 // 查询默认 Metal 设备。无设备属于正常的“不可用”状态，不抛异常；运行时初始化失败

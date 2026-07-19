@@ -149,6 +149,46 @@ std::vector<float> BuildBoundaries(std::vector<float> values,
   return boundaries;
 }
 
+void ValidateSchemaFields(const QuantizationSchema& schema) {
+  if (schema.features() == 0 || schema.max_bins() < 2 ||
+      schema.max_bins() > 65536) {
+    throw DataError("分箱 schema 的特征数或 max_bins 不合法");
+  }
+  if (schema.feature_metadata().size() != schema.features()) {
+    throw DataError("分箱 schema 的特征元数据数量不一致");
+  }
+  std::uint64_t expected_offset = 0;
+  for (const FeatureBinMetadata& item : schema.feature_metadata()) {
+    if (item.boundary_offset != expected_offset || item.bin_count == 0 ||
+        item.bin_count != item.boundary_count + 1 ||
+        item.bin_count > schema.max_bins()) {
+      throw DataError("分箱 schema 的边界区间或 bin 数不合法");
+    }
+    const std::uint64_t end = CheckedAdd(
+        item.boundary_offset, item.boundary_count, "分箱 schema 边界区间");
+    if (end > schema.boundaries().size()) {
+      throw DataError("分箱 schema 的边界区间越界");
+    }
+    for (std::uint32_t index = 0; index < item.boundary_count; ++index) {
+      const float value = schema.boundaries()[item.boundary_offset + index];
+      if (!std::isfinite(value) ||
+          (index != 0 &&
+           value <= schema.boundaries()[item.boundary_offset + index - 1])) {
+        throw DataError("分箱 schema 的特征边界必须有限且严格递增");
+      }
+    }
+    expected_offset = end;
+  }
+  if (expected_offset != schema.boundaries().size()) {
+    throw DataError("分箱 schema 包含未被特征引用的边界");
+  }
+  const BinStorage expected_storage =
+      schema.max_bins() <= 256 ? BinStorage::kUInt8 : BinStorage::kUInt16;
+  if (schema.storage() != expected_storage) {
+    throw DataError("分箱 schema 的存储宽度与 max_bins 不一致");
+  }
+}
+
 template <typename Integer>
 void AppendLittleEndian(std::vector<std::uint8_t>* output, Integer value) {
   static_assert(std::is_unsigned_v<Integer>);
@@ -221,16 +261,17 @@ BinnedDataset QuantizeDense(const DenseMatrixView& view, std::uint32_t max_bins)
 
   BinnedDataset result;
   result.rows_ = view.rows;
-  result.features_ = view.features;
-  result.max_bins_ = max_bins;
-  result.storage_ = max_bins <= 256 ? BinStorage::kUInt8 : BinStorage::kUInt16;
+  result.schema_.features_ = view.features;
+  result.schema_.max_bins_ = max_bins;
+  result.schema_.storage_ =
+      max_bins <= 256 ? BinStorage::kUInt8 : BinStorage::kUInt16;
   result.source_contiguous_ = view.source_contiguous;
-  result.feature_metadata_.reserve(view.features);
+  result.schema_.feature_metadata_.reserve(view.features);
 
   const std::uint64_t value_count_u64 = CheckedMultiply(
       view.rows, static_cast<std::uint64_t>(view.features), "分箱元素数量");
   const std::size_t value_count = CheckedSize(value_count_u64, "分箱元素数量");
-  if (result.storage_ == BinStorage::kUInt8) {
+  if (result.storage() == BinStorage::kUInt8) {
     result.bins_ = std::vector<std::uint8_t>(value_count);
   } else {
     result.bins_ = std::vector<std::uint16_t>(value_count);
@@ -245,13 +286,14 @@ BinnedDataset QuantizeDense(const DenseMatrixView& view, std::uint32_t max_bins)
     const std::vector<float> feature_boundaries =
         BuildBoundaries(feature_values, max_bins);
     const FeatureBinMetadata metadata{
-        result.boundaries_.size(),
+        result.schema_.boundaries_.size(),
         static_cast<std::uint32_t>(feature_boundaries.size()),
         static_cast<std::uint32_t>(feature_boundaries.size() + 1),
     };
-    result.feature_metadata_.push_back(metadata);
-    result.boundaries_.insert(result.boundaries_.end(), feature_boundaries.begin(),
-                              feature_boundaries.end());
+    result.schema_.feature_metadata_.push_back(metadata);
+    result.schema_.boundaries_.insert(result.schema_.boundaries_.end(),
+                                      feature_boundaries.begin(),
+                                      feature_boundaries.end());
 
     for (std::uint64_t row = 0; row < view.rows; ++row) {
       const float value = feature_values[CheckedSize(row, "行索引")];
@@ -261,7 +303,53 @@ BinnedDataset QuantizeDense(const DenseMatrixView& view, std::uint32_t max_bins)
           static_cast<std::uint32_t>(iterator - feature_boundaries.begin());
       const std::size_t output_index = CheckedSize(
           static_cast<std::uint64_t>(feature) * view.rows + row, "分箱输出索引");
-      if (result.storage_ == BinStorage::kUInt8) {
+      if (result.storage() == BinStorage::kUInt8) {
+        std::get<std::vector<std::uint8_t>>(result.bins_)[output_index] =
+            static_cast<std::uint8_t>(bin);
+      } else {
+        std::get<std::vector<std::uint16_t>>(result.bins_)[output_index] =
+            static_cast<std::uint16_t>(bin);
+      }
+    }
+  }
+  ValidateSchemaFields(result.schema_);
+  return result;
+}
+
+BinnedDataset TransformDense(const DenseMatrixView& view,
+                             const QuantizationSchema& schema) {
+  ValidateDenseView(view, schema.max_bins());
+  ValidateSchemaFields(schema);
+  if (view.features != schema.features()) {
+    throw DataError("预测输入特征数量与分箱 schema 不一致");
+  }
+
+  BinnedDataset result;
+  result.rows_ = view.rows;
+  result.source_contiguous_ = view.source_contiguous;
+  result.schema_ = schema;
+  const std::uint64_t value_count_u64 = CheckedMultiply(
+      view.rows, static_cast<std::uint64_t>(view.features), "预测分箱元素数量");
+  const std::size_t value_count = CheckedSize(value_count_u64, "预测分箱元素数量");
+  if (schema.storage() == BinStorage::kUInt8) {
+    result.bins_ = std::vector<std::uint8_t>(value_count);
+  } else {
+    result.bins_ = std::vector<std::uint16_t>(value_count);
+  }
+
+  for (std::uint32_t feature = 0; feature < view.features; ++feature) {
+    const FeatureBinMetadata& metadata = schema.feature_metadata()[feature];
+    const auto first = schema.boundaries().begin() +
+                       static_cast<std::ptrdiff_t>(metadata.boundary_offset);
+    const auto last = first + static_cast<std::ptrdiff_t>(metadata.boundary_count);
+    for (std::uint64_t row = 0; row < view.rows; ++row) {
+      const float value = ReadFiniteFloat(view, row, feature);
+      const std::uint32_t bin =
+          static_cast<std::uint32_t>(std::lower_bound(first, last, value) - first);
+      const std::size_t output_index = CheckedSize(
+          static_cast<std::uint64_t>(feature) * view.rows + row,
+          "预测分箱输出索引");
+      if (schema.storage() == BinStorage::kUInt8) {
         std::get<std::vector<std::uint8_t>>(result.bins_)[output_index] =
             static_cast<std::uint8_t>(bin);
       } else {
@@ -273,38 +361,65 @@ BinnedDataset QuantizeDense(const DenseMatrixView& view, std::uint32_t max_bins)
   return result;
 }
 
+QuantizationSchema RestoreQuantizationSchema(
+    std::uint32_t features,
+    std::uint32_t max_bins,
+    std::vector<float> boundaries,
+    std::vector<FeatureBinMetadata> metadata) {
+  QuantizationSchema schema;
+  schema.features_ = features;
+  schema.max_bins_ = max_bins;
+  schema.storage_ =
+      max_bins <= 256 ? BinStorage::kUInt8 : BinStorage::kUInt16;
+  schema.boundaries_ = std::move(boundaries);
+  schema.feature_metadata_ = std::move(metadata);
+  ValidateSchemaFields(schema);
+  return schema;
+}
+
 std::uint32_t BinnedDataset::GetBin(std::uint64_t row, std::uint32_t feature) const {
-  if (row >= rows_ || feature >= features_) {
+  if (row >= rows_ || feature >= features()) {
     throw DataError("分箱索引越界");
   }
   const std::size_t index = CheckedSize(
       static_cast<std::uint64_t>(feature) * rows_ + row, "分箱读取索引");
-  if (storage_ == BinStorage::kUInt8) {
+  if (storage() == BinStorage::kUInt8) {
     return std::get<std::vector<std::uint8_t>>(bins_)[index];
   }
   return std::get<std::vector<std::uint16_t>>(bins_)[index];
 }
 
+const void* BinnedDataset::bin_data() const noexcept {
+  if (storage() == BinStorage::kUInt8) {
+    return std::get<std::vector<std::uint8_t>>(bins_).data();
+  }
+  return std::get<std::vector<std::uint16_t>>(bins_).data();
+}
+
+std::uint64_t BinnedDataset::bin_value_count() const noexcept {
+  return rows_ * static_cast<std::uint64_t>(features());
+}
+
 std::vector<std::uint8_t> BinnedDataset::Serialize() const {
   std::vector<std::uint8_t> output(kMagic.begin(), kMagic.end());
   AppendLittleEndian(&output, rows_);
-  AppendLittleEndian(&output, features_);
-  AppendLittleEndian(&output, max_bins_);
-  AppendLittleEndian(&output, static_cast<std::uint8_t>(storage_));
+  AppendLittleEndian(&output, features());
+  AppendLittleEndian(&output, max_bins());
+  AppendLittleEndian(&output, static_cast<std::uint8_t>(storage()));
   AppendLittleEndian(&output, static_cast<std::uint8_t>(source_contiguous_ ? 1 : 0));
   AppendLittleEndian(&output, static_cast<std::uint16_t>(0));
-  AppendLittleEndian(&output, static_cast<std::uint64_t>(boundaries_.size()));
-  AppendLittleEndian(&output, rows_ * static_cast<std::uint64_t>(features_));
+  AppendLittleEndian(&output, static_cast<std::uint64_t>(boundaries().size()));
+  AppendLittleEndian(&output, rows_ * static_cast<std::uint64_t>(features()));
 
-  for (const FeatureBinMetadata& metadata : feature_metadata_) {
+  for (const FeatureBinMetadata& metadata : feature_metadata()) {
     AppendLittleEndian(&output, metadata.boundary_offset);
     AppendLittleEndian(&output, metadata.boundary_count);
     AppendLittleEndian(&output, metadata.bin_count);
   }
-  for (const float boundary : boundaries_) {
+  for (const float boundary : boundaries()) {
     AppendFloat(&output, boundary);
   }
-  if (storage_ == BinStorage::kUInt8) {
+  if (storage() == BinStorage::kUInt8) {
     const auto& values = std::get<std::vector<std::uint8_t>>(bins_);
     output.insert(output.end(), values.begin(), values.end());
   } else {
@@ -321,8 +436,8 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
 
   BinnedDataset result;
   result.rows_ = reader.ReadUnsigned<std::uint64_t>("rows");
-  result.features_ = reader.ReadUnsigned<std::uint32_t>("features");
-  result.max_bins_ = reader.ReadUnsigned<std::uint32_t>("max_bins");
+  result.schema_.features_ = reader.ReadUnsigned<std::uint32_t>("features");
+  result.schema_.max_bins_ = reader.ReadUnsigned<std::uint32_t>("max_bins");
   const auto storage_value = reader.ReadUnsigned<std::uint8_t>("storage");
   result.source_contiguous_ =
       reader.ReadUnsigned<std::uint8_t>("source_contiguous") != 0;
@@ -331,28 +446,30 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
       reader.ReadUnsigned<std::uint64_t>("boundary_count");
   const std::uint64_t value_count = reader.ReadUnsigned<std::uint64_t>("value_count");
 
-  if (result.rows_ == 0 || result.features_ == 0 || result.max_bins_ < 2 ||
-      result.max_bins_ > 65536) {
+  if (result.rows_ == 0 || result.features() == 0 || result.max_bins() < 2 ||
+      result.max_bins() > 65536) {
     throw DataError("分箱序列化头字段不合法");
   }
   const std::uint64_t expected_values = CheckedMultiply(
-      result.rows_, static_cast<std::uint64_t>(result.features_), "序列化元素数量");
+      result.rows_, static_cast<std::uint64_t>(result.features()),
+      "序列化元素数量");
   if (value_count != expected_values) {
     throw DataError("分箱序列化元素数量不一致");
   }
-  result.storage_ = storage_value == static_cast<std::uint8_t>(BinStorage::kUInt8)
-                        ? BinStorage::kUInt8
-                        : storage_value == static_cast<std::uint8_t>(BinStorage::kUInt16)
-                              ? BinStorage::kUInt16
-                              : throw DataError("分箱序列化存储类型不支持");
+  result.schema_.storage_ =
+      storage_value == static_cast<std::uint8_t>(BinStorage::kUInt8)
+          ? BinStorage::kUInt8
+      : storage_value == static_cast<std::uint8_t>(BinStorage::kUInt16)
+          ? BinStorage::kUInt16
+          : throw DataError("分箱序列化存储类型不支持");
   const BinStorage expected_storage =
-      result.max_bins_ <= 256 ? BinStorage::kUInt8 : BinStorage::kUInt16;
-  if (result.storage_ != expected_storage) {
+      result.max_bins() <= 256 ? BinStorage::kUInt8 : BinStorage::kUInt16;
+  if (result.storage() != expected_storage) {
     throw DataError("分箱序列化存储类型与 max_bins 不一致");
   }
 
-  result.feature_metadata_.reserve(result.features_);
-  for (std::uint32_t feature = 0; feature < result.features_; ++feature) {
+  result.schema_.feature_metadata_.reserve(result.features());
+  for (std::uint32_t feature = 0; feature < result.features(); ++feature) {
     FeatureBinMetadata metadata;
     metadata.boundary_offset = reader.ReadUnsigned<std::uint64_t>("boundary_offset");
     metadata.boundary_count = reader.ReadUnsigned<std::uint32_t>("feature boundary_count");
@@ -361,18 +478,18 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
                                          metadata.boundary_count,
                                          "特征边界区间");
     if (end > boundary_count || metadata.bin_count != metadata.boundary_count + 1 ||
-        metadata.bin_count > result.max_bins_) {
+        metadata.bin_count > result.max_bins()) {
       throw DataError("分箱序列化特征元数据不合法");
     }
-    result.feature_metadata_.push_back(metadata);
+    result.schema_.feature_metadata_.push_back(metadata);
   }
 
-  result.boundaries_.reserve(CheckedSize(boundary_count, "边界数量"));
+  result.schema_.boundaries_.reserve(CheckedSize(boundary_count, "边界数量"));
   for (std::uint64_t index = 0; index < boundary_count; ++index) {
-    result.boundaries_.push_back(reader.ReadFloat("boundary"));
+    result.schema_.boundaries_.push_back(reader.ReadFloat("boundary"));
   }
 
-  if (result.storage_ == BinStorage::kUInt8) {
+  if (result.storage() == BinStorage::kUInt8) {
     std::vector<std::uint8_t> values;
     values.reserve(CheckedSize(value_count, "uint8 bin 数量"));
     for (std::uint64_t index = 0; index < value_count; ++index) {
@@ -391,8 +508,9 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
   if (!reader.at_end()) {
     throw DataError("分箱序列化数据包含未识别的尾部字节");
   }
-  for (std::uint32_t feature = 0; feature < result.features_; ++feature) {
-    const FeatureBinMetadata& metadata = result.feature_metadata_[feature];
+  ValidateSchemaFields(result.schema_);
+  for (std::uint32_t feature = 0; feature < result.features(); ++feature) {
+    const FeatureBinMetadata& metadata = result.feature_metadata()[feature];
     for (std::uint64_t row = 0; row < result.rows_; ++row) {
       if (result.GetBin(row, feature) >= metadata.bin_count) {
         throw DataError("分箱序列化 bin 值超出特征范围");

@@ -3,9 +3,9 @@
 [![PyPI](https://img.shields.io/pypi/v/mpsboost)](https://pypi.org/project/mpsboost/)
 [![Python](https://img.shields.io/pypi/pyversions/mpsboost)](https://pypi.org/project/mpsboost/)
 
-MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its execution backend combines reusable Metal Performance Shaders capabilities with custom Metal compute kernels for histogram construction, split evaluation, row partitioning, and prediction.
+MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its current accelerated backend uses custom Metal compute kernels for squared-error gradients and two-stage histogram construction while keeping one deterministic tree-building implementation shared with the CPU oracle.
 
-> **Development status:** the published `0.1.0a0` release reserves the package namespace. The current `0.2.0a0` source tree contains the first real native backend foundation; model training will only be exposed after it satisfies the correctness and packaging requirements.
+> **Development status:** `0.2.0a0` is the first functional regressor milestone. It supports dense numeric regression with a real MPS training path and is still a pre-alpha release with a deliberately narrow feature set.
 
 ## Installation
 
@@ -15,7 +15,7 @@ python -m pip install mpsboost
 
 Accelerated releases provide prebuilt Apple Silicon wheels; normal users will not need a heavyweight framework, package manager, CMake, or a local Metal shader compiler.
 
-## Target estimator-style API
+## Estimator-style API
 
 ```python
 import mpsboost as mps
@@ -29,6 +29,10 @@ model = mps.MPSBoostRegressor(
 
 model.fit(X_train, y_train)
 prediction = model.predict(X_test)
+model.save_model("model.mpsb")
+
+restored = mps.MPSBoostRegressor(device="mps")
+restored.load_model("model.mpsb")
 ```
 
 ## Backend diagnostics
@@ -54,7 +58,9 @@ print(mps.system_info())
 
 ## Status
 
-Model training is not yet part of the public API. The repository does not ship mock estimators or pretend that unfinished training is available.
+The public API currently includes `MPSBoostRegressor`, `is_available`, `system_info`, and `__version__`. Training supports dense finite `float32`/`float64`-compatible data, squared error, deterministic quantization, depth-limited histogram trees, model save/load, and explicit `device="mps"` or diagnostic `device="cpu"` selection.
+
+Classification, missing values, sparse matrices, categorical features, sampling, early stopping, GPU split scanning, GPU row partitioning, and GPU prediction are not implemented in this milestone. Small datasets are expected to be slower on the GPU because fixed device setup and synchronization costs dominate; the checked-in benchmark report preserves this regression region alongside larger wins.
 
 ## Independence notice
 

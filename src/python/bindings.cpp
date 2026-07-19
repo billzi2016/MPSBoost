@@ -11,6 +11,7 @@
 #include "mpsboost/backend.hpp"
 #include "mpsboost/binned_dataset.hpp"
 #include "mpsboost/objective.hpp"
+#include "mpsboost/trainer.hpp"
 #include "mpsboost/tree.hpp"
 #include "mpsboost/version.hpp"
 
@@ -126,6 +127,36 @@ py::list HistogramsToPython(const mpsboost::NodeHistograms& histograms) {
   return result;
 }
 
+py::list GradientsToPython(const std::vector<mpsboost::GradientPair>& gradients) {
+  py::list result;
+  for (const mpsboost::GradientPair& pair : gradients) {
+    result.append(py::make_tuple(pair.gradient, pair.hessian));
+  }
+  return result;
+}
+
+py::object RunMpsHistogramForTest(
+    const mpsboost::MpsBackend& backend,
+    const mpsboost::BinnedDataset& dataset,
+    const std::vector<double>& labels,
+    const std::vector<double>& predictions,
+    const std::vector<std::uint64_t>& rows,
+    bool baseline) {
+  const std::vector<mpsboost::GradientPair> gradients =
+      mpsboost::ComputeSquaredErrorGradients(labels, predictions);
+  if (baseline) {
+    return HistogramsToPython(
+        backend.BuildBaselineHistogramsForTest(dataset, rows, gradients));
+  }
+  py::dict result;
+  result["histograms"] =
+      HistogramsToPython(backend.BuildHistograms(dataset, rows, gradients));
+  const mpsboost::BackendTiming timing = backend.last_timing();
+  result["encode_seconds"] = timing.histogram_encode_seconds;
+  result["command_seconds"] = timing.histogram_command_seconds;
+  return result;
+}
+
 }  // namespace
 
 PYBIND11_MODULE(_native, module) {
@@ -165,6 +196,84 @@ PYBIND11_MODULE(_native, module) {
       .def_property_readonly("nodes", &TreeNodes)
       .def("predict", &mpsboost::RegressionTree::Predict, py::arg("dataset"),
            "对内部量化数据执行唯一 C++ 扁平树预测。");
+
+  py::class_<mpsboost::TrainingParameters>(module, "_TrainingParameters")
+      .def(py::init([](std::uint32_t n_estimators, double learning_rate,
+                       std::uint32_t max_bins, std::uint32_t max_depth,
+                       std::uint64_t min_samples_leaf,
+                       double min_child_weight, double reg_lambda,
+                       double gamma) {
+             return mpsboost::TrainingParameters{
+                 n_estimators,
+                 learning_rate,
+                 max_bins,
+                 mpsboost::TreeTrainingParameters{
+                     max_depth, min_samples_leaf, min_child_weight,
+                     reg_lambda, gamma}};
+           }),
+           py::arg("n_estimators"), py::arg("learning_rate"),
+           py::arg("max_bins"), py::arg("max_depth"),
+           py::arg("min_samples_leaf"), py::arg("min_child_weight"),
+           py::arg("reg_lambda"), py::arg("gamma") = 0.0,
+           "创建已命名字段的内部训练参数值对象。");
+
+  py::class_<mpsboost::MpsBackend>(module, "_MpsBackend")
+      .def(py::init<std::string>(), py::arg("metallib_path"),
+           "创建可复用 device/library/pipeline 的真实 MPS 测试会话。")
+      .def("gradients", [](const mpsboost::MpsBackend& backend, const std::vector<double>& labels, const std::vector<double>& predictions) { return GradientsToPython(
+                                                                                                                                                 backend.ComputeSquaredError(labels, predictions)); }, py::arg("labels"), py::arg("predictions"))
+      .def("histograms", [](const mpsboost::MpsBackend& backend, const mpsboost::BinnedDataset& dataset, const std::vector<double>& labels, const std::vector<double>& predictions, const std::vector<std::uint64_t>& rows) { return RunMpsHistogramForTest(
+                                                                                                                                                                                                                                  backend, dataset, labels, predictions, rows, false); }, py::arg("dataset"), py::arg("labels"), py::arg("predictions"), py::arg("rows"))
+      .def("baseline_histograms", [](const mpsboost::MpsBackend& backend, const mpsboost::BinnedDataset& dataset, const std::vector<double>& labels, const std::vector<double>& predictions, const std::vector<std::uint64_t>& rows) { return RunMpsHistogramForTest(
+                                                                                                                                                                                                                                           backend, dataset, labels, predictions, rows, true); }, py::arg("dataset"), py::arg("labels"), py::arg("predictions"), py::arg("rows"));
+
+  py::class_<mpsboost::RegressionModel>(module, "_RegressionModel")
+      .def_property_readonly("feature_count",
+                             &mpsboost::RegressionModel::feature_count)
+      .def_property_readonly("tree_count",
+                             &mpsboost::RegressionModel::tree_count)
+      .def("predict", [](const mpsboost::RegressionModel& model, const py::buffer& matrix) {
+             const mpsboost::DenseMatrixView view = MakeDenseView(matrix);
+             py::gil_scoped_release release;
+             const mpsboost::BinnedDataset dataset =
+                 mpsboost::TransformDense(view, model.schema());
+             return model.Predict(dataset); }, py::arg("matrix"), "使用模型冻结的分箱边界执行批量预测。")
+      .def("save", &mpsboost::SaveModelFile, py::arg("path"), "使用版本化格式原子保存模型。");
+
+  module.def("_load_regression_model", &mpsboost::LoadModelFile,
+             py::arg("path"), "加载并完整验证版本化回归模型。");
+
+  module.def(
+      "_train_regressor_cpu",
+      [](const py::buffer& matrix, const std::vector<double>& labels,
+         const mpsboost::TrainingParameters& parameters) {
+        const mpsboost::DenseMatrixView view = MakeDenseView(matrix);
+        py::gil_scoped_release release;
+        const mpsboost::BinnedDataset dataset =
+            mpsboost::QuantizeDense(view, parameters.max_bins);
+        const mpsboost::CpuReferenceBackend backend;
+        return mpsboost::TrainRegressionModel(
+            dataset, labels, parameters, backend, backend);
+      },
+      py::arg("matrix"), py::arg("labels"), py::arg("parameters"),
+      "使用唯一 CPU oracle 训练多轮回归模型，仅供显式 CPU 模式和正确性对照。");
+
+  module.def(
+      "_train_regressor_mps",
+      [](const py::buffer& matrix, const std::vector<double>& labels,
+         const mpsboost::TrainingParameters& parameters,
+         const std::string& metallib_path) {
+        const mpsboost::DenseMatrixView view = MakeDenseView(matrix);
+        py::gil_scoped_release release;
+        const mpsboost::BinnedDataset dataset =
+            mpsboost::QuantizeDense(view, parameters.max_bins);
+        const mpsboost::MpsBackend backend(metallib_path);
+        return mpsboost::TrainRegressionModel(
+            dataset, labels, parameters, backend, backend);
+      },
+      py::arg("matrix"), py::arg("labels"), py::arg("parameters"),
+      py::arg("metallib_path"),
+      "在真实 MPS gradient/histogram 后端上训练多轮回归模型。");
 
   module.def(
       "_squared_error_gradients",

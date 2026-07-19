@@ -10,6 +10,13 @@
 
 namespace mpsboost {
 
+std::vector<GradientPair> CpuReferenceBackend::ComputeSquaredError(
+    const std::vector<double>& labels,
+    const std::vector<double>& predictions) const {
+  // CPU oracle 直接委托唯一目标函数实现，不能在后端中复制公式或参数校验。
+  return ComputeSquaredErrorGradients(labels, predictions);
+}
+
 NodeHistograms CpuReferenceBackend::BuildHistograms(
     const BinnedDataset& dataset,
     const std::vector<std::uint64_t>& rows,

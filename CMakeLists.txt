@@ -45,20 +45,36 @@ configure_file(
   @ONLY
 )
 
-set(MPSBOOST_METAL_SOURCE
+set(MPSBOOST_METAL_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/smoke.metal"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/gradients.metal"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/histogram.metal"
 )
-set(MPSBOOST_AIR_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/mpsboost_smoke.air")
 set(MPSBOOST_METALLIB_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/_kernels.metallib")
 
-# shader 在构建机编译，最终用户只加载 metallib，避免安装 Xcode 或编译工具链。
+# 每个 shader 独立生成 AIR，再链接为唯一 metallib。这样增量构建能准确失效单个源，
+# 最终用户仍只加载一个版本匹配的资源，不需要 Xcode 或本地 shader 编译器。
+set(MPSBOOST_AIR_OUTPUTS)
+foreach(MPSBOOST_METAL_SOURCE IN LISTS MPSBOOST_METAL_SOURCES)
+  get_filename_component(MPSBOOST_METAL_STEM "${MPSBOOST_METAL_SOURCE}" NAME_WE)
+  set(MPSBOOST_AIR_OUTPUT
+      "${CMAKE_CURRENT_BINARY_DIR}/mpsboost_${MPSBOOST_METAL_STEM}.air")
+  add_custom_command(
+    OUTPUT "${MPSBOOST_AIR_OUTPUT}"
+    COMMAND "${MPSBOOST_XCRUN_EXECUTABLE}" -sdk macosx metal
+            -c "${MPSBOOST_METAL_SOURCE}" -o "${MPSBOOST_AIR_OUTPUT}"
+    DEPENDS "${MPSBOOST_METAL_SOURCE}"
+    COMMENT "编译 MPSBoost Metal shader: ${MPSBOOST_METAL_STEM}"
+    VERBATIM
+  )
+  list(APPEND MPSBOOST_AIR_OUTPUTS "${MPSBOOST_AIR_OUTPUT}")
+endforeach()
+
 add_custom_command(
   OUTPUT "${MPSBOOST_METALLIB_OUTPUT}"
-  COMMAND "${MPSBOOST_XCRUN_EXECUTABLE}" -sdk macosx metal
-          -c "${MPSBOOST_METAL_SOURCE}" -o "${MPSBOOST_AIR_OUTPUT}"
   COMMAND "${MPSBOOST_XCRUN_EXECUTABLE}" -sdk macosx metallib
-          "${MPSBOOST_AIR_OUTPUT}" -o "${MPSBOOST_METALLIB_OUTPUT}"
-  DEPENDS "${MPSBOOST_METAL_SOURCE}"
+          ${MPSBOOST_AIR_OUTPUTS} -o "${MPSBOOST_METALLIB_OUTPUT}"
+  DEPENDS ${MPSBOOST_AIR_OUTPUTS}
   COMMENT "编译 MPSBoost Metal shader library"
   VERBATIM
 )
@@ -70,8 +86,11 @@ pybind11_add_module(
   src/core/binned_dataset.cpp
   src/core/objective.cpp
   src/core/tree.cpp
+  src/core/trainer.cpp
   src/cpu/reference_backend.cpp
+  src/io/model_format.cpp
   src/mps/metal_context.mm
+  src/mps/mps_backend.mm
 )
 add_dependencies(_native mpsboost_metallib)
 

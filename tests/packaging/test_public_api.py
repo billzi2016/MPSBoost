@@ -1,7 +1,4 @@
-"""公开 API 与版本单一来源测试。
-
-未完成的训练 estimator 不得提前暴露；这样可以防止用户把开发占位误认为正式能力。
-"""
+"""公开 API、estimator 入口与版本单一来源测试。"""
 
 from importlib.metadata import version
 
@@ -14,8 +11,14 @@ def test_version_is_injected_by_native_build():
     assert mps.__version__ == version("mpsboost")
 
 
-def test_unfinished_estimators_are_not_public():
-    """真实训练完成前不得发布 mock estimator。"""
+def test_only_completed_regressor_is_public():
+    """真实回归 estimator 必须公开，未实现分类器仍不得泄露。"""
 
-    assert not hasattr(mps, "MPSBoostRegressor")
+    assert mps.MPSBoostRegressor.__name__ == "MPSBoostRegressor"
     assert not hasattr(mps, "MPSBoostClassifier")
+    assert set(mps.__all__) == {
+        "MPSBoostRegressor",
+        "__version__",
+        "is_available",
+        "system_info",
+    }

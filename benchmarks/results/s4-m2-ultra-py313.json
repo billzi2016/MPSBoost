@@ -1,0 +1,139 @@
+{
+  "repeats": 3,
+  "scenarios": [
+    {
+      "cpu_median_seconds": 0.0007823747582733631,
+      "cpu_wall_seconds": [
+        0.0022765416651964188,
+        0.0007823747582733631,
+        0.0007747500203549862
+      ],
+      "features": 16,
+      "gpu_command_seconds": [
+        0.000882417,
+        0.000906,
+        0.000409458
+      ],
+      "gpu_encode_seconds": [
+        0.000015042,
+        0.0000145,
+        0.0000075
+      ],
+      "gpu_median_seconds": 0.0017230832017958164,
+      "gpu_wall_seconds": [
+        0.0017600413411855698,
+        0.0017230832017958164,
+        0.0012349169701337814
+      ],
+      "max_bins": 256,
+      "name": "small",
+      "quantization_seconds": 0.0018666666001081467,
+      "rows": 4096,
+      "wall_speedup": 0.4540551248238991
+    },
+    {
+      "cpu_median_seconds": 0.00497991731390357,
+      "cpu_wall_seconds": [
+        0.0047921668738126755,
+        0.005371749866753817,
+        0.00497991731390357
+      ],
+      "features": 32,
+      "gpu_command_seconds": [
+        0.001884042,
+        0.001948334,
+        0.001938292
+      ],
+      "gpu_encode_seconds": [
+        0.00000875,
+        0.000016208,
+        0.000009583
+      ],
+      "gpu_median_seconds": 0.004473458044230938,
+      "gpu_wall_seconds": [
+        0.004291917197406292,
+        0.004533540923148394,
+        0.004473458044230938
+      ],
+      "max_bins": 256,
+      "name": "medium",
+      "quantization_seconds": 0.029721083119511604,
+      "rows": 32768,
+      "wall_speedup": 1.1132142661594362
+    },
+    {
+      "cpu_median_seconds": 0.034616250079125166,
+      "cpu_wall_seconds": [
+        0.034830291755497456,
+        0.034616250079125166,
+        0.034225959330797195
+      ],
+      "features": 64,
+      "gpu_command_seconds": [
+        0.005691125,
+        0.005687291,
+        0.004822416
+      ],
+      "gpu_encode_seconds": [
+        0.000022625,
+        0.000017667,
+        0.000014292
+      ],
+      "gpu_median_seconds": 0.013495125342160463,
+      "gpu_wall_seconds": [
+        0.013642750214785337,
+        0.013495125342160463,
+        0.012124666944146156
+      ],
+      "max_bins": 256,
+      "name": "large",
+      "quantization_seconds": 0.253373125102371,
+      "rows": 131072,
+      "wall_speedup": 2.5650928910589412
+    },
+    {
+      "cpu_median_seconds": 0.04027500003576279,
+      "cpu_wall_seconds": [
+        0.0437493328936398,
+        0.040248624980449677,
+        0.04027500003576279
+      ],
+      "features": 256,
+      "gpu_command_seconds": [
+        0.001942667,
+        0.00244475,
+        0.002260083
+      ],
+      "gpu_encode_seconds": [
+        0.000024125,
+        0.000016833,
+        0.000014208
+      ],
+      "gpu_median_seconds": 0.015452875290066004,
+      "gpu_wall_seconds": [
+        0.015049458015710115,
+        0.015571791213005781,
+        0.015452875290066004
+      ],
+      "max_bins": 256,
+      "name": "wide",
+      "quantization_seconds": 0.23999012494459748,
+      "rows": 32768,
+      "wall_speedup": 2.6063110767258872
+    }
+  ],
+  "system": {
+    "backend": {
+      "available": true,
+      "backend": "mps",
+      "device_name": "Apple M2 Ultra",
+      "has_unified_memory": true,
+      "package_version": "0.2.0a0",
+      "recommended_max_working_set_size": 173173080064
+    },
+    "mpsboost": "0.2.0a0",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.5"
+  }
+}
+

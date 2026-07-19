@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from importlib.resources import as_file, files
-from typing import Any, Sequence
+from typing import Any, Iterator, Sequence
 
 from . import _native
 
@@ -39,6 +40,19 @@ def system_info() -> dict[str, Any]:
     return info
 
 
+@contextmanager
+def _metallib_path() -> Iterator[str]:
+    """在上下文存续期内返回 wheel 中唯一 shader library 的真实路径。
+
+    estimator、kernel 测试和 smoke 共享此资源定位逻辑，避免不同入口对压缩资源或临时
+    文件生命周期作出不同假设。调用方必须在 ``with`` 块内完成所有 GPU 工作。
+    """
+
+    resource = files("mpsboost").joinpath("_kernels.metallib")
+    with as_file(resource) as metallib_path:
+        yield str(metallib_path)
+
+
 def _run_vector_add_for_test(
     left: Sequence[float], right: Sequence[float]
 ) -> list[float]:
@@ -58,6 +72,5 @@ def _run_vector_add_for_test(
     完成，防止临时资源路径在 GPU 加载前失效。
     """
 
-    resource = files("mpsboost").joinpath("_kernels.metallib")
-    with as_file(resource) as metallib_path:
-        return list(_native._vector_add(left, right, str(metallib_path)))
+    with _metallib_path() as metallib_path:
+        return list(_native._vector_add(left, right, metallib_path))

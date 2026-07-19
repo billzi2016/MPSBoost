@@ -1,6 +1,6 @@
 """分层缓存路径的无副作用单元测试。"""
 
-import mpsboost as mps
+from mpsboost._cache import cache_layout
 
 
 def test_cache_lookup_does_not_create_directories(tmp_path, monkeypatch):
@@ -8,7 +8,8 @@ def test_cache_lookup_does_not_create_directories(tmp_path, monkeypatch):
 
     root = tmp_path / "cache"
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(root))
-    layout = mps.cache_layout()
+    # 缓存仍属于 S7 内部能力，不能为了测试方便提前污染 0.2.0 顶层公共 API。
+    layout = cache_layout()
     assert layout.root == root
     assert layout.pipelines == root / "pipelines"
     assert layout.quantization == root / "quantization"
