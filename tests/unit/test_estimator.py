@@ -50,9 +50,9 @@ def test_score_returns_r2_and_requires_fitted_model():
 
 
 def test_sklearn_tags_are_available_without_sklearn_dependency():
-    """The estimator should expose lightweight tags without importing sklearn."""
+    """The estimator should expose old-style lightweight tags without importing sklearn."""
 
-    tags = MPSBoostRegressor(device="cpu").__sklearn_tags__()
+    tags = MPSBoostRegressor(device="cpu")._more_tags()
     assert tags["requires_y"] is True
     assert tags["allow_nan"] is False
     assert tags["X_types"] == ["2darray"]

@@ -103,7 +103,8 @@ model.save_model("model.mb")
 
 - `device="mps"` 要求真实 Apple GPU 后端可用，否则早失败。
 - `device="cpu"` 仅用于参考和诊断。
-- `device="auto"` 只有选择规则和可观察性完成后才加入。
+- `device="auto"` 已具备初始选择规则和可观察性：小任务或 MPS 不可用时选择 CPU，
+  估计热路径足够大且 MPS 可用时选择 MPS。
 
 ### FR-06 诊断
 

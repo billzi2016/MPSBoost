@@ -33,6 +33,7 @@ class MPSBoostRegressor:
     ``device="mps"`` fails clearly when MPS is unavailable and never silently falls back.
     """
 
+    _estimator_type = "regressor"
     _PARAMETER_NAMES = (
         "n_estimators",
         "learning_rate",
@@ -198,11 +199,6 @@ class MPSBoostRegressor:
             "requires_y": True,
             "poor_score": False,
         }
-
-    def __sklearn_tags__(self) -> dict[str, Any]:
-        """Return lightweight sklearn-style tags for newer sklearn releases."""
-
-        return self._more_tags()
 
     def save_model(self, path: str | Path) -> None:
         """Save the model in a versioned format without training data or device identifiers."""
