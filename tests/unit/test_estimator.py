@@ -49,6 +49,56 @@ def test_score_returns_r2_and_requires_fitted_model():
     assert fitted.score(np.ones((3, 1), dtype=np.float32), np.array([1.0, 2.0, 3.0])) == 0.0
 
 
+def test_feature_importance_reads_native_tree_splits():
+    """feature_importances_ must be derived from real fitted tree nodes, not a mock summary."""
+
+    X = np.array(
+        [
+            [0.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [1.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    y = np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32)
+    model = MPSBoostRegressor(
+        n_estimators=1,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    gain_importance = model.feature_importances_
+    split_importance = model.feature_importance(kind="split")
+
+    assert gain_importance.shape == (2,)
+    assert split_importance.shape == (2,)
+    assert np.isclose(float(gain_importance.sum()), 1.0)
+    assert np.isclose(float(split_importance.sum()), 1.0)
+    assert gain_importance[0] == pytest.approx(1.0)
+    assert split_importance[0] == pytest.approx(1.0)
+
+
+def test_feature_importance_requires_fitted_model_and_valid_kind():
+    """feature importance should share the estimator fitted-state contract."""
+
+    model = MPSBoostRegressor(device="cpu")
+    with pytest.raises(NotFittedError):
+        _ = model.feature_importances_
+
+    fitted = MPSBoostRegressor(
+        n_estimators=1,
+        max_depth=0,
+        min_samples_leaf=1,
+        device="cpu",
+    ).fit(np.ones((2, 1), dtype=np.float32), np.array([1.0, 2.0]))
+    assert fitted.feature_importances_.tolist() == [0.0]
+    with pytest.raises(ValueError, match="feature importance kind"):
+        fitted.feature_importance(kind="permutation")
+
+
 def test_sklearn_tags_are_available_without_sklearn_dependency():
     """The estimator should expose old-style lightweight tags without importing sklearn."""
 

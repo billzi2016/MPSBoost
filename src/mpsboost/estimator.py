@@ -190,6 +190,38 @@ class MPSBoostRegressor:
             raise ValueError("R2 score is not finite")
         return float(score)
 
+    @property
+    def feature_importances_(self) -> NDArray[np.float32]:
+        """Return normalized gain-based feature importance for sklearn-style tooling."""
+
+        return self.feature_importance(kind="gain")
+
+    def feature_importance(self, kind: str = "gain") -> NDArray[np.float32]:
+        """Return normalized split statistics from the real trained native trees.
+
+        ``kind="gain"`` accumulates native split gains. ``kind="split"`` counts split usage.
+        Both variants read the single C++ tree representation exposed by the binding instead of
+        re-implementing split logic in Python. A model with no internal split returns all zeros.
+        """
+
+        model = self._require_model()
+        if kind not in {"gain", "split"}:
+            raise ValueError("feature importance kind must be 'gain' or 'split'")
+        values = np.zeros(self.n_features_in_, dtype=np.float64)
+        for tree in model.trees:
+            for node in tree.nodes:
+                if node["is_leaf"]:
+                    continue
+                feature_index = int(node["feature_index"])
+                if kind == "gain":
+                    values[feature_index] += max(float(node["gain"]), 0.0)
+                else:
+                    values[feature_index] += 1.0
+        total = float(values.sum())
+        if total > 0.0:
+            values /= total
+        return values.astype(np.float32, copy=False)
+
     def _more_tags(self) -> dict[str, Any]:
         """Return sklearn compatibility tags without importing sklearn at runtime."""
 

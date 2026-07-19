@@ -109,6 +109,17 @@ py::list TreeNodes(const mpsboost::RegressionTree& tree) {
   return result;
 }
 
+// Expose fitted ensemble trees as read-only diagnostic values for Python-side tooling.
+// The binding returns tree copies so feature importance and tests can inspect real native
+// training results without mutating the model used for prediction or persistence.
+py::list ModelTrees(const mpsboost::RegressionModel& model) {
+  py::list result;
+  for (const mpsboost::RegressionTree& tree : model.trees()) {
+    result.append(tree);
+  }
+  return result;
+}
+
 // 将 CPU oracle histogram 转换为不可变语义的嵌套 Python 值，供测试逐 bin 对照。
 // 转换只发生在内部测试入口，不进入训练热路径，也不向 Python 复制计算公式。
 py::list HistogramsToPython(const mpsboost::NodeHistograms& histograms) {
@@ -274,6 +285,7 @@ PYBIND11_MODULE(_native, module) {
                              &mpsboost::RegressionModel::feature_count)
       .def_property_readonly("tree_count",
                              &mpsboost::RegressionModel::tree_count)
+      .def_property_readonly("trees", &ModelTrees)
       .def("predict", [](const mpsboost::RegressionModel& model, const py::buffer& matrix) {
              const mpsboost::DenseMatrixView view = MakeDenseView(matrix);
              py::gil_scoped_release release;
