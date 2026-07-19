@@ -1,7 +1,3 @@
-# Local project specifications
-/specs/
-/AGENTS.md
-
 # Python
 __pycache__/
 *.py[cod]
