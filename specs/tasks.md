@@ -203,3 +203,13 @@
 - [ ] S18.8 验收 G17：真实世界测试矩阵全部通过，才允许规划 `1.0.0`。
 - [ ] S18.9 用户最终确认 1.x 公开承诺范围、版本号和 artifact 哈希。
 - [ ] S18.10 发布 PyPI `1.0.0` 并从正式 PyPI 全新环境复验。
+
+## S19：文件结构达到发布维护标准
+
+- [x] S19.1 建立文件长度规则：默认 200 行目标，超过 300 行必须拆分或登记例外。
+- [x] S19.2 拆分 Python estimator 实现，保持 public API 与历史 import 路径不变。
+- [x] S19.3 拆分 estimator unit tests，避免单个测试文件继续膨胀。
+- [ ] S19.4 拆分 Python binding 文件，隔离 buffer、dataset、model、backend test helpers。
+- [ ] S19.5 拆分 native binned dataset 实现，隔离 validation、quantization、schema 和 serialization。
+- [ ] S19.6 拆分 native tree 实现，隔离 split scan、growth、prediction 和 restore validation。
+- [ ] S19.7 验收 G18：所有新增/重构文件满足长度规则，例外均有说明和后续任务。
