@@ -1,0 +1,232 @@
+{
+  "regressor_scenarios": [
+    {
+      "cpu_fit_seconds": [
+        0.06623258301988244,
+        0.06776537513360381,
+        0.06763012474402785
+      ],
+      "cpu_median_seconds": 0.06763012474402785,
+      "features": 32,
+      "max_prediction_difference": 3.3639371395111084e-06,
+      "mps_fit_seconds": [
+        0.0918273339048028,
+        0.08959662541747093,
+        0.08780545834451914
+      ],
+      "mps_median_seconds": 0.08959662541747093,
+      "name": "gbdt-medium",
+      "parameters": {
+        "learning_rate": 0.2,
+        "max_bins": 256,
+        "max_depth": 4,
+        "min_child_weight": 1.0,
+        "min_samples_leaf": 16,
+        "n_estimators": 8,
+        "reg_lambda": 1.0
+      },
+      "rows": 16384,
+      "wall_speedup": 0.7548289283096179
+    },
+    {
+      "cpu_fit_seconds": [
+        0.2834815410897136,
+        0.28317608404904604,
+        0.2816234161145985
+      ],
+      "cpu_median_seconds": 0.28317608404904604,
+      "features": 128,
+      "max_prediction_difference": 4.351139068603516e-06,
+      "mps_fit_seconds": [
+        0.2571710837073624,
+        0.24950249958783388,
+        0.24411895778030157
+      ],
+      "mps_median_seconds": 0.24950249958783388,
+      "name": "gbdt-wide",
+      "parameters": {
+        "learning_rate": 0.2,
+        "max_bins": 256,
+        "max_depth": 4,
+        "min_child_weight": 1.0,
+        "min_samples_leaf": 16,
+        "n_estimators": 8,
+        "reg_lambda": 1.0
+      },
+      "rows": 16384,
+      "wall_speedup": 1.1349629142667481
+    },
+    {
+      "cpu_fit_seconds": [
+        1.0276105836965144,
+        1.031002499628812,
+        1.034422708209604
+      ],
+      "cpu_median_seconds": 1.031002499628812,
+      "features": 256,
+      "max_prediction_difference": 5.364418029785156e-06,
+      "mps_fit_seconds": [
+        0.6330063748173416,
+        0.6340326662175357,
+        0.6325034578330815
+      ],
+      "mps_median_seconds": 0.6330063748173416,
+      "name": "gbdt-large-wide",
+      "parameters": {
+        "learning_rate": 0.2,
+        "max_bins": 256,
+        "max_depth": 4,
+        "min_child_weight": 1.0,
+        "min_samples_leaf": 16,
+        "n_estimators": 8,
+        "reg_lambda": 1.0
+      },
+      "rows": 32768,
+      "wall_speedup": 1.6287395208718318
+    }
+  ],
+  "repeats": 3,
+  "scenarios": [
+    {
+      "cpu_median_seconds": 0.0007355003617703915,
+      "cpu_wall_seconds": [
+        0.0020643332973122597,
+        0.0007355003617703915,
+        0.0006963750347495079
+      ],
+      "features": 16,
+      "gpu_command_seconds": [
+        0.000887625,
+        0.000837083,
+        0.000821042
+      ],
+      "gpu_encode_seconds": [
+        2.1417e-05,
+        9.833e-06,
+        7.666e-06
+      ],
+      "gpu_median_seconds": 0.0016127917915582657,
+      "gpu_wall_seconds": [
+        0.0016712918877601624,
+        0.0016127917915582657,
+        0.001581207849085331
+      ],
+      "max_bins": 256,
+      "name": "small",
+      "pooled_buffer_allocation_count": 2,
+      "pooled_buffer_reuse_count": 6,
+      "quantization_seconds": 0.0019217077642679214,
+      "rows": 4096,
+      "wall_speedup": 0.45604173187151287
+    },
+    {
+      "cpu_median_seconds": 0.0051421248354017735,
+      "cpu_wall_seconds": [
+        0.004819083027541637,
+        0.005191834177821875,
+        0.0051421248354017735
+      ],
+      "features": 32,
+      "gpu_command_seconds": [
+        0.0018995,
+        0.001894333,
+        0.001475375
+      ],
+      "gpu_encode_seconds": [
+        1.7417e-05,
+        1.7417e-05,
+        1.4041e-05
+      ],
+      "gpu_median_seconds": 0.004309708718210459,
+      "gpu_wall_seconds": [
+        0.004381457809358835,
+        0.004309708718210459,
+        0.003908541984856129
+      ],
+      "max_bins": 256,
+      "name": "medium",
+      "pooled_buffer_allocation_count": 3,
+      "pooled_buffer_reuse_count": 13,
+      "quantization_seconds": 0.03007437475025654,
+      "rows": 32768,
+      "wall_speedup": 1.1931490436172594
+    },
+    {
+      "cpu_median_seconds": 0.03579470794647932,
+      "cpu_wall_seconds": [
+        0.03416058421134949,
+        0.036829458083957434,
+        0.03579470794647932
+      ],
+      "features": 64,
+      "gpu_command_seconds": [
+        0.005036375,
+        0.0049645,
+        0.005006291
+      ],
+      "gpu_encode_seconds": [
+        1.5917e-05,
+        1.5875e-05,
+        1.6334e-05
+      ],
+      "gpu_median_seconds": 0.01266166614368558,
+      "gpu_wall_seconds": [
+        0.012745749671012163,
+        0.01266166614368558,
+        0.012362458743155003
+      ],
+      "max_bins": 256,
+      "name": "large",
+      "pooled_buffer_allocation_count": 4,
+      "pooled_buffer_reuse_count": 20,
+      "quantization_seconds": 0.2611976251937449,
+      "rows": 131072,
+      "wall_speedup": 2.827014039090762
+    },
+    {
+      "cpu_median_seconds": 0.0421295422129333,
+      "cpu_wall_seconds": [
+        0.04233845882117748,
+        0.042035041842609644,
+        0.0421295422129333
+      ],
+      "features": 256,
+      "gpu_command_seconds": [
+        0.001548542,
+        0.001999209,
+        0.001823916
+      ],
+      "gpu_encode_seconds": [
+        1.8e-05,
+        2.8e-05,
+        1.9375e-05
+      ],
+      "gpu_median_seconds": 0.015055624768137932,
+      "gpu_wall_seconds": [
+        0.015055624768137932,
+        0.01490037515759468,
+        0.01526691671460867
+      ],
+      "max_bins": 256,
+      "name": "wide",
+      "pooled_buffer_allocation_count": 5,
+      "pooled_buffer_reuse_count": 27,
+      "quantization_seconds": 0.25209437496960163,
+      "rows": 32768,
+      "wall_speedup": 2.798259312499049
+    }
+  ],
+  "system": {
+    "backend": {
+      "available": true,
+      "backend": "mps",
+      "device_name": "Apple M2 Ultra",
+      "has_unified_memory": true,
+      "package_version": "0.2.0a0",
+      "recommended_max_working_set_size": 173173080064
+    },
+    "mpsboost": "0.2.0a0",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "python": "3.13.5"
+  }
+}

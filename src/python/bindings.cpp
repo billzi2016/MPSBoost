@@ -135,6 +135,26 @@ py::list GradientsToPython(const std::vector<mpsboost::GradientPair>& gradients)
   return result;
 }
 
+py::list SplitCandidatesToPython(
+    const std::vector<mpsboost::SplitScanCandidate>& candidates) {
+  py::list result;
+  for (const mpsboost::SplitScanCandidate& candidate : candidates) {
+    py::dict item;
+    item["valid"] = candidate.valid;
+    item["feature"] = candidate.feature;
+    item["threshold_bin"] = candidate.threshold_bin;
+    item["left_count"] = candidate.left_count;
+    item["right_count"] = candidate.right_count;
+    item["left_gradient_sum"] = candidate.left_gradient_sum;
+    item["left_hessian_sum"] = candidate.left_hessian_sum;
+    item["right_gradient_sum"] = candidate.right_gradient_sum;
+    item["right_hessian_sum"] = candidate.right_hessian_sum;
+    item["gain"] = candidate.gain;
+    result.append(std::move(item));
+  }
+  return result;
+}
+
 py::object RunMpsHistogramForTest(
     const mpsboost::MpsBackend& backend,
     const mpsboost::BinnedDataset& dataset,
@@ -225,7 +245,29 @@ PYBIND11_MODULE(_native, module) {
       .def("histograms", [](const mpsboost::MpsBackend& backend, const mpsboost::BinnedDataset& dataset, const std::vector<double>& labels, const std::vector<double>& predictions, const std::vector<std::uint64_t>& rows) { return RunMpsHistogramForTest(
                                                                                                                                                                                                                                   backend, dataset, labels, predictions, rows, false); }, py::arg("dataset"), py::arg("labels"), py::arg("predictions"), py::arg("rows"))
       .def("baseline_histograms", [](const mpsboost::MpsBackend& backend, const mpsboost::BinnedDataset& dataset, const std::vector<double>& labels, const std::vector<double>& predictions, const std::vector<std::uint64_t>& rows) { return RunMpsHistogramForTest(
-                                                                                                                                                                                                                                           backend, dataset, labels, predictions, rows, true); }, py::arg("dataset"), py::arg("labels"), py::arg("predictions"), py::arg("rows"));
+                                                                                                                                                                                                                                           backend, dataset, labels, predictions, rows, true); }, py::arg("dataset"), py::arg("labels"), py::arg("predictions"), py::arg("rows"))
+      .def("split_candidates", [](const mpsboost::MpsBackend& backend, const mpsboost::BinnedDataset& dataset, const std::vector<double>& labels, const std::vector<double>& predictions, const std::vector<std::uint64_t>& rows, std::uint64_t min_samples_leaf, double min_child_weight, double reg_lambda, double gamma) {
+        const std::vector<mpsboost::GradientPair> gradients =
+            mpsboost::ComputeSquaredErrorGradients(labels, predictions);
+        return SplitCandidatesToPython(backend.ScanSplitsForTest(
+            dataset, rows, gradients, min_samples_leaf, min_child_weight,
+            reg_lambda, gamma)); }, py::arg("dataset"), py::arg("labels"), py::arg("predictions"), py::arg("rows"), py::arg("min_samples_leaf") = 1, py::arg("min_child_weight") = 0.0, py::arg("reg_lambda") = 1.0, py::arg("gamma") = 0.0)
+      .def("partition_rows", [](const mpsboost::MpsBackend& backend, const mpsboost::BinnedDataset& dataset, const std::vector<std::uint64_t>& rows, std::uint32_t feature, std::uint32_t threshold_bin) {
+        const auto parts =
+            backend.PartitionRowsForTest(dataset, rows, feature, threshold_bin);
+        return py::make_tuple(parts.first, parts.second); }, py::arg("dataset"), py::arg("rows"), py::arg("feature"), py::arg("threshold_bin"))
+      .def_property_readonly("last_timing", [](const mpsboost::MpsBackend& backend) {
+        const mpsboost::BackendTiming timing = backend.last_timing();
+        py::dict result;
+        result["gradient_seconds"] = timing.gradient_seconds;
+        result["histogram_encode_seconds"] = timing.histogram_encode_seconds;
+        result["histogram_command_seconds"] = timing.histogram_command_seconds;
+        result["hot_path_encode_seconds"] = timing.hot_path_encode_seconds;
+        result["hot_path_command_seconds"] = timing.hot_path_command_seconds;
+        result["pooled_buffer_reuse_count"] = timing.pooled_buffer_reuse_count;
+        result["pooled_buffer_allocation_count"] =
+            timing.pooled_buffer_allocation_count;
+        return result; });
 
   py::class_<mpsboost::RegressionModel>(module, "_RegressionModel")
       .def_property_readonly("feature_count",

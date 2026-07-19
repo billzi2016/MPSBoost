@@ -18,7 +18,7 @@ import mpsboost as mps
 from mpsboost import _native
 from mpsboost.diagnostics import _metallib_path
 
-from datasets import histogram_scenarios
+from datasets import histogram_scenarios, regressor_scenarios
 
 
 def _elapsed(callable_):
@@ -49,6 +49,7 @@ def run(repeats: int) -> dict:
         },
         "repeats": repeats,
         "scenarios": [],
+        "regressor_scenarios": [],
     }
     with _metallib_path() as path:
         backend = _native._MpsBackend(path)
@@ -65,6 +66,8 @@ def run(repeats: int) -> dict:
             gpu_wall_times = []
             gpu_encode_times = []
             gpu_command_times = []
+            pool_reuse_counts = []
+            pool_allocation_counts = []
             for _ in range(repeats):
                 _, cpu_elapsed = _elapsed(
                     lambda: _native._cpu_histograms(
@@ -72,14 +75,15 @@ def run(repeats: int) -> dict:
                     )
                 )
                 gpu_result, gpu_elapsed = _elapsed(
-                    lambda: backend.histograms(
-                        quantized, labels, predictions, rows
-                    )
+                    lambda: backend.histograms(quantized, labels, predictions, rows)
                 )
                 cpu_times.append(cpu_elapsed)
                 gpu_wall_times.append(gpu_elapsed)
                 gpu_encode_times.append(gpu_result["encode_seconds"])
                 gpu_command_times.append(gpu_result["command_seconds"])
+                timing = backend.last_timing
+                pool_reuse_counts.append(timing["pooled_buffer_reuse_count"])
+                pool_allocation_counts.append(timing["pooled_buffer_allocation_count"])
             cpu_median = median(cpu_times)
             gpu_median = median(gpu_wall_times)
             report["scenarios"].append(
@@ -93,11 +97,67 @@ def run(repeats: int) -> dict:
                     "gpu_wall_seconds": gpu_wall_times,
                     "gpu_encode_seconds": gpu_encode_times,
                     "gpu_command_seconds": gpu_command_times,
+                    "pooled_buffer_reuse_count": pool_reuse_counts[-1],
+                    "pooled_buffer_allocation_count": pool_allocation_counts[-1],
                     "cpu_median_seconds": cpu_median,
                     "gpu_median_seconds": gpu_median,
                     "wall_speedup": cpu_median / gpu_median,
                 }
             )
+    for scenario in regressor_scenarios():
+        parameters = dict(
+            n_estimators=8,
+            learning_rate=0.2,
+            max_depth=4,
+            max_bins=256,
+            min_samples_leaf=16,
+            min_child_weight=1.0,
+            reg_lambda=1.0,
+        )
+        mps.MPSBoostRegressor(device="cpu", **parameters).fit(scenario.X, scenario.y)
+        mps.MPSBoostRegressor(device="mps", **parameters).fit(scenario.X, scenario.y)
+        cpu_times = []
+        mps_times = []
+        max_prediction_differences = []
+        for _ in range(repeats):
+            cpu_model, cpu_elapsed = _elapsed(
+                lambda: mps.MPSBoostRegressor(device="cpu", **parameters).fit(
+                    scenario.X, scenario.y
+                )
+            )
+            mps_model, mps_elapsed = _elapsed(
+                lambda: mps.MPSBoostRegressor(device="mps", **parameters).fit(
+                    scenario.X, scenario.y
+                )
+            )
+            cpu_times.append(cpu_elapsed)
+            mps_times.append(mps_elapsed)
+            max_prediction_differences.append(
+                float(
+                    np.max(
+                        np.abs(
+                            cpu_model.predict(scenario.X)
+                            - mps_model.predict(scenario.X)
+                        )
+                    )
+                )
+            )
+        cpu_median = median(cpu_times)
+        mps_median = median(mps_times)
+        report["regressor_scenarios"].append(
+            {
+                "name": scenario.name,
+                "rows": scenario.X.shape[0],
+                "features": scenario.X.shape[1],
+                "parameters": parameters,
+                "cpu_fit_seconds": cpu_times,
+                "mps_fit_seconds": mps_times,
+                "cpu_median_seconds": cpu_median,
+                "mps_median_seconds": mps_median,
+                "wall_speedup": cpu_median / mps_median,
+                "max_prediction_difference": max(max_prediction_differences),
+            }
+        )
     return report
 
 

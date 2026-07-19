@@ -8,6 +8,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "mpsboost/binned_dataset.hpp"
@@ -87,11 +88,46 @@ struct BackendTiming final {
   double gradient_seconds{0.0};
   double histogram_encode_seconds{0.0};
   double histogram_command_seconds{0.0};
+  double hot_path_encode_seconds{0.0};
+  double hot_path_command_seconds{0.0};
+  std::uint64_t pooled_buffer_reuse_count{0};
+  std::uint64_t pooled_buffer_allocation_count{0};
+};
+
+// 单个 feature 的 GPU split scan 候选。该结构只承载设备侧扫描结果；训练核心仍会
+// 按唯一 FP64 规则完成最终 split 验证，避免并行累计顺序改变模型语义。
+struct SplitScanCandidate final {
+  bool valid{false};
+  std::uint32_t feature{0};
+  std::uint32_t threshold_bin{0};
+  std::uint64_t left_count{0};
+  std::uint64_t right_count{0};
+  double left_gradient_sum{0.0};
+  double left_hessian_sum{0.0};
+  double right_gradient_sum{0.0};
+  double right_hessian_sum{0.0};
+  double gain{0.0};
+};
+
+// 可选的按层 histogram 能力。训练核心通过 dynamic_cast 探测该窄接口；不支持的后端
+// 自动使用既有逐节点 HistogramBuilder，因此不会产生第二套训练语义。
+class LayerHistogramBuilder {
+ public:
+  virtual ~LayerHistogramBuilder() = default;
+
+  // 为同一层多个活跃节点构建 histogram。每个输入节点独立返回 NodeHistograms，顺序
+  // 必须与 node_rows 一致；实现可以把节点批量编码到 GPU，但不得改变行集合内容。
+  virtual std::vector<NodeHistograms> BuildLayerHistograms(
+      const BinnedDataset& dataset,
+      const std::vector<std::vector<std::uint64_t>>& node_rows,
+      const std::vector<GradientPair>& gradients) const = 0;
 };
 
 // 真实 MPS 计算后端。Objective-C/Metal 对象全部隐藏在 Impl 中，稳定 C++ 头文件不
 // 暴露平台类型；对象不可复制，但可在单个训练会话中重复使用 pipeline 和 command queue。
-class MpsBackend final : public GradientComputer, public HistogramBuilder {
+class MpsBackend final : public GradientComputer,
+                         public HistogramBuilder,
+                         public LayerHistogramBuilder {
  public:
   explicit MpsBackend(std::string metallib_path);
   ~MpsBackend() override;
@@ -107,6 +143,10 @@ class MpsBackend final : public GradientComputer, public HistogramBuilder {
       const BinnedDataset& dataset,
       const std::vector<std::uint64_t>& rows,
       const std::vector<GradientPair>& gradients) const override;
+  std::vector<NodeHistograms> BuildLayerHistograms(
+      const BinnedDataset& dataset,
+      const std::vector<std::vector<std::uint64_t>>& node_rows,
+      const std::vector<GradientPair>& gradients) const override;
   BackendTiming last_timing() const noexcept;
 
   // 复用同一 context/pipeline/command 实现验证 wheel 的最小 GPU 链路。该方法只由
@@ -117,6 +157,19 @@ class MpsBackend final : public GradientComputer, public HistogramBuilder {
       const BinnedDataset& dataset,
       const std::vector<std::uint64_t>& rows,
       const std::vector<GradientPair>& gradients) const;
+  std::vector<SplitScanCandidate> ScanSplitsForTest(
+      const BinnedDataset& dataset,
+      const std::vector<std::uint64_t>& rows,
+      const std::vector<GradientPair>& gradients,
+      std::uint64_t min_samples_leaf,
+      double min_child_weight,
+      double reg_lambda,
+      double gamma) const;
+  std::pair<std::vector<std::uint64_t>, std::vector<std::uint64_t>>
+  PartitionRowsForTest(const BinnedDataset& dataset,
+                       const std::vector<std::uint64_t>& rows,
+                       std::uint32_t feature,
+                       std::uint32_t threshold_bin) const;
 
  private:
   NodeHistograms BuildHistogramsInternal(

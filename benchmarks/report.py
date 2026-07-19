@@ -19,15 +19,36 @@ def render(payload: dict) -> str:
         "",
         "Wall time includes host preparation, buffer transfer, command submission, and synchronization.",
         "",
-        "| Scenario | Rows | Features | CPU median (s) | MPS median (s) | Speedup |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| Scenario | Rows | Features | CPU median (s) | MPS median (s) | Speedup | Pool reuse |",
+        "|---|---:|---:|---:|---:|---:|---:|",
     ]
     for item in payload["scenarios"]:
         lines.append(
             f"| {item['name']} | {item['rows']} | {item['features']} | "
             f"{item['cpu_median_seconds']:.6f} | {item['gpu_median_seconds']:.6f} | "
-            f"{item['wall_speedup']:.3f}x |"
+            f"{item['wall_speedup']:.3f}x | "
+            f"{item.get('pooled_buffer_reuse_count', 0)} |"
         )
+    if payload.get("regressor_scenarios"):
+        lines.extend(
+            [
+                "",
+                "# MPSBoost end-to-end regressor benchmark",
+                "",
+                "Wall time includes Python input adaptation, quantization, training, model assembly, and synchronization.",
+                "",
+                "| Scenario | Rows | Features | CPU median (s) | MPS median (s) | Speedup | Max prediction diff |",
+                "|---|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for item in payload["regressor_scenarios"]:
+            lines.append(
+                f"| {item['name']} | {item['rows']} | {item['features']} | "
+                f"{item['cpu_median_seconds']:.6f} | "
+                f"{item['mps_median_seconds']:.6f} | "
+                f"{item['wall_speedup']:.3f}x | "
+                f"{item['max_prediction_difference']:.6g} |"
+            )
     return "\n".join(lines) + "\n"
 
 

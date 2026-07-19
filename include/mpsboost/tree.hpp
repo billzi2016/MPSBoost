@@ -14,6 +14,7 @@ namespace mpsboost {
 
 class BinnedDataset;
 class HistogramBuilder;
+class LayerHistogramBuilder;
 
 constexpr std::uint32_t kInvalidNodeIndex =
     std::numeric_limits<std::uint32_t>::max();

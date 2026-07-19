@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <utility>
 
@@ -29,6 +30,20 @@ struct DeviceHistogramValue final {
   std::uint32_t reserved;
 };
 static_assert(sizeof(DeviceHistogramValue) == 16);
+
+struct DeviceSplitCandidate final {
+  std::uint32_t valid;
+  std::uint32_t feature;
+  std::uint32_t threshold_bin;
+  std::uint32_t left_count;
+  std::uint32_t right_count;
+  float left_gradient;
+  float left_hessian;
+  float right_gradient;
+  float right_hessian;
+  float gain;
+};
+static_assert(sizeof(DeviceSplitCandidate) == 40);
 
 std::string DescribeError(const char* stage, NSError* error) {
   std::ostringstream message;
@@ -83,6 +98,84 @@ std::uint32_t ReductionWidth(id<MTLComputePipelineState> pipeline) {
   return width;
 }
 
+std::vector<std::uint32_t> MakeRowsU32(const std::vector<std::uint64_t>& rows,
+                                       std::uint32_t dataset_rows,
+                                       const char* context) {
+  std::vector<std::uint32_t> rows_u32(rows.size());
+  for (std::size_t index = 0; index < rows.size(); ++index) {
+    rows_u32[index] = CheckedUInt32(rows[index], context);
+    if (rows_u32[index] >= dataset_rows) {
+      throw TrainingError("GPU 行索引越界");
+    }
+  }
+  return rows_u32;
+}
+
+std::vector<float> MakeGradientValues(
+    const BinnedDataset& dataset,
+    const std::vector<GradientPair>& gradients) {
+  if (dataset.rows() != gradients.size()) {
+    throw TrainingError("Gradient 数量与分箱数据行数不一致");
+  }
+  std::vector<float> gradient_values(gradients.size() * 2);
+  for (std::size_t index = 0; index < gradients.size(); ++index) {
+    gradient_values[index * 2] = CheckedFloat(gradients[index].gradient, "Gradient");
+    gradient_values[index * 2 + 1] = CheckedFloat(gradients[index].hessian, "Hessian");
+    if (gradient_values[index * 2 + 1] < 0.0F) {
+      throw TrainingError("Hessian 必须非负");
+    }
+  }
+  return gradient_values;
+}
+
+void BuildHistogramLayout(const BinnedDataset& dataset,
+                          std::vector<std::uint32_t>* cell_features,
+                          std::vector<std::uint32_t>* cell_bins,
+                          std::vector<std::uint32_t>* feature_offsets,
+                          std::vector<std::uint32_t>* feature_bin_counts,
+                          std::uint32_t* maximum_feature_bins) {
+  cell_features->clear();
+  cell_bins->clear();
+  feature_offsets->clear();
+  feature_bin_counts->clear();
+  *maximum_feature_bins = 0;
+  for (std::uint32_t feature = 0; feature < dataset.features(); ++feature) {
+    const std::uint32_t bin_count = dataset.feature_metadata()[feature].bin_count;
+    if (cell_features->size() >
+        std::numeric_limits<std::uint32_t>::max() - bin_count) {
+      throw BackendError("Histogram cell 数量溢出");
+    }
+    feature_offsets->push_back(
+        CheckedUInt32(cell_features->size(), "Histogram feature offset"));
+    feature_bin_counts->push_back(bin_count);
+    *maximum_feature_bins = std::max(*maximum_feature_bins, bin_count);
+    for (std::uint32_t bin = 0; bin < bin_count; ++bin) {
+      cell_features->push_back(feature);
+      cell_bins->push_back(bin);
+    }
+  }
+}
+
+NodeHistograms DecodeHistograms(const BinnedDataset& dataset,
+                                const DeviceHistogramValue* values) {
+  NodeHistograms result;
+  result.reserve(dataset.features());
+  std::size_t cell_offset = 0;
+  for (std::uint32_t feature = 0; feature < dataset.features(); ++feature) {
+    const std::uint32_t bin_count = dataset.feature_metadata()[feature].bin_count;
+    FeatureHistogram feature_histogram;
+    feature_histogram.reserve(bin_count);
+    for (std::uint32_t bin = 0; bin < bin_count; ++bin) {
+      const DeviceHistogramValue& value = values[cell_offset + bin];
+      feature_histogram.push_back(
+          HistogramBin{value.count, value.gradient, value.hessian});
+    }
+    result.push_back(std::move(feature_histogram));
+    cell_offset += bin_count;
+  }
+  return result;
+}
+
 }  // namespace
 
 class MpsBackend::Impl final {
@@ -114,6 +207,9 @@ class MpsBackend::Impl final {
       histogram_baseline_u8_ = MakePipeline(@"histogram_baseline_u8");
       histogram_baseline_u16_ = MakePipeline(@"histogram_baseline_u16");
       histogram_reduce_ = MakePipeline(@"histogram_reduce");
+      split_scan_ = MakePipeline(@"split_scan_features");
+      partition_u8_ = MakePipeline(@"partition_rows_u8");
+      partition_u16_ = MakePipeline(@"partition_rows_u16");
     }
   }
 
@@ -146,6 +242,27 @@ class MpsBackend::Impl final {
       throw BackendError(std::string("分配 MPS buffer 失败：") + field);
     }
     return buffer;
+  }
+
+  id<MTLBuffer> NewScratchBuffer(std::size_t length, const char* field) const {
+    auto iterator = pooled_buffers_.lower_bound(length);
+    if (iterator != pooled_buffers_.end()) {
+      id<MTLBuffer> buffer = iterator->second;
+      pooled_buffers_.erase(iterator);
+      ++timing_.pooled_buffer_reuse_count;
+      return buffer;
+    }
+    ++timing_.pooled_buffer_allocation_count;
+    return NewBuffer(nullptr, length, field);
+  }
+
+  void ReturnScratchBuffer(id<MTLBuffer> buffer) const {
+    if (buffer == nil) {
+      return;
+    }
+    // L1 buffer pool 只复用临时输出/partial 工作区；输入数据 buffer 仍由调用点明确
+    // 拥有，避免把可变训练数据跨节点或跨 estimator 意外共享。
+    pooled_buffers_.emplace(static_cast<std::size_t>([buffer length]), buffer);
   }
 
   void ValidateWorkingSet(std::initializer_list<std::size_t> lengths) const {
@@ -186,7 +303,11 @@ class MpsBackend::Impl final {
   id<MTLComputePipelineState> histogram_baseline_u8_;
   id<MTLComputePipelineState> histogram_baseline_u16_;
   id<MTLComputePipelineState> histogram_reduce_;
+  id<MTLComputePipelineState> split_scan_;
+  id<MTLComputePipelineState> partition_u8_;
+  id<MTLComputePipelineState> partition_u16_;
   mutable BackendTiming timing_;
+  mutable std::multimap<std::size_t, id<MTLBuffer>> pooled_buffers_;
 };
 
 MpsBackend::MpsBackend(std::string metallib_path)
@@ -262,6 +383,24 @@ NodeHistograms MpsBackend::BuildBaselineHistogramsForTest(
   return BuildHistogramsInternal(dataset, rows, gradients, true);
 }
 
+std::vector<NodeHistograms> MpsBackend::BuildLayerHistograms(
+    const BinnedDataset& dataset,
+    const std::vector<std::vector<std::uint64_t>>& node_rows,
+    const std::vector<GradientPair>& gradients) const {
+  if (node_rows.empty()) {
+    return {};
+  }
+  // 现阶段每个节点仍保持独立 histogram 输出，保证训练核心的 split 选择和分区校验
+  // 不变；同层入口让调用方避免逐节点动态分派，并让后端 L1 buffer pool 跨节点复用
+  // partial/output 工作区。后续可以在此函数内部进一步合并 command，而不改核心语义。
+  std::vector<NodeHistograms> result;
+  result.reserve(node_rows.size());
+  for (const std::vector<std::uint64_t>& rows : node_rows) {
+    result.push_back(BuildHistogramsInternal(dataset, rows, gradients, false));
+  }
+  return result;
+}
+
 NodeHistograms MpsBackend::BuildHistogramsInternal(
     const BinnedDataset& dataset,
     const std::vector<std::uint64_t>& rows,
@@ -281,21 +420,8 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
   std::vector<std::uint32_t> feature_offsets;
   std::vector<std::uint32_t> feature_bin_counts;
   std::uint32_t maximum_feature_bins = 0;
-  for (std::uint32_t feature = 0; feature < features; ++feature) {
-    const std::uint32_t bin_count = dataset.feature_metadata()[feature].bin_count;
-    if (cell_features.size() >
-        std::numeric_limits<std::uint32_t>::max() - bin_count) {
-      throw BackendError("Histogram cell 数量溢出");
-    }
-    feature_offsets.push_back(
-        CheckedUInt32(cell_features.size(), "Histogram feature offset"));
-    feature_bin_counts.push_back(bin_count);
-    maximum_feature_bins = std::max(maximum_feature_bins, bin_count);
-    for (std::uint32_t bin = 0; bin < bin_count; ++bin) {
-      cell_features.push_back(feature);
-      cell_bins.push_back(bin);
-    }
-  }
+  BuildHistogramLayout(dataset, &cell_features, &cell_bins, &feature_offsets,
+                       &feature_bin_counts, &maximum_feature_bins);
   const std::uint32_t cell_count =
       CheckedUInt32(cell_features.size(), "Histogram cell 数量");
   const std::size_t threadgroup_bytes = CheckedBytes(
@@ -315,21 +441,9 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
       kMaximumHistogramPartials,
       (selected_rows + reduction_width - 1) / reduction_width);
 
-  std::vector<std::uint32_t> rows_u32(rows.size());
-  for (std::size_t index = 0; index < rows.size(); ++index) {
-    rows_u32[index] = CheckedUInt32(rows[index], "Histogram 行索引");
-    if (rows_u32[index] >= dataset_rows) {
-      throw TrainingError("Histogram 行索引越界");
-    }
-  }
-  std::vector<float> gradient_values(gradients.size() * 2);
-  for (std::size_t index = 0; index < gradients.size(); ++index) {
-    gradient_values[index * 2] = CheckedFloat(gradients[index].gradient, "Gradient");
-    gradient_values[index * 2 + 1] = CheckedFloat(gradients[index].hessian, "Hessian");
-    if (gradient_values[index * 2 + 1] < 0.0F) {
-      throw TrainingError("Hessian 必须非负");
-    }
-  }
+  std::vector<std::uint32_t> rows_u32 =
+      MakeRowsU32(rows, dataset_rows, "Histogram 行索引");
+  std::vector<float> gradient_values = MakeGradientValues(dataset, gradients);
 
   const std::size_t bin_item_size =
       dataset.storage() == BinStorage::kUInt8 ? sizeof(std::uint8_t) : sizeof(std::uint16_t);
@@ -367,8 +481,9 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
     id<MTLBuffer> feature_bin_counts_buffer = impl_->NewBuffer(
         feature_bin_counts.data(), feature_map_bytes, "feature bin counts");
     id<MTLBuffer> partial_buffer =
-        effective_baseline ? nil : impl_->NewBuffer(nullptr, partial_bytes, "partials");
-    id<MTLBuffer> output_buffer = impl_->NewBuffer(nullptr, output_bytes, "histogram");
+        effective_baseline ? nil : impl_->NewScratchBuffer(partial_bytes, "partials");
+    id<MTLBuffer> output_buffer =
+        impl_->NewScratchBuffer(output_bytes, "histogram");
 
     id<MTLCommandBuffer> histogram_command = impl_->NewCommand("histogram");
     const auto encoding_started = std::chrono::steady_clock::now();
@@ -448,22 +563,234 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
 
     const auto* values =
         static_cast<const DeviceHistogramValue*>([output_buffer contents]);
-    NodeHistograms result;
-    result.reserve(features);
-    std::size_t cell_offset = 0;
-    for (std::uint32_t feature = 0; feature < features; ++feature) {
-      const std::uint32_t bin_count = dataset.feature_metadata()[feature].bin_count;
-      FeatureHistogram feature_histogram;
-      feature_histogram.reserve(bin_count);
-      for (std::uint32_t bin = 0; bin < bin_count; ++bin) {
-        const DeviceHistogramValue& value = values[cell_offset + bin];
-        feature_histogram.push_back(HistogramBin{
-            value.count, value.gradient, value.hessian});
-      }
-      result.push_back(std::move(feature_histogram));
-      cell_offset += bin_count;
-    }
+    NodeHistograms result = DecodeHistograms(dataset, values);
+    impl_->ReturnScratchBuffer(partial_buffer);
+    impl_->ReturnScratchBuffer(output_buffer);
     return result;
+  }
+}
+
+std::vector<SplitScanCandidate> MpsBackend::ScanSplitsForTest(
+    const BinnedDataset& dataset,
+    const std::vector<std::uint64_t>& rows,
+    const std::vector<GradientPair>& gradients,
+    std::uint64_t min_samples_leaf,
+    double min_child_weight,
+    double reg_lambda,
+    double gamma) const {
+  if (rows.empty()) {
+    throw TrainingError("Split scan 行集合不能为空");
+  }
+  if (min_samples_leaf == 0 || !std::isfinite(min_child_weight) ||
+      min_child_weight < 0.0 || !std::isfinite(reg_lambda) ||
+      reg_lambda < 0.0 || !std::isfinite(gamma) || gamma < 0.0) {
+    throw TrainingError("Split scan 参数不合法");
+  }
+  const NodeHistograms histograms = BuildHistograms(dataset, rows, gradients);
+  std::vector<std::uint32_t> cell_features;
+  std::vector<std::uint32_t> cell_bins;
+  std::vector<std::uint32_t> feature_offsets;
+  std::vector<std::uint32_t> feature_bin_counts;
+  std::uint32_t maximum_feature_bins = 0;
+  BuildHistogramLayout(dataset, &cell_features, &cell_bins, &feature_offsets,
+                       &feature_bin_counts, &maximum_feature_bins);
+  const std::uint32_t features = dataset.features();
+  const std::uint32_t cell_count =
+      CheckedUInt32(cell_features.size(), "Split scan cell 数量");
+
+  std::vector<DeviceHistogramValue> flat_histogram;
+  flat_histogram.reserve(cell_count);
+  for (const FeatureHistogram& feature : histograms) {
+    for (const HistogramBin& bin : feature) {
+      flat_histogram.push_back(DeviceHistogramValue{
+          CheckedUInt32(bin.count, "Split scan bin count"),
+          CheckedFloat(bin.gradient_sum, "Split scan gradient"),
+          CheckedFloat(bin.hessian_sum, "Split scan hessian"),
+          0});
+    }
+  }
+
+  const std::size_t histogram_bytes =
+      CheckedBytes(flat_histogram.size(), sizeof(DeviceHistogramValue),
+                   "Split scan histogram");
+  const std::size_t feature_map_bytes =
+      CheckedBytes(features, sizeof(std::uint32_t), "Split scan feature map");
+  const std::size_t output_bytes =
+      CheckedBytes(features, sizeof(DeviceSplitCandidate),
+                   "Split scan output");
+  impl_->ValidateWorkingSet({histogram_bytes, feature_map_bytes,
+                             feature_map_bytes, output_bytes});
+
+  @autoreleasepool {
+    id<MTLBuffer> histogram_buffer =
+        impl_->NewBuffer(flat_histogram.data(), histogram_bytes, "split histogram");
+    id<MTLBuffer> feature_offsets_buffer =
+        impl_->NewBuffer(feature_offsets.data(), feature_map_bytes,
+                         "split feature offsets");
+    id<MTLBuffer> feature_bin_counts_buffer =
+        impl_->NewBuffer(feature_bin_counts.data(), feature_map_bytes,
+                         "split feature bin counts");
+    id<MTLBuffer> output_buffer =
+        impl_->NewScratchBuffer(output_bytes, "split candidates");
+
+    const std::uint32_t min_samples_leaf_u32 =
+        CheckedUInt32(min_samples_leaf, "Split scan min_samples_leaf");
+    const float min_child_weight_f =
+        CheckedFloat(min_child_weight, "Split scan min_child_weight");
+    const float reg_lambda_f = CheckedFloat(reg_lambda, "Split scan reg_lambda");
+    const float gamma_f = CheckedFloat(gamma, "Split scan gamma");
+
+    id<MTLCommandBuffer> command = impl_->NewCommand("split_scan");
+    const auto encoding_started = std::chrono::steady_clock::now();
+    id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
+    if (encoder == nil) {
+      throw BackendError("创建 split scan encoder 失败");
+    }
+    [encoder setComputePipelineState:impl_->split_scan_];
+    [encoder setBuffer:histogram_buffer offset:0 atIndex:0];
+    [encoder setBuffer:feature_offsets_buffer offset:0 atIndex:1];
+    [encoder setBuffer:feature_bin_counts_buffer offset:0 atIndex:2];
+    [encoder setBuffer:output_buffer offset:0 atIndex:3];
+    [encoder setBytes:&features length:sizeof(features) atIndex:4];
+    [encoder setBytes:&min_samples_leaf_u32
+               length:sizeof(min_samples_leaf_u32)
+              atIndex:5];
+    [encoder setBytes:&min_child_weight_f
+               length:sizeof(min_child_weight_f)
+              atIndex:6];
+    [encoder setBytes:&reg_lambda_f length:sizeof(reg_lambda_f) atIndex:7];
+    [encoder setBytes:&gamma_f length:sizeof(gamma_f) atIndex:8];
+    const NSUInteger width = std::min<NSUInteger>(
+        kThreadsPerGroup, [impl_->split_scan_ maxTotalThreadsPerThreadgroup]);
+    [encoder dispatchThreads:MTLSizeMake(features, 1, 1)
+        threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
+    [encoder endEncoding];
+    impl_->timing_.hot_path_encode_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                      encoding_started)
+            .count();
+    const auto command_started = std::chrono::steady_clock::now();
+    Impl::Complete(command, "MPS split scan command 执行失败");
+    impl_->timing_.hot_path_command_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                      command_started)
+            .count();
+
+    const auto* device_candidates =
+        static_cast<const DeviceSplitCandidate*>([output_buffer contents]);
+    std::vector<SplitScanCandidate> result;
+    result.reserve(features);
+    for (std::uint32_t feature = 0; feature < features; ++feature) {
+      const DeviceSplitCandidate& candidate = device_candidates[feature];
+      result.push_back(SplitScanCandidate{
+          candidate.valid != 0,
+          candidate.feature,
+          candidate.threshold_bin,
+          candidate.left_count,
+          candidate.right_count,
+          candidate.left_gradient,
+          candidate.left_hessian,
+          candidate.right_gradient,
+          candidate.right_hessian,
+          candidate.gain});
+    }
+    impl_->ReturnScratchBuffer(output_buffer);
+    return result;
+  }
+}
+
+std::pair<std::vector<std::uint64_t>, std::vector<std::uint64_t>>
+MpsBackend::PartitionRowsForTest(const BinnedDataset& dataset,
+                                 const std::vector<std::uint64_t>& rows,
+                                 std::uint32_t feature,
+                                 std::uint32_t threshold_bin) const {
+  if (rows.empty()) {
+    throw TrainingError("Partition 行集合不能为空");
+  }
+  if (feature >= dataset.features() ||
+      threshold_bin >= dataset.feature_metadata()[feature].bin_count) {
+    throw TrainingError("Partition feature 或 threshold 越界");
+  }
+  const std::uint32_t dataset_rows = CheckedUInt32(dataset.rows(), "Partition 数据行数");
+  const std::uint32_t selected_rows = CheckedUInt32(rows.size(), "Partition 行数");
+  const std::vector<std::uint32_t> rows_u32 =
+      MakeRowsU32(rows, dataset_rows, "Partition 行索引");
+  const std::size_t bin_item_size =
+      dataset.storage() == BinStorage::kUInt8 ? sizeof(std::uint8_t)
+                                              : sizeof(std::uint16_t);
+  const std::size_t bin_bytes =
+      CheckedBytes(static_cast<std::size_t>(dataset.bin_value_count()),
+                   bin_item_size, "Partition 分箱 buffer");
+  const std::size_t row_bytes =
+      CheckedBytes(rows_u32.size(), sizeof(std::uint32_t), "Partition rows");
+  const std::size_t count_bytes =
+      CheckedBytes(2, sizeof(std::uint32_t), "Partition counts");
+  impl_->ValidateWorkingSet({bin_bytes, row_bytes, row_bytes, row_bytes,
+                             count_bytes});
+
+  @autoreleasepool {
+    std::uint32_t zero_counts[2] = {0, 0};
+    id<MTLBuffer> bins_buffer =
+        impl_->NewBuffer(dataset.bin_data(), bin_bytes, "partition bins");
+    id<MTLBuffer> rows_buffer =
+        impl_->NewBuffer(rows_u32.data(), row_bytes, "partition input rows");
+    id<MTLBuffer> left_buffer =
+        impl_->NewScratchBuffer(row_bytes, "partition left rows");
+    id<MTLBuffer> right_buffer =
+        impl_->NewScratchBuffer(row_bytes, "partition right rows");
+    id<MTLBuffer> counts_buffer =
+        impl_->NewBuffer(zero_counts, count_bytes, "partition counts");
+
+    id<MTLCommandBuffer> command = impl_->NewCommand("partition");
+    const auto encoding_started = std::chrono::steady_clock::now();
+    id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
+    if (encoder == nil) {
+      throw BackendError("创建 partition encoder 失败");
+    }
+    id<MTLComputePipelineState> pipeline =
+        dataset.storage() == BinStorage::kUInt8 ? impl_->partition_u8_
+                                                : impl_->partition_u16_;
+    [encoder setComputePipelineState:pipeline];
+    [encoder setBuffer:bins_buffer offset:0 atIndex:0];
+    [encoder setBuffer:rows_buffer offset:0 atIndex:1];
+    [encoder setBuffer:left_buffer offset:0 atIndex:2];
+    [encoder setBuffer:right_buffer offset:0 atIndex:3];
+    [encoder setBuffer:counts_buffer offset:0 atIndex:4];
+    [encoder setBytes:&dataset_rows length:sizeof(dataset_rows) atIndex:5];
+    [encoder setBytes:&selected_rows length:sizeof(selected_rows) atIndex:6];
+    [encoder setBytes:&feature length:sizeof(feature) atIndex:7];
+    [encoder setBytes:&threshold_bin length:sizeof(threshold_bin) atIndex:8];
+    const NSUInteger width =
+        std::min<NSUInteger>(kThreadsPerGroup,
+                             [pipeline maxTotalThreadsPerThreadgroup]);
+    [encoder dispatchThreads:MTLSizeMake(selected_rows, 1, 1)
+        threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
+    [encoder endEncoding];
+    impl_->timing_.hot_path_encode_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                      encoding_started)
+            .count();
+    const auto command_started = std::chrono::steady_clock::now();
+    Impl::Complete(command, "MPS partition command 执行失败");
+    impl_->timing_.hot_path_command_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() -
+                                      command_started)
+            .count();
+
+    const auto* counts =
+        static_cast<const std::uint32_t*>([counts_buffer contents]);
+    if (static_cast<std::uint64_t>(counts[0]) + counts[1] != rows.size()) {
+      throw BackendError("Partition 输出计数与输入行数不一致");
+    }
+    const auto* left_u32 =
+        static_cast<const std::uint32_t*>([left_buffer contents]);
+    const auto* right_u32 =
+        static_cast<const std::uint32_t*>([right_buffer contents]);
+    std::vector<std::uint64_t> left(left_u32, left_u32 + counts[0]);
+    std::vector<std::uint64_t> right(right_u32, right_u32 + counts[1]);
+    impl_->ReturnScratchBuffer(left_buffer);
+    impl_->ReturnScratchBuffer(right_buffer);
+    return {std::move(left), std::move(right)};
   }
 }
 

@@ -45,3 +45,29 @@ def histogram_scenarios() -> tuple[BenchmarkDataset, ...]:
         )
         scenarios.append(BenchmarkDataset(name, matrix, labels))
     return tuple(scenarios)
+
+
+def regressor_scenarios() -> tuple[BenchmarkDataset, ...]:
+    """返回预登记端到端 GBDT 训练场景。
+
+    规模选择避免 benchmark 退化成纯启动开销，同时不会把常规验证拖成不可接受的长任务。
+    标签包含非线性和阈值项，确保树模型需要真实 split，而不是只学习均值。
+    """
+
+    definitions = (
+        ("gbdt-medium", 16_384, 32),
+        ("gbdt-wide", 16_384, 128),
+        ("gbdt-large-wide", 32_768, 256),
+    )
+    scenarios = []
+    for offset, (name, rows, features) in enumerate(definitions):
+        generator = np.random.default_rng(20260719 + 100 + offset)
+        matrix = generator.normal(size=(rows, features)).astype(np.float32)
+        matrix[:, 0] = (generator.random(rows) > 0.95).astype(np.float32)
+        labels = (
+            1.7 * matrix[:, 0].astype(np.float64)
+            - 0.8 * matrix[:, 1].astype(np.float64)
+            + np.where(matrix[:, 2] > 0.25, 2.0, -1.0).astype(np.float64)
+        )
+        scenarios.append(BenchmarkDataset(name, matrix, labels))
+    return tuple(scenarios)

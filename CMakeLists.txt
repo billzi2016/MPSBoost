@@ -36,7 +36,7 @@ if(DEFINED SKBUILD_PROJECT_VERSION_FULL)
   # FULL 保留 a1、rc1 等预发布后缀；非 FULL 变量只含基础三段版本。
   set(MPSBOOST_VERSION "${SKBUILD_PROJECT_VERSION_FULL}")
 else()
-  set(MPSBOOST_VERSION "0.2.0a0")
+  set(MPSBOOST_VERSION "0.2.0b0")
 endif()
 
 configure_file(
@@ -49,6 +49,8 @@ set(MPSBOOST_METAL_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/smoke.metal"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/gradients.metal"
   "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/histogram.metal"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/split_scan.metal"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/mps/kernels/partition.metal"
 )
 set(MPSBOOST_METALLIB_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/_kernels.metallib")
 

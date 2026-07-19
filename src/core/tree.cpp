@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <limits>
 #include <numeric>
+#include <stdexcept>
 #include <utility>
 
 #include "mpsboost/backend.hpp"
@@ -37,6 +38,13 @@ struct ActiveNode final {
   std::uint32_t depth{0};
   std::vector<std::uint64_t> rows;
   NodeStatistics statistics;
+  NodeHistograms cached_histograms;
+};
+
+struct PendingChildHistogram final {
+  std::size_t next_layer_index{0};
+  std::vector<std::uint64_t> rows;
+  NodeHistograms parent_histograms;
 };
 
 void ValidateParameters(const TreeTrainingParameters& parameters) {
@@ -171,6 +179,35 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
   return best;
 }
 
+NodeHistograms SubtractHistograms(const NodeHistograms& parent,
+                                  const NodeHistograms& child) {
+  if (parent.size() != child.size()) {
+    throw TrainingError("Histogram subtraction 特征数量不一致");
+  }
+  NodeHistograms result;
+  result.reserve(parent.size());
+  for (std::size_t feature = 0; feature < parent.size(); ++feature) {
+    if (parent[feature].size() != child[feature].size()) {
+      throw TrainingError("Histogram subtraction bin 数量不一致");
+    }
+    FeatureHistogram feature_histogram;
+    feature_histogram.reserve(parent[feature].size());
+    for (std::size_t bin = 0; bin < parent[feature].size(); ++bin) {
+      const HistogramBin& parent_bin = parent[feature][bin];
+      const HistogramBin& child_bin = child[feature][bin];
+      if (child_bin.count > parent_bin.count) {
+        throw TrainingError("Histogram subtraction 子节点计数超过父节点");
+      }
+      feature_histogram.push_back(HistogramBin{
+          parent_bin.count - child_bin.count,
+          parent_bin.gradient_sum - child_bin.gradient_sum,
+          parent_bin.hessian_sum - child_bin.hessian_sum});
+    }
+    result.push_back(std::move(feature_histogram));
+  }
+  return result;
+}
+
 TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda) {
   TreeNode node;
   node.leaf_value =
@@ -185,6 +222,72 @@ std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node) {
   const auto index = static_cast<std::uint32_t>(nodes->size());
   nodes->push_back(std::move(node));
   return index;
+}
+
+std::vector<NodeHistograms> BuildCurrentLayerHistograms(
+    const BinnedDataset& dataset,
+    const std::vector<ActiveNode>& current_layer,
+    const std::vector<GradientPair>& gradients,
+    const HistogramBuilder& histogram_builder) {
+  std::vector<std::vector<std::uint64_t>> layer_rows;
+  layer_rows.reserve(current_layer.size());
+  for (const ActiveNode& active : current_layer) {
+    if (active.cached_histograms.empty()) {
+      layer_rows.push_back(active.rows);
+    }
+  }
+
+  std::vector<NodeHistograms> computed_histograms;
+  if (!layer_rows.empty()) {
+    if (const auto* layer_builder =
+            dynamic_cast<const LayerHistogramBuilder*>(&histogram_builder)) {
+      computed_histograms =
+          layer_builder->BuildLayerHistograms(dataset, layer_rows, gradients);
+      if (computed_histograms.size() != layer_rows.size()) {
+        throw TrainingError("按层 histogram 返回节点数量与活跃层不一致");
+      }
+    } else {
+      computed_histograms.reserve(layer_rows.size());
+      for (const std::vector<std::uint64_t>& rows : layer_rows) {
+        computed_histograms.push_back(
+            histogram_builder.BuildHistograms(dataset, rows, gradients));
+      }
+    }
+  }
+
+  std::vector<NodeHistograms> result;
+  result.reserve(current_layer.size());
+  std::size_t computed_index = 0;
+  for (const ActiveNode& active : current_layer) {
+    if (!active.cached_histograms.empty()) {
+      result.push_back(active.cached_histograms);
+    } else {
+      result.push_back(std::move(computed_histograms[computed_index++]));
+    }
+  }
+  return result;
+}
+
+std::vector<NodeHistograms> BuildPendingChildHistograms(
+    const BinnedDataset& dataset,
+    const std::vector<PendingChildHistogram>& pending,
+    const std::vector<GradientPair>& gradients,
+    const HistogramBuilder& histogram_builder) {
+  std::vector<std::vector<std::uint64_t>> rows_to_build;
+  rows_to_build.reserve(pending.size());
+  for (const PendingChildHistogram& item : pending) {
+    rows_to_build.push_back(item.rows);
+  }
+  if (const auto* layer_builder =
+          dynamic_cast<const LayerHistogramBuilder*>(&histogram_builder)) {
+    return layer_builder->BuildLayerHistograms(dataset, rows_to_build, gradients);
+  }
+  std::vector<NodeHistograms> result;
+  result.reserve(rows_to_build.size());
+  for (const std::vector<std::uint64_t>& rows : rows_to_build) {
+    result.push_back(histogram_builder.BuildHistograms(dataset, rows, gradients));
+  }
+  return result;
 }
 
 }  // namespace
@@ -210,16 +313,24 @@ RegressionTree TrainSingleRegressionTree(
 
   std::vector<ActiveNode> current_layer;
   current_layer.push_back(
-      ActiveNode{0, 0, std::move(root_rows), root_statistics});
+      ActiveNode{0, 0, std::move(root_rows), root_statistics, {}});
 
   while (!current_layer.empty()) {
+    if (current_layer.front().depth >= parameters.max_depth) {
+      break;
+    }
     std::vector<ActiveNode> next_layer;
-    for (ActiveNode& active : current_layer) {
+    std::vector<PendingChildHistogram> pending_child_histograms;
+    const std::vector<NodeHistograms> layer_histograms =
+        BuildCurrentLayerHistograms(dataset, current_layer, gradients,
+                                    histogram_builder);
+    for (std::size_t active_index = 0; active_index < current_layer.size();
+         ++active_index) {
+      ActiveNode& active = current_layer[active_index];
       if (active.depth >= parameters.max_depth) {
         continue;
       }
-      const NodeHistograms histograms = histogram_builder.BuildHistograms(
-          dataset, active.rows, gradients);
+      const NodeHistograms& histograms = layer_histograms[active_index];
       if (histograms.size() != dataset.features()) {
         throw TrainingError("Histogram 特征数量与数据集不一致");
       }
@@ -262,9 +373,41 @@ RegressionTree TrainSingleRegressionTree(
 
       const std::uint32_t child_depth = active.depth + 1;
       next_layer.push_back(ActiveNode{
-          left_index, child_depth, std::move(left_rows), split.left});
+          left_index, child_depth, std::move(left_rows), split.left, {}});
       next_layer.push_back(ActiveNode{
-          right_index, child_depth, std::move(right_rows), split.right});
+          right_index, child_depth, std::move(right_rows), split.right, {}});
+      if (child_depth < parameters.max_depth) {
+        const bool build_left = split.left.count <= split.right.count;
+        const std::size_t child_index =
+            next_layer.size() - (build_left ? 2U : 1U);
+        pending_child_histograms.push_back(PendingChildHistogram{
+            child_index, next_layer[child_index].rows, histograms});
+      }
+    }
+    if (!pending_child_histograms.empty()) {
+      const std::vector<NodeHistograms> built_child_histograms =
+          BuildPendingChildHistograms(dataset, pending_child_histograms, gradients,
+                                      histogram_builder);
+      if (built_child_histograms.size() != pending_child_histograms.size()) {
+        throw TrainingError("Histogram subtraction 子节点数量不一致");
+      }
+      for (std::size_t index = 0; index < pending_child_histograms.size();
+           ++index) {
+        const PendingChildHistogram& pending = pending_child_histograms[index];
+        if (pending.next_layer_index >= next_layer.size()) {
+          throw TrainingError("Histogram subtraction 子节点索引越界");
+        }
+        next_layer[pending.next_layer_index].cached_histograms =
+            built_child_histograms[index];
+        const std::size_t sibling_index =
+            pending.next_layer_index ^ std::size_t{1};
+        if (sibling_index >= next_layer.size()) {
+          throw TrainingError("Histogram subtraction 兄弟节点索引越界");
+        }
+        next_layer[sibling_index].cached_histograms =
+            SubtractHistograms(pending.parent_histograms,
+                               built_child_histograms[index]);
+      }
     }
     current_layer = std::move(next_layer);
   }
