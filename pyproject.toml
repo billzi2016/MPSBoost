@@ -1,11 +1,14 @@
 [build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+requires = [
+  "scikit-build-core>=0.10",
+  "pybind11>=2.13",
+]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "mpsboost"
-version = "0.1.0a0"
-description = "Apple Silicon gradient boosting with an MPS/Metal backend (technology preview)"
+version = "0.2.0a0"
+description = "Lightweight gradient boosting for Apple Silicon with an MPS/Metal backend"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -37,11 +40,22 @@ Homepage = "https://github.com/billzi2016/MPSBoost"
 Repository = "https://github.com/billzi2016/MPSBoost"
 Issues = "https://github.com/billzi2016/MPSBoost/issues"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+build-dir = "build/{wheel_tag}"
+wheel.packages = ["src/mpsboost"]
+sdist.include = [
+  "CMakeLists.txt",
+  "include/mpsboost/*.hpp",
+  "include/mpsboost/*.in",
+  "src/mps/*.mm",
+  "src/mps/kernels/*.metal",
+  "src/python/*.cpp",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.scikit-build.cmake]
+build-type = "Release"
+version = ">=3.25"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

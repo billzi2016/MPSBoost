@@ -3,9 +3,9 @@
 [![PyPI](https://img.shields.io/pypi/v/mpsboost)](https://pypi.org/project/mpsboost/)
 [![Python](https://img.shields.io/pypi/pyversions/mpsboost)](https://pypi.org/project/mpsboost/)
 
-MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its planned execution backend combines reusable Metal Performance Shaders capabilities with custom Metal compute kernels for histogram construction, split evaluation, row partitioning, and prediction.
+MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its execution backend combines reusable Metal Performance Shaders capabilities with custom Metal compute kernels for histogram construction, split evaluation, row partitioning, and prediction.
 
-> **Technology preview:** version `0.1.0a0` reserves the package namespace and exposes the planned Python API. Model training is not implemented in this release. Calls to `fit()` and `train()` fail explicitly instead of silently running a different backend.
+> **Development status:** the published `0.1.0a0` release reserves the package namespace. The current `0.2.0a0` source tree contains the first real native backend foundation; model training will only be exposed after it satisfies the correctness and packaging requirements.
 
 ## Installation
 
@@ -13,9 +13,9 @@ MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its plan
 python -m pip install mpsboost
 ```
 
-The placeholder release is pure Python and has no runtime dependencies. Future accelerated releases will provide prebuilt Apple Silicon wheels; normal users will not need PyTorch, Homebrew, CMake, or a local Metal shader compiler.
+Accelerated releases provide prebuilt Apple Silicon wheels; normal users will not need a heavyweight framework, package manager, CMake, or a local Metal shader compiler.
 
-## Planned sklearn-style API
+## Target estimator-style API
 
 ```python
 import mpsboost as mps
@@ -31,22 +31,9 @@ model.fit(X_train, y_train)
 prediction = model.predict(X_test)
 ```
 
-## Planned native API
+## Backend diagnostics
 
-```python
-import mpsboost as mps
-
-dtrain = mps.MPSMatrix(X_train, label=y_train)
-booster = mps.train(
-    params={"objective": "reg:squarederror", "device": "mps"},
-    dtrain=dtrain,
-    num_boost_round=200,
-)
-```
-
-## Preview diagnostics
-
-The placeholder package can be used to inspect its public version and planned backend status:
+The native backend exposes non-sensitive device diagnostics:
 
 ```python
 import mpsboost as mps
@@ -67,7 +54,7 @@ print(mps.system_info())
 
 ## Status
 
-The current release is a namespace and API placeholder. Do not use it for model training. Follow the repository for implementation milestones.
+Model training is not yet part of the public API. The repository does not ship mock estimators or pretend that unfinished training is available.
 
 ## Independence notice
 

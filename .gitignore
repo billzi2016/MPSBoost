@@ -17,6 +17,9 @@ __pycache__/
 /.cache/
 /_skbuild/
 CMakeUserPresets.json
+compile_commands.json
+*.air
+*.metallib
 
 # Optional project-local MPSBoost runtime cache (L2 cache)
 /.mpsboost-cache/

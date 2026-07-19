@@ -1,0 +1,6 @@
+// MPSBoost 构建版本定义。
+//
+// 该文件由 CMake 根据 pyproject.toml 的版本生成，禁止在源码中维护第二份版本常量。
+#pragma once
+
+#define MPSBOOST_VERSION "@MPSBOOST_VERSION@"

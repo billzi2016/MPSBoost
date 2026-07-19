@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+# wheel 标签和 native deployment target 必须一致，避免在最新 runner 上构建出只能由
+# 最新系统安装的包。发布矩阵若提高最低版本，需要先修改规格和兼容性测试。
+env:
+  MACOSX_DEPLOYMENT_TARGET: "13.0"
+
 jobs:
   test:
     runs-on: macos-14

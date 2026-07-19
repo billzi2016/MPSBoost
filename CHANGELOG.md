@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased - 0.2.0a0 development
+
+- Replace preview mock APIs with a real compiled MPS/Metal backend foundation.
+- Add native device diagnostics and a real GPU vector smoke kernel.
+- Build Metal shaders at package build time and bundle the resulting library.
+
 ## 0.1.0a0 - 2026-07-19
 
 - Reserve the `mpsboost` package namespace.
