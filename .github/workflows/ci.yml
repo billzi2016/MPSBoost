@@ -13,9 +13,12 @@ env:
   MACOSX_DEPLOYMENT_TARGET: "13.0"
 
 jobs:
-  test:
+  hosted-validation:
+    name: CPU、数据与打包验证（Python ${{ matrix.python-version }}）
     runs-on: macos-14
     strategy:
+      # 一个版本失败时仍需收集另一个受支持边界版本的结果，便于区分版本兼容性问题。
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.13"]
     steps:
@@ -23,6 +26,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          # 这里只缓存可安全重建的 pip 下载，不缓存 wheel 或测试结果。
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - run: python -m pip install --upgrade pip
       - name: Install build and test tools
         run: python -m pip install build twine pytest numpy
@@ -30,12 +36,51 @@ jobs:
         run: python -m build --wheel
       - name: Install built wheel
         run: python -m pip install --force-reinstall --no-deps dist/*.whl
-      - run: python -m pytest
+      - name: Run CPU, data, and packaging tests
+        # GitHub 托管 macOS 环境没有可用的 Metal 设备；真实 GPU 测试由下方必需的
+        # 自托管作业承担，这里只进行与设备无关的交叉版本验证。
+        run: python -m pytest -m "not gpu"
       - name: Validate wheel metadata
         run: python -m twine check dist/*.whl
-      - name: Save validated wheel
+      - name: Save hosted validation wheel
         uses: actions/upload-artifact@v4
         with:
-          name: mpsboost-wheel-py${{ matrix.python-version }}
+          name: mpsboost-hosted-wheel-py${{ matrix.python-version }}
+          path: dist/*.whl
+          if-no-files-found: error
+
+  real-gpu-validation:
+    name: 真实 Metal GPU 验证（Python ${{ matrix.python-version }}）
+    # 公开仓库的外部 PR 可能包含任意代码，绝不能让它们进入用户自己的机器。
+    # 主仓库 push 仍强制执行真实 GPU 作业，因此合入后的代码不存在静默跳过路径。
+    if: github.event_name == 'push' && github.repository == 'billzi2016/MPSBoost'
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install --upgrade pip
+      - name: Install build and test tools
+        run: python -m pip install build twine pytest numpy
+      - name: Build native ARM64 wheel
+        run: python -m build --wheel
+      - name: Install built wheel
+        run: python -m pip install --force-reinstall --no-deps dist/*.whl
+      - name: Run real Metal GPU tests
+        run: python -m pytest -m gpu
+      - name: Validate ARM64 wheel metadata
+        run: python -m twine check dist/*.whl
+      - name: Save GPU-validated ARM64 wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpsboost-arm64-wheel-py${{ matrix.python-version }}
           path: dist/*.whl
           if-no-files-found: error

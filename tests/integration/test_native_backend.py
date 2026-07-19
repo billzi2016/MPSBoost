@@ -9,6 +9,10 @@ import pytest
 import mpsboost as mps
 from mpsboost.diagnostics import _run_vector_add_for_test
 
+# 整个文件覆盖同一条真实设备链路。使用文件级标记可以保证新增用例默认进入 GPU 作业，
+# 避免维护者遗漏逐函数标记后，误在无设备环境中运行或漏掉真实硬件验证。
+pytestmark = pytest.mark.gpu
+
 
 def test_backend_reports_real_available_device():
     """受支持构建必须发现真实设备并返回最小非敏感能力。"""
