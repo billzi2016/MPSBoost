@@ -141,6 +141,13 @@ categorical split semantics are implemented.
 Validation metric history and early stopping also share one estimator-independent monitoring
 contract, so future classifiers and tree ensembles do not duplicate callback semantics.
 
+LightGBM-like controlled leaf-wise growth is available through
+`growth_strategy="leaf_wise"`. The implementation uses the same native tree engine as
+level-wise boosting and adds explicit controls for `max_leaves`, `max_active_leaves`, and
+`min_gain_to_split`. Benchmark scripts compare level-wise and leaf-wise end to end; users should
+prefer the strategy that wins on their workload rather than assuming one growth policy is always
+faster.
+
 ## CPU and MPS backends
 
 MPSBoost treats CPU as a first-class backend, not as a temporary fallback. The CPU oracle/backend

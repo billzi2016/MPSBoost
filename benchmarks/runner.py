@@ -18,7 +18,11 @@ import mpsboost as mb
 from mpsboost import _native
 from mpsboost.diagnostics import _metallib_path
 
-from datasets import histogram_scenarios, regressor_scenarios
+from datasets import (
+    histogram_scenarios,
+    leafwise_regressor_scenarios,
+    regressor_scenarios,
+)
 
 
 def _elapsed(callable_):
@@ -50,6 +54,7 @@ def run(repeats: int) -> dict:
         "repeats": repeats,
         "scenarios": [],
         "regressor_scenarios": [],
+        "growth_scenarios": [],
     }
     with _metallib_path() as path:
         backend = _native._MpsBackend(path)
@@ -158,6 +163,70 @@ def run(repeats: int) -> dict:
                 "max_prediction_difference": max(max_prediction_differences),
             }
         )
+    for scenario in leafwise_regressor_scenarios():
+        base_parameters = dict(
+            n_estimators=8,
+            learning_rate=0.2,
+            max_depth=5,
+            max_bins=256,
+            min_samples_leaf=16,
+            min_child_weight=1.0,
+            reg_lambda=1.0,
+            max_leaves=16,
+            max_active_leaves=16,
+            min_gain_to_split=0.0,
+        )
+        for growth_strategy in ("level_wise", "leaf_wise"):
+            parameters = {**base_parameters, "growth_strategy": growth_strategy}
+            mb.GradientBoostingRegressor(device="cpu", **parameters).fit(
+                scenario.X, scenario.y
+            )
+            mb.GradientBoostingRegressor(device="mps", **parameters).fit(
+                scenario.X, scenario.y
+            )
+            cpu_times = []
+            mps_times = []
+            max_prediction_differences = []
+            for _ in range(repeats):
+                cpu_model, cpu_elapsed = _elapsed(
+                    lambda: mb.GradientBoostingRegressor(
+                        device="cpu", **parameters
+                    ).fit(scenario.X, scenario.y)
+                )
+                mps_model, mps_elapsed = _elapsed(
+                    lambda: mb.GradientBoostingRegressor(
+                        device="mps", **parameters
+                    ).fit(scenario.X, scenario.y)
+                )
+                cpu_times.append(cpu_elapsed)
+                mps_times.append(mps_elapsed)
+                max_prediction_differences.append(
+                    float(
+                        np.max(
+                            np.abs(
+                                cpu_model.predict(scenario.X)
+                                - mps_model.predict(scenario.X)
+                            )
+                        )
+                    )
+                )
+            cpu_median = median(cpu_times)
+            mps_median = median(mps_times)
+            report["growth_scenarios"].append(
+                {
+                    "name": scenario.name,
+                    "growth_strategy": growth_strategy,
+                    "rows": scenario.X.shape[0],
+                    "features": scenario.X.shape[1],
+                    "parameters": parameters,
+                    "cpu_fit_seconds": cpu_times,
+                    "mps_fit_seconds": mps_times,
+                    "cpu_median_seconds": cpu_median,
+                    "mps_median_seconds": mps_median,
+                    "wall_speedup": cpu_median / mps_median,
+                    "max_prediction_difference": max(max_prediction_differences),
+                }
+            )
     return report
 
 

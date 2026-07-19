@@ -49,6 +49,27 @@ def render(payload: dict) -> str:
                 f"{item['wall_speedup']:.3f}x | "
                 f"{item['max_prediction_difference']:.6g} |"
             )
+    if payload.get("growth_scenarios"):
+        lines.extend(
+            [
+                "",
+                "# MPSBoost level-wise vs leaf-wise benchmark",
+                "",
+                "Wall time includes the same end-to-end fit path as the regressor benchmark.",
+                "",
+                "| Scenario | Growth | Rows | Features | CPU median (s) | MPS median (s) | Speedup | Max prediction diff |",
+                "|---|---|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for item in payload["growth_scenarios"]:
+            lines.append(
+                f"| {item['name']} | {item['growth_strategy']} | "
+                f"{item['rows']} | {item['features']} | "
+                f"{item['cpu_median_seconds']:.6f} | "
+                f"{item['mps_median_seconds']:.6f} | "
+                f"{item['wall_speedup']:.3f}x | "
+                f"{item['max_prediction_difference']:.6g} |"
+            )
     return "\n".join(lines) + "\n"
 
 

@@ -71,3 +71,26 @@ def regressor_scenarios() -> tuple[BenchmarkDataset, ...]:
         )
         scenarios.append(BenchmarkDataset(name, matrix, labels))
     return tuple(scenarios)
+
+
+def leafwise_regressor_scenarios() -> tuple[BenchmarkDataset, ...]:
+    """Return pre-registered end-to-end growth-strategy comparison scenarios."""
+
+    definitions = (
+        ("growth-medium", 16_384, 64),
+        ("growth-wide", 16_384, 192),
+    )
+    scenarios = []
+    for offset, (name, rows, features) in enumerate(definitions):
+        generator = np.random.default_rng(20260719 + 200 + offset)
+        matrix = generator.normal(size=(rows, features)).astype(np.float32)
+        matrix[:, 0] = (generator.random(rows) > 0.90).astype(np.float32)
+        matrix[:, 1] = (generator.random(rows) > 0.60).astype(np.float32)
+        labels = (
+            2.5 * matrix[:, 0].astype(np.float64)
+            - 1.2 * matrix[:, 1].astype(np.float64)
+            + np.where(matrix[:, 2] > 0.0, 1.5, -0.5).astype(np.float64)
+            + np.where(matrix[:, 3] > 1.0, 0.75, 0.0).astype(np.float64)
+        )
+        scenarios.append(BenchmarkDataset(name, matrix, labels))
+    return tuple(scenarios)
