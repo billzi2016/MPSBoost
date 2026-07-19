@@ -200,6 +200,27 @@ class MPSBoostRegressor:
             "poor_score": False,
         }
 
+    def __sklearn_tags__(self) -> Any:
+        """Return sklearn 1.6+ structured tags while keeping sklearn optional.
+
+        sklearn 1.6 changed several meta-estimator paths from the historical ``_more_tags``
+        dictionary to a structured ``Tags`` object. Importing those classes at module import time
+        would make sklearn a hard runtime dependency for normal MPSBoost users, so the import stays
+        inside this compatibility hook and only runs when sklearn itself asks for tags.
+        """
+
+        try:
+            from sklearn.utils import InputTags, RegressorTags, Tags, TargetTags
+        except ImportError as exc:  # pragma: no cover - only reachable when sklearn is absent.
+            raise AttributeError("sklearn tag classes are unavailable") from exc
+        return Tags(
+            estimator_type="regressor",
+            target_tags=TargetTags(required=True, one_d_labels=True, single_output=True),
+            regressor_tags=RegressorTags(poor_score=False),
+            input_tags=InputTags(two_d_array=True, allow_nan=False, sparse=False),
+            requires_fit=True,
+        )
+
     def save_model(self, path: str | Path) -> None:
         """Save the model in a versioned format without training data or device identifiers."""
 

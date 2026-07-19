@@ -13,6 +13,14 @@ get_tags = pytest.importorskip("sklearn.utils").get_tags
 import mpsboost as mb
 
 
+def _tag_value(tags, name: str):
+    """Read a sklearn tag from either old dictionary tags or new structured tags."""
+
+    if isinstance(tags, dict):
+        return tags[name]
+    return getattr(tags, name)
+
+
 def test_sklearn_clone_preserves_constructor_parameters():
     """sklearn.clone must rebuild the estimator from get_params without fitted state."""
 
@@ -34,8 +42,11 @@ def test_sklearn_get_tags_recognizes_regressor_type():
 
     tags = get_tags(mb.GradientBoostingRegressor(device="cpu"))
 
-    assert tags.estimator_type == "regressor"
-    assert tags.target_tags.required is True
+    assert _tag_value(tags, "estimator_type") == "regressor"
+    if isinstance(tags, dict):
+        assert tags["requires_y"] is True
+    else:
+        assert tags.target_tags.required is True
 
 
 def test_cross_val_score_uses_estimator_score_method():
