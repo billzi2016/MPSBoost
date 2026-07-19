@@ -119,7 +119,7 @@
 
 ## S11：Random Forest
 
-- [ ] S11.1 实现 bootstrap/无放回采样和特征子采样。
+- [x] S11.1 实现 bootstrap/无放回采样和特征子采样。
 - [ ] S11.2 实现 `MPSRandomForestRegressor`。
 - [ ] S11.3 实现 `MPSRandomForestClassifier`。
 - [ ] S11.4 实现独立树批量训练调度和共享 MPS 热路径。
@@ -128,7 +128,7 @@
 
 ## S12：ExtraTrees
 
-- [ ] S12.1 实现可复现随机 threshold 候选生成。
+- [x] S12.1 实现可复现随机 threshold 候选生成。
 - [ ] S12.2 实现 `MPSExtraTreesRegressor`。
 - [ ] S12.3 实现 `MPSExtraTreesClassifier`。
 - [ ] S12.4 实现 GPU 批量评估随机 split。
@@ -141,7 +141,7 @@
 - [ ] S13.2 实现活跃叶队列、内存上限和过拟合控制。
 - [ ] S13.3 扩展 histogram subtraction 与小叶调度策略。
 - [ ] S13.4 对 level-wise 与 leaf-wise 做端到端 benchmark。
-- [ ] S13.5 设计 CatBoost-like ordered boosting、类别特征友好路径和 permutation 语义。
+- [x] S13.5 设计 CatBoost-like ordered boosting、类别特征友好路径和 permutation 语义。
 - [ ] S13.6 实现 `CatBoostRegressor` 与 `CatBoostClassifier` 的受控兼容入口。
 - [ ] S13.7 验收 G12：LightGBM-like 与 CatBoost-like 策略真实加速且公开限制诚实。
 

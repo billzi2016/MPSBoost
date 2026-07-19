@@ -25,6 +25,7 @@ def test_only_completed_regressor_is_public():
         "TreeFamilySpec",
         "__version__",
         "available_estimators",
+        "bootstrap_sample_indices",
         "cache_info",
         "clear_cache",
         "create_cache",
@@ -33,11 +34,16 @@ def test_only_completed_regressor_is_public():
         "estimator_status",
         "is_available",
         "mps_training_families",
+        "ordered_boosting_permutations",
         "planned_estimators",
+        "random_threshold_candidates",
         "require_estimator_supported",
+        "sample_without_replacement_indices",
         "system_info",
+        "subsample_feature_indices",
         "tree_family_spec",
         "tree_family_specs",
+        "validate_indices_cover_range",
     }
 
 

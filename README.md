@@ -79,6 +79,10 @@ registry, unified semantics for boosting/bagging/random-split models, planned es
 and early-failure behavior for models that are not implemented yet. It should not be released as
 a pile of placeholder classes.
 
+Random forest row sampling, feature subsampling, ExtraTrees random thresholds, and CatBoost-like
+ordered permutations share one deterministic randomization contract. This keeps planned model
+families aligned before their MPS training kernels are exposed as public estimators.
+
 ## Backend diagnostics
 
 The native backend exposes non-sensitive device and cache diagnostics:
