@@ -14,6 +14,7 @@ from ._native import __version__  # type: ignore[import-not-found]
 from .capabilities import (
     EstimatorCapability,
     available_estimators,
+    estimator_capability,
     estimator_capabilities,
     estimator_status,
     planned_estimators,
@@ -27,6 +28,12 @@ from .diagnostics import (
     system_info,
 )
 from .estimator import MPSBoostRegressor
+from .families import (
+    TreeFamilySpec,
+    mps_training_families,
+    tree_family_spec,
+    tree_family_specs,
+)
 
 # Keep one implementation and expose a shorter sklearn-style public name. This is an alias,
 # not a wrapper, so model behavior, serialization, and type checks remain identical.
@@ -42,10 +49,15 @@ __all__ = [
     "cache_info",
     "clear_cache",
     "create_cache",
+    "estimator_capability",
     "estimator_capabilities",
     "estimator_status",
     "is_available",
+    "mps_training_families",
     "planned_estimators",
     "require_estimator_supported",
     "system_info",
+    "tree_family_spec",
+    "tree_family_specs",
+    "TreeFamilySpec",
 ]

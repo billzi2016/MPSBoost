@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from .families import TreeFamilySpec, tree_family_spec
+
 EstimatorStatus = Literal["available", "planned"]
 
 
@@ -18,77 +20,83 @@ class EstimatorCapability:
     """Immutable public capability record for one estimator name."""
 
     name: str
-    family: str
+    family_key: str
     status: EstimatorStatus
     primary: bool
     alias_for: str | None = None
+
+    @property
+    def family(self) -> TreeFamilySpec:
+        """Return the shared tree-family semantic contract for this estimator."""
+
+        return tree_family_spec(self.family_key)
 
 
 _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
     EstimatorCapability(
         name="GradientBoostingRegressor",
-        family="histogram gradient boosting",
+        family_key="histogram_gbdt_regression",
         status="available",
         primary=True,
     ),
     EstimatorCapability(
         name="MPSBoostRegressor",
-        family="histogram gradient boosting",
+        family_key="histogram_gbdt_regression",
         status="available",
         primary=False,
         alias_for="GradientBoostingRegressor",
     ),
     EstimatorCapability(
         name="GradientBoostingClassifier",
-        family="histogram gradient boosting classification",
+        family_key="histogram_gbdt_classification",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="RandomForestRegressor",
-        family="random forest",
+        family_key="random_forest_regression",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="RandomForestClassifier",
-        family="random forest",
+        family_key="random_forest_classification",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="ExtraTreesRegressor",
-        family="extra trees",
+        family_key="extra_trees_regression",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="ExtraTreesClassifier",
-        family="extra trees",
+        family_key="extra_trees_classification",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="DecisionTreeRegressor",
-        family="single decision tree",
+        family_key="decision_tree_regression",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="DecisionTreeClassifier",
-        family="single decision tree",
+        family_key="decision_tree_classification",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="IsolationForest",
-        family="isolation forest",
+        family_key="isolation_forest",
         status="planned",
         primary=True,
     ),
     EstimatorCapability(
         name="LearningToRankRegressor",
-        family="ranking trees",
+        family_key="learning_to_rank",
         status="planned",
         primary=True,
     ),
@@ -114,6 +122,16 @@ def estimator_status(name: str) -> EstimatorStatus:
 
     try:
         return _CAPABILITY_BY_NAME[name].status
+    except KeyError as exc:
+        known = ", ".join(sorted(_CAPABILITY_BY_NAME))
+        raise ValueError(f"Unknown estimator '{name}'. Known estimators: {known}") from exc
+
+
+def estimator_capability(name: str) -> EstimatorCapability:
+    """Return one estimator capability record or fail early for unknown public names."""
+
+    try:
+        return _CAPABILITY_BY_NAME[name]
     except KeyError as exc:
         known = ", ".join(sorted(_CAPABILITY_BY_NAME))
         raise ValueError(f"Unknown estimator '{name}'. Known estimators: {known}") from exc

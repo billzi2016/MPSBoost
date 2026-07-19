@@ -22,17 +22,22 @@ def test_only_completed_regressor_is_public():
         "EstimatorCapability",
         "GradientBoostingRegressor",
         "MPSBoostRegressor",
+        "TreeFamilySpec",
         "__version__",
         "available_estimators",
         "cache_info",
         "clear_cache",
         "create_cache",
+        "estimator_capability",
         "estimator_capabilities",
         "estimator_status",
         "is_available",
+        "mps_training_families",
         "planned_estimators",
         "require_estimator_supported",
         "system_info",
+        "tree_family_spec",
+        "tree_family_specs",
     }
 
 
@@ -40,6 +45,9 @@ def test_estimator_capability_registry_fails_early_for_planned_models():
     """Planned tree names must be discoverable without exporting fake estimator classes."""
 
     assert mb.estimator_status("GradientBoostingRegressor") == "available"
+    assert mb.estimator_capability("GradientBoostingRegressor").family.task == (
+        "regression"
+    )
     assert mb.available_estimators() == (
         "GradientBoostingRegressor",
         "MPSBoostRegressor",

@@ -73,6 +73,11 @@ print(mb.planned_estimators())
 mb.require_estimator_supported("RandomForestRegressor")  # raises NotImplementedError today
 ```
 
+The `0.3.0` milestone is reserved for the v2 arboretum foundation: one shared tree-family
+registry, unified semantics for boosting/bagging/random-split models, planned estimator names,
+and early-failure behavior for models that are not implemented yet. It should not be released as
+a pile of placeholder classes.
+
 ## Backend diagnostics
 
 The native backend exposes non-sensitive device and cache diagnostics:
