@@ -20,5 +20,13 @@ compile_commands.json
 # Optional project-local MPSBoost runtime cache (L2 cache)
 /.mpsboost-cache/
 
+# Real-world dataset cache and generated reports
+/tests/real_world/data/
+/tests/real_world/cache/
+/tests/real_world/downloads/
+/tests/real_world/reports/
+/tests/real_world/artifacts/
+*.dataset.lock
+
 # macOS
 .DS_Store
