@@ -113,7 +113,7 @@
 
 - [x] S10.1 实现二分类 logistic objective 的唯一数学语义。
 - [ ] S10.2 实现 `MPSBoostClassifier.fit/predict/predict_proba`。
-- [ ] S10.3 实现 early stopping、验证集监控和训练诊断。
+- [x] S10.3 实现 early stopping、验证集监控和训练诊断。
 - [ ] S10.4 完成 CPU oracle、真实 MPS、模型 I/O 和集成测试。
 - [ ] S10.5 验收 G9：分类 GBDT 正确、稳定、真实 MPS 加速且无静默回退。
 

@@ -34,6 +34,12 @@ from .families import (
     tree_family_spec,
     tree_family_specs,
 )
+from .monitoring import (
+    EarlyStoppingDecision,
+    EarlyStoppingMonitor,
+    MetricHistory,
+    MetricObservation,
+)
 from .randomization import (
     bootstrap_sample_indices,
     ordered_boosting_permutations,
@@ -49,9 +55,13 @@ GradientBoostingRegressor = MPSBoostRegressor
 
 # Maintain __all__ explicitly so ``from mpsboost import *`` does not leak helper modules.
 __all__ = [
+    "EarlyStoppingDecision",
+    "EarlyStoppingMonitor",
     "EstimatorCapability",
     "GradientBoostingRegressor",
     "MPSBoostRegressor",
+    "MetricHistory",
+    "MetricObservation",
     "__version__",
     "available_estimators",
     "bootstrap_sample_indices",

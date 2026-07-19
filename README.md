@@ -83,6 +83,9 @@ Random forest row sampling, feature subsampling, ExtraTrees random thresholds, a
 ordered permutations share one deterministic randomization contract. This keeps planned model
 families aligned before their MPS training kernels are exposed as public estimators.
 
+Validation metric history and early stopping also share one estimator-independent monitoring
+contract, so future classifiers and tree ensembles do not duplicate callback semantics.
+
 ## Backend diagnostics
 
 The native backend exposes non-sensitive device and cache diagnostics:
