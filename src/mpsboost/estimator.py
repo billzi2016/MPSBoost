@@ -1,7 +1,8 @@
-"""MPSBoost sklearn 风格回归 estimator。
+"""sklearn-style regression estimator for MPSBoost.
 
-本模块负责构造参数、输入适配、并发 fit 防护和拟合状态的原子替换。分箱、boosting、
-Metal 调度和模型格式均委托各自唯一 native 实现，不在 Python 复制算法。
+This module owns parameter storage, input adaptation, concurrent-fit protection, fitted-state
+replacement, and sklearn protocol methods. Quantization, boosting, Metal scheduling, and model
+format logic stay in their single native implementations instead of being duplicated in Python.
 """
 
 from __future__ import annotations
@@ -20,14 +21,15 @@ from .matrix import as_dense_matrix, as_labels
 
 
 class NotFittedError(RuntimeError):
-    """在 estimator 尚无完整模型时调用拟合后能力。"""
+    """Raised when fitted-only functionality is called before a complete model exists."""
 
 
 class MPSBoostRegressor:
-    """使用真实 MPS histogram 热路径训练平方误差 GBDT 回归模型。
+    """Train a squared-error histogram GBDT regressor on the CPU oracle or MPS backend.
 
-    构造函数只保存参数，不初始化设备、创建缓存或分配训练内存。``device="cpu"`` 是显式
-    oracle/诊断模式；``device="mps"`` 不可用时明确失败，绝不静默回退。
+    The constructor only stores parameters. It does not initialize devices, create caches, or
+    allocate training memory. ``device="cpu"`` selects the explicit oracle/diagnostic backend;
+    ``device="mps"`` fails clearly when MPS is unavailable and never silently falls back.
     """
 
     _PARAMETER_NAMES = (
@@ -56,7 +58,7 @@ class MPSBoostRegressor:
         device: str = "mps",
         verbosity: int = 1,
     ) -> None:
-        """保存 estimator 参数，不执行验证之外的昂贵副作用。"""
+        """Store estimator parameters without expensive side effects."""
 
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
@@ -71,18 +73,20 @@ class MPSBoostRegressor:
         self._fit_lock = Lock()
 
     def get_params(self, deep: bool = True) -> dict[str, Any]:
-        """返回全部构造参数，兼容 estimator 工具的参数发现协议。
+        """Return all constructor parameters for sklearn-style model selection.
 
-        ``deep`` 为接口兼容参数；本 estimator 当前没有嵌套 estimator，因此不会改变结果。
+        ``deep`` is accepted for protocol compatibility. This estimator currently has no nested
+        estimators, so the returned mapping is identical for both values.
         """
 
         del deep
         return {name: getattr(self, name) for name in self._PARAMETER_NAMES}
 
     def set_params(self, **parameters: Any) -> "MPSBoostRegressor":
-        """设置已知构造参数并返回自身；未知参数立即失败。
+        """Set known constructor parameters and return ``self``.
 
-        参数发生变化时清除旧拟合状态，防止 ``get_params`` 与现有模型语义不一致。
+        Unknown parameters fail early. Any real parameter change clears fitted state so
+        ``get_params`` cannot describe one model while prediction uses another.
         """
 
         unknown = sorted(set(parameters) - set(self._PARAMETER_NAMES))
@@ -95,10 +99,10 @@ class MPSBoostRegressor:
         return self
 
     def fit(self, X: Any, y: Any) -> "MPSBoostRegressor":
-        """训练完整模型，并仅在成功后原子替换拟合状态。
+        """Train a complete model and replace fitted state only after success.
 
-        同一实例不支持并发 fit；失败时清除半成品，调用方不会得到部分树。长时间 native
-        训练释放 GIL，其他 Python 线程仍可运行。
+        The same estimator instance does not support concurrent ``fit`` calls. Failures clear any
+        partial state so callers never observe a partially trained ensemble.
         """
 
         if not self._fit_lock.acquire(blocking=False):
@@ -130,7 +134,8 @@ class MPSBoostRegressor:
                 candidate = _native._train_regressor_cpu(matrix, labels, parameters)
             elapsed = perf_counter() - started
 
-            # 所有赋值集中在成功路径末端，使设备异常、OOM 或输入错误不会留下半模型。
+            # Commit fitted fields only at the end of the success path. Device errors, OOM, or
+            # input errors must not leave a half-trained model behind.
             self.model_ = candidate
             self.n_features_in_ = matrix.shape[1]
             self.device_ = self.device
@@ -149,7 +154,7 @@ class MPSBoostRegressor:
             self._fit_lock.release()
 
     def predict(self, X: Any) -> NDArray[np.float32]:
-        """使用训练期冻结的分箱规则返回一维 float32 预测。"""
+        """Return one-dimensional float32 predictions using the frozen training schema."""
 
         model = self._require_model()
         matrix = as_dense_matrix(X)
@@ -157,13 +162,43 @@ class MPSBoostRegressor:
             raise ValueError("预测特征数量与训练数据不一致")
         return np.asarray(model.predict(matrix), dtype=np.float32)
 
+    def score(self, X: Any, y: Any) -> float:
+        """Return the default regression R² score for sklearn model-selection tools."""
+
+        predictions = self.predict(X).astype(np.float64, copy=False)
+        labels = as_labels(y, predictions.shape[0]).astype(np.float64, copy=False)
+        residual_sum = float(np.sum((labels - predictions) ** 2))
+        centered = labels - float(np.mean(labels))
+        total_sum = float(np.sum(centered**2))
+        if total_sum == 0.0:
+            return 1.0 if residual_sum == 0.0 else 0.0
+        score = 1.0 - residual_sum / total_sum
+        if not np.isfinite(score):
+            raise ValueError("R2 score is not finite")
+        return float(score)
+
+    def _more_tags(self) -> dict[str, Any]:
+        """Return sklearn compatibility tags without importing sklearn at runtime."""
+
+        return {
+            "X_types": ["2darray"],
+            "allow_nan": False,
+            "requires_y": True,
+            "poor_score": False,
+        }
+
+    def __sklearn_tags__(self) -> dict[str, Any]:
+        """Return lightweight sklearn-style tags for newer sklearn releases."""
+
+        return self._more_tags()
+
     def save_model(self, path: str | Path) -> None:
-        """以版本化格式原子保存模型，不写入训练数据、缓存或设备标识。"""
+        """Save the model in a versioned format without training data or device identifiers."""
 
         self._require_model().save(str(path))
 
     def load_model(self, path: str | Path) -> "MPSBoostRegressor":
-        """加载并验证模型，仅在完整成功后替换当前拟合状态。"""
+        """Load and validate a model, replacing fitted state only after complete success."""
 
         if not self._fit_lock.acquire(blocking=False):
             raise RuntimeError("模型训练或加载正在进行")
@@ -179,14 +214,14 @@ class MPSBoostRegressor:
             self._fit_lock.release()
 
     def _require_model(self) -> Any:
-        """返回完整 native 模型；未拟合时给出稳定异常。"""
+        """Return the complete native model or raise a stable unfitted exception."""
 
         if not hasattr(self, "model_"):
             raise NotFittedError("MPSBoostRegressor 尚未拟合或加载模型")
         return self.model_
 
     def _clear_fitted_state(self) -> None:
-        """统一删除全部拟合后字段，避免失败路径遗漏某个状态。"""
+        """Delete every fitted field through one path to avoid stale partial state."""
 
         for name in (
             "model_",
@@ -198,7 +233,7 @@ class MPSBoostRegressor:
             self.__dict__.pop(name, None)
 
     def _validate_parameters(self) -> None:
-        """在设备初始化前集中验证全部 Python 公共参数。"""
+        """Validate all public Python parameters before device initialization."""
 
         integer_ranges = {
             "n_estimators": (self.n_estimators, 1, 2**32 - 1),

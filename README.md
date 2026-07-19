@@ -70,8 +70,8 @@ best_model = search.best_estimator_
 ```
 
 The same direction applies to `RandomizedSearchCV`, `cross_val_score`, and future classifier
-estimators. MPSBoost should not add a separate `MPSGridSearchCV` unless a later release proves
-that GPU-specific batched hyperparameter scheduling needs a distinct API.
+estimators. The current regressor exposes `get_params()`, `set_params()`, `fit()`, `predict()`,
+and the default regression `score()` method needed by standard sklearn search utilities.
 
 Multiprocessing is supported through sklearn/joblib at the outer search level. CPU jobs can run
 in multiple processes. MPS jobs should be scheduled more conservatively: several Python workers

@@ -35,6 +35,29 @@ def test_unfitted_and_wrong_feature_prediction_fail_explicitly():
         model.predict(np.ones((2, 2), dtype=np.float32))
 
 
+def test_score_returns_r2_and_requires_fitted_model():
+    """score must expose sklearn-style R2 without bypassing fitted-state checks."""
+
+    model = MPSBoostRegressor(
+        n_estimators=1, max_depth=0, min_samples_leaf=1, device="cpu"
+    )
+    with pytest.raises(NotFittedError):
+        model.score(np.ones((2, 1), dtype=np.float32), np.array([1.0, 2.0]))
+
+    fitted = model.fit(np.ones((3, 1), dtype=np.float32), np.array([2.0, 2.0, 2.0]))
+    assert fitted.score(np.ones((3, 1), dtype=np.float32), np.array([2.0, 2.0, 2.0])) == 1.0
+    assert fitted.score(np.ones((3, 1), dtype=np.float32), np.array([1.0, 2.0, 3.0])) == 0.0
+
+
+def test_sklearn_tags_are_available_without_sklearn_dependency():
+    """The estimator should expose lightweight tags without importing sklearn."""
+
+    tags = MPSBoostRegressor(device="cpu").__sklearn_tags__()
+    assert tags["requires_y"] is True
+    assert tags["allow_nan"] is False
+    assert tags["X_types"] == ["2darray"]
+
+
 def test_failed_refit_clears_previous_model_instead_of_exposing_partial_state():
     """失败 refit 不得继续呈现与当前训练请求无关的旧模型。"""
 
