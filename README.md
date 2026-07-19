@@ -63,6 +63,16 @@ Objective variants such as quantile, Poisson, Tweedie, logistic, and ranking los
 selected through estimator parameters when they share the same tree engine. Separate class names
 are added only when the model family has different fit/predict semantics.
 
+The same status information is available from Python:
+
+```python
+import mpsboost as mb
+
+print(mb.available_estimators())
+print(mb.planned_estimators())
+mb.require_estimator_supported("RandomForestRegressor")  # raises NotImplementedError today
+```
+
 ## Backend diagnostics
 
 The native backend exposes non-sensitive device and cache diagnostics:
@@ -93,8 +103,8 @@ symlinks. Cache deletion never changes model results.
 ## Status
 
 The public API currently includes `GradientBoostingRegressor`, its backwards-compatible
-alias `MPSBoostRegressor`, cache diagnostics and management helpers, `is_available`,
-`system_info`, and `__version__`. Training supports dense finite
+alias `MPSBoostRegressor`, the estimator capability registry, cache diagnostics and management
+helpers, `is_available`, `system_info`, and `__version__`. Training supports dense finite
 `float32`/`float64`-compatible data, squared error, deterministic quantization,
 depth-limited histogram trees, model save/load, and explicit `device="mps"` or diagnostic
 `device="cpu"` selection.

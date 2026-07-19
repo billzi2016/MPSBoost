@@ -19,12 +19,45 @@ def test_only_completed_regressor_is_public():
     assert mb.MPSBoostRegressor.__name__ == "MPSBoostRegressor"
     assert not hasattr(mb, "MPSBoostClassifier")
     assert set(mb.__all__) == {
+        "EstimatorCapability",
         "GradientBoostingRegressor",
         "MPSBoostRegressor",
         "__version__",
+        "available_estimators",
         "cache_info",
         "clear_cache",
         "create_cache",
+        "estimator_capabilities",
+        "estimator_status",
         "is_available",
+        "planned_estimators",
+        "require_estimator_supported",
         "system_info",
     }
+
+
+def test_estimator_capability_registry_fails_early_for_planned_models():
+    """Planned tree names must be discoverable without exporting fake estimator classes."""
+
+    assert mb.estimator_status("GradientBoostingRegressor") == "available"
+    assert mb.available_estimators() == (
+        "GradientBoostingRegressor",
+        "MPSBoostRegressor",
+    )
+    assert "RandomForestRegressor" in mb.planned_estimators()
+    assert "ExtraTreesClassifier" in mb.planned_estimators()
+    assert not hasattr(mb, "RandomForestRegressor")
+
+    try:
+        mb.require_estimator_supported("RandomForestRegressor")
+    except NotImplementedError as exc:
+        assert "planned for MPSBoost v2" in str(exc)
+    else:
+        raise AssertionError("planned estimator did not fail early")
+
+    try:
+        mb.estimator_status("DefinitelyNotAnEstimator")
+    except ValueError as exc:
+        assert "Unknown estimator" in str(exc)
+    else:
+        raise AssertionError("unknown estimator did not fail early")
