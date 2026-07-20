@@ -1,1 +1,1 @@
-../../../../CONTRIBUTING.md
+../../../../CONTRIBUTING.zh-Hans.md

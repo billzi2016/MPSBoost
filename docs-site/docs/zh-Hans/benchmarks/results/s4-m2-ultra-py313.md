@@ -1,1 +1,1 @@
-../../../../../benchmarks/results/s4-m2-ultra-py313.md
+../../../../../benchmarks/results/s4-m2-ultra-py313.zh-Hans.md

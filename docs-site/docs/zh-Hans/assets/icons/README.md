@@ -1,1 +1,1 @@
-../../../../../assets/icons/README.md
+../../../../../assets/icons/README.zh-Hans.md

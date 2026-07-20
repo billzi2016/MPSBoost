@@ -1,6 +1,36 @@
 # Forests and Single Trees
 
-Decision trees, Random Forests, and ExtraTrees share native tree format, sampling
-semantics, and prediction aggregation. Forests provide deterministic `random_state`
-and `n_jobs` scheduling. ExtraTrees use random threshold candidates while reusing
-native split, tree, prediction, and forest-container logic.
+MPSBoost forest and single-tree estimators share the native tree format, sampling semantics, and
+prediction aggregation logic.
+
+## Single trees
+
+- `DecisionTreeRegressor`
+- `DecisionTreeClassifier`
+
+Single trees are useful for debugging, baselines, lightweight tasks, and forest composition.
+
+## Random Forest
+
+- `RandomForestRegressor`
+- `RandomForestClassifier`
+
+Core semantics:
+
+- bootstrap / sample fraction
+- feature subsampling
+- independent native trees
+- regression mean aggregation
+- classification vote/probability aggregation
+- deterministic `random_state`
+- deterministic `n_jobs` scheduling
+
+## ExtraTrees
+
+- `ExtraTreesRegressor`
+- `ExtraTreesClassifier`
+- `ExtraTreeRegressor`
+- `ExtraTreeClassifier`
+
+ExtraTrees uses random threshold candidates and reuses native split, tree, prediction, and forest
+container logic.

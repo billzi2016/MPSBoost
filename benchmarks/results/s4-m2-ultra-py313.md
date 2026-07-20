@@ -1,5 +1,9 @@
 # S4 histogram benchmark
 
+Historical baseline note: this result was recorded before later histogram and end-to-end
+optimization work. It is retained for traceability and should not be read as current HEAD or final
+`0.3.0` performance.
+
 This report records the complete preregistered run; no scenario or repetition was removed.
 Wall time includes host conversion, buffer transfer, command submission, synchronization, and result materialization.
 
@@ -11,4 +15,3 @@ Wall time includes host conversion, buffer transfer, command submission, synchro
 | wide | 32768 | 256 | 0.040275 | 0.015453 | 2.606x |
 
 Device: Apple M2 Ultra; Python 3.13.5; MPSBoost 0.2.0a0.
-
