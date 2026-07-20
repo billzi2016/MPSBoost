@@ -86,7 +86,7 @@ void ConsiderMissingDirection(const NodeStatistics& left,
   const double gain = SplitGain(
       candidate_left.gradient_sum, candidate_left.hessian_sum,
       candidate_right.gradient_sum, candidate_right.hessian_sum,
-      parameters.reg_lambda, parameters.gamma);
+      parameters.reg_lambda, parameters.reg_alpha, parameters.gamma);
   if (gain <= 0.0 || gain < parameters.min_gain_to_split) {
     return;
   }

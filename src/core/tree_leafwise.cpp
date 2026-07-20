@@ -64,7 +64,7 @@ RegressionTree TrainLeafWiseRegressionTree(
   }
   const NodeStatistics root_statistics = SumRows(root_rows, gradients);
   RegressionTree tree = TreeTrainingAccess::Create(
-      dataset.features(), root_statistics, parameters.reg_lambda);
+      dataset.features(), root_statistics, parameters);
 
   std::vector<ActiveNode> active_leaves;
   active_leaves.push_back(

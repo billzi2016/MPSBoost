@@ -57,6 +57,8 @@ struct TreeTrainingParameters final {
   std::uint64_t min_samples_leaf{1};
   double min_child_weight{0.0};
   double reg_lambda{1.0};
+  double reg_alpha{0.0};
+  double max_delta_step{0.0};
   double gamma{0.0};
   double min_gain_to_split{0.0};
   SplitStrategy split_strategy{SplitStrategy::kBestGain};

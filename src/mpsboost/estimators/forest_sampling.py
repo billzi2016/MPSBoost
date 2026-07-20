@@ -29,6 +29,8 @@ class ForestSamplingMixin:
             min_child_weight=self.min_child_weight,
             min_samples_leaf=self.min_samples_leaf,
             reg_lambda=self.reg_lambda,
+            reg_alpha=self.reg_alpha,
+            max_delta_step=self.max_delta_step,
             monotonic_constraints=self._local_monotonic_constraints(),
             interaction_constraints=self._local_interaction_constraints(),
             categorical_features=None,

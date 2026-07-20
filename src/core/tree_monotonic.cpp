@@ -31,11 +31,13 @@ MonotonicChildBounds MonotonicBoundsForSplit(
 
   const double left_value =
       std::clamp(LeafWeight(left.gradient_sum, left.hessian_sum,
-                            parameters.reg_lambda),
+                            parameters.reg_lambda, parameters.reg_alpha,
+                            parameters.max_delta_step),
                  parent_lower_bound, parent_upper_bound);
   const double right_value =
       std::clamp(LeafWeight(right.gradient_sum, right.hessian_sum,
-                            parameters.reg_lambda),
+                            parameters.reg_lambda, parameters.reg_alpha,
+                            parameters.max_delta_step),
                  parent_lower_bound, parent_upper_bound);
   if (constraint > 0) {
     if (left_value > right_value) {

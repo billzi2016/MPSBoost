@@ -77,7 +77,7 @@ class TreeTrainingAccess final {
  public:
   static RegressionTree Create(std::uint32_t feature_count,
                                const NodeStatistics& root_statistics,
-                               double reg_lambda);
+                               const TreeTrainingParameters& parameters);
   static void ApplySplit(RegressionTree* tree,
                          const ActiveNode& active,
                          const PreparedSplit& prepared,
@@ -108,6 +108,8 @@ NodeHistograms SubtractHistograms(const NodeHistograms& parent,
 TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda);
 TreeNode MakeBoundedLeaf(const NodeStatistics& statistics,
                          double reg_lambda,
+                         double reg_alpha,
+                         double max_delta_step,
                          double lower_bound,
                          double upper_bound);
 

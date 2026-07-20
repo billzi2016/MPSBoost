@@ -46,6 +46,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
+        "reg_alpha",
+        "max_delta_step",
         "monotonic_constraints",
         "interaction_constraints",
         "categorical_features",
@@ -67,6 +69,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        reg_alpha: float = 0.0,
+        max_delta_step: float = 0.0,
         monotonic_constraints: Any = None,
         interaction_constraints: Any = None,
         categorical_features: Any = None,
@@ -87,6 +91,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.min_child_weight = min_child_weight
         self.min_samples_leaf = min_samples_leaf
         self.reg_lambda = reg_lambda
+        self.reg_alpha = reg_alpha
+        self.max_delta_step = max_delta_step
         self.monotonic_constraints = monotonic_constraints
         self.interaction_constraints = interaction_constraints
         self.categorical_features = categorical_features
@@ -151,6 +157,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 self.min_samples_leaf,
                 self.min_child_weight,
                 self.reg_lambda,
+                reg_alpha=self.reg_alpha,
+                max_delta_step=self.max_delta_step,
                 min_gain_to_split=self.min_gain_to_split,
                 objective=self._native_objective,
                 split_strategy=self._split_strategy,
@@ -223,6 +231,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 "max_leaves": self.max_leaves,
                 "max_active_leaves": self.max_active_leaves,
                 "min_gain_to_split": float(self.min_gain_to_split),
+                "reg_alpha": float(self.reg_alpha),
+                "max_delta_step": float(self.max_delta_step),
             }
             return self
         except Exception:

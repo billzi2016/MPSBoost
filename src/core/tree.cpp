@@ -43,7 +43,7 @@ RegressionTree InitializeTree(const BinnedDataset& dataset,
   std::iota(root_rows->begin(), root_rows->end(), std::uint64_t{0});
   *root_statistics = SumRows(*root_rows, gradients);
   return TreeTrainingAccess::Create(dataset.features(), *root_statistics,
-                                    parameters.reg_lambda);
+                                    parameters);
 }
 
 RegressionTree TrainLevelWiseRegressionTree(

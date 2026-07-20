@@ -35,6 +35,13 @@ void ValidateParameters(const TreeTrainingParameters& parameters) {
   if (!std::isfinite(parameters.reg_lambda) || parameters.reg_lambda < 0.0) {
     throw TrainingError("reg_lambda 必须是有限非负数");
   }
+  if (!std::isfinite(parameters.reg_alpha) || parameters.reg_alpha < 0.0) {
+    throw TrainingError("reg_alpha must be finite and non-negative");
+  }
+  if (!std::isfinite(parameters.max_delta_step) ||
+      parameters.max_delta_step < 0.0) {
+    throw TrainingError("max_delta_step must be finite and non-negative");
+  }
   if (!std::isfinite(parameters.gamma) || parameters.gamma < 0.0) {
     throw TrainingError("gamma 必须是有限非负数");
   }
@@ -64,6 +71,8 @@ std::uint32_t EffectiveMaxActiveLeaves(
 
 TreeNode MakeBoundedLeaf(const NodeStatistics& statistics,
                          double reg_lambda,
+                         double reg_alpha,
+                         double max_delta_step,
                          double lower_bound,
                          double upper_bound) {
   if (lower_bound > upper_bound) {
@@ -71,13 +80,14 @@ TreeNode MakeBoundedLeaf(const NodeStatistics& statistics,
   }
   TreeNode node;
   node.leaf_value = std::clamp(
-      LeafWeight(statistics.gradient_sum, statistics.hessian_sum, reg_lambda),
+      LeafWeight(statistics.gradient_sum, statistics.hessian_sum, reg_lambda,
+                 reg_alpha, max_delta_step),
       lower_bound, upper_bound);
   return node;
 }
 
 TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda) {
-  return MakeBoundedLeaf(statistics, reg_lambda,
+  return MakeBoundedLeaf(statistics, reg_lambda, 0.0, 0.0,
                          -std::numeric_limits<double>::infinity(),
                          std::numeric_limits<double>::infinity());
 }
@@ -93,11 +103,15 @@ std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node) {
 
 RegressionTree TreeTrainingAccess::Create(std::uint32_t feature_count,
                                           const NodeStatistics& root_statistics,
-                                          double reg_lambda) {
+                                          const TreeTrainingParameters& parameters) {
   RegressionTree tree;
   tree.feature_count_ = feature_count;
   tree.nodes_.reserve(1);
-  AppendNode(&tree.nodes_, MakeLeaf(root_statistics, reg_lambda));
+  AppendNode(&tree.nodes_,
+             MakeBoundedLeaf(root_statistics, parameters.reg_lambda,
+                             parameters.reg_alpha, parameters.max_delta_step,
+                             -std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::infinity()));
   return tree;
 }
 
@@ -113,11 +127,13 @@ void TreeTrainingAccess::ApplySplit(RegressionTree* tree,
   *left_index = AppendNode(
       &tree->nodes_,
       MakeBoundedLeaf(prepared.split.left, parameters.reg_lambda,
+                      parameters.reg_alpha, parameters.max_delta_step,
                       prepared.split.left_lower_bound,
                       prepared.split.left_upper_bound));
   *right_index = AppendNode(
       &tree->nodes_,
       MakeBoundedLeaf(prepared.split.right, parameters.reg_lambda,
+                      parameters.reg_alpha, parameters.max_delta_step,
                       prepared.split.right_lower_bound,
                       prepared.split.right_upper_bound));
   TreeNode& parent = tree->nodes_[active.node_index];

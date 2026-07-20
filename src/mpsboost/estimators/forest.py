@@ -39,6 +39,8 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
+        "reg_alpha",
+        "max_delta_step",
         "monotonic_constraints",
         "interaction_constraints",
         "categorical_features",
@@ -59,6 +61,8 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        reg_alpha: float = 0.0,
+        max_delta_step: float = 0.0,
         monotonic_constraints: Any = None,
         interaction_constraints: Any = None,
         categorical_features: Any = None,
@@ -80,6 +84,8 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            reg_alpha=reg_alpha,
+            max_delta_step=max_delta_step,
             monotonic_constraints=monotonic_constraints,
             interaction_constraints=interaction_constraints,
             categorical_features=categorical_features,
@@ -161,6 +167,8 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
                 "interaction_constraints": self._normalized_interaction_constraints(
                     matrix.shape[1]
                 ),
+                "reg_alpha": float(self.reg_alpha),
+                "max_delta_step": float(self.max_delta_step),
             }
             self._finalize_fitted_metadata()
             return self

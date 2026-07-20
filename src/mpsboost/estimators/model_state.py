@@ -149,6 +149,8 @@ class SklearnAndPersistenceMixin:
             ("min_child_weight", self.min_child_weight, 0.0, np.inf, True),
             ("min_gain_to_split", self.min_gain_to_split, 0.0, np.inf, True),
             ("reg_lambda", self.reg_lambda, 0.0, np.inf, True),
+            ("reg_alpha", self.reg_alpha, 0.0, np.inf, True),
+            ("max_delta_step", self.max_delta_step, 0.0, np.inf, True),
         ):
             if isinstance(numeric_value, bool) or not isinstance(
                 numeric_value, (int, float)

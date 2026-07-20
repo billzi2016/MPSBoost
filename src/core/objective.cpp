@@ -52,6 +52,30 @@ double RequireBinaryLabel(double label) {
   throw TrainingError("二分类 logistic 标签必须是 0 或 1");
 }
 
+double SoftThresholdGradient(double gradient_sum, double reg_alpha) {
+  RequireFinite(gradient_sum, "Gradient 和");
+  RequireFinite(reg_alpha, "reg_alpha");
+  if (reg_alpha < 0.0) {
+    throw TrainingError("reg_alpha cannot be negative");
+  }
+  const double magnitude = std::fabs(gradient_sum) - reg_alpha;
+  if (magnitude <= 0.0) {
+    return 0.0;
+  }
+  return std::copysign(magnitude, gradient_sum);
+}
+
+double ClipLeafWeight(double value, double max_delta_step) {
+  RequireFinite(max_delta_step, "max_delta_step");
+  if (max_delta_step < 0.0) {
+    throw TrainingError("max_delta_step cannot be negative");
+  }
+  if (max_delta_step == 0.0) {
+    return value;
+  }
+  return std::max(-max_delta_step, std::min(max_delta_step, value));
+}
+
 }  // namespace
 
 std::vector<GradientPair> ComputeSquaredErrorGradients(
@@ -103,20 +127,31 @@ std::vector<GradientPair> ComputeBinaryLogisticGradients(
   return result;
 }
 
-double NodeScore(double gradient_sum, double hessian_sum, double reg_lambda) {
-  RequireFinite(gradient_sum, "Gradient 和");
+double NodeScore(double gradient_sum,
+                 double hessian_sum,
+                 double reg_lambda,
+                 double reg_alpha) {
+  const double regularized_gradient =
+      SoftThresholdGradient(gradient_sum, reg_alpha);
   const double denominator = ValidatedDenominator(hessian_sum, reg_lambda);
-  const double score = gradient_sum * gradient_sum / denominator;
+  const double score = regularized_gradient * regularized_gradient / denominator;
   if (!std::isfinite(score)) {
     throw TrainingError("节点分数发生浮点溢出");
   }
   return score;
 }
 
-double LeafWeight(double gradient_sum, double hessian_sum, double reg_lambda) {
-  RequireFinite(gradient_sum, "Gradient 和");
-  const double weight = -gradient_sum /
-                        ValidatedDenominator(hessian_sum, reg_lambda);
+double LeafWeight(double gradient_sum,
+                  double hessian_sum,
+                  double reg_lambda,
+                  double reg_alpha,
+                  double max_delta_step) {
+  const double regularized_gradient =
+      SoftThresholdGradient(gradient_sum, reg_alpha);
+  const double weight =
+      ClipLeafWeight(-regularized_gradient /
+                         ValidatedDenominator(hessian_sum, reg_lambda),
+                     max_delta_step);
   if (!std::isfinite(weight)) {
     throw TrainingError("叶值发生浮点溢出");
   }
@@ -128,6 +163,7 @@ double SplitGain(double left_gradient,
                  double right_gradient,
                  double right_hessian,
                  double reg_lambda,
+                 double reg_alpha,
                  double gamma) {
   RequireFinite(gamma, "gamma");
   if (gamma < 0.0) {
@@ -146,9 +182,12 @@ double SplitGain(double left_gradient,
     throw TrainingError("父节点统计发生浮点溢出");
   }
   const double gain = 0.5 *
-                          (NodeScore(left_gradient, left_hessian, reg_lambda) +
-                           NodeScore(right_gradient, right_hessian, reg_lambda) -
-                           NodeScore(parent_gradient, parent_hessian, reg_lambda)) -
+                          (NodeScore(left_gradient, left_hessian, reg_lambda,
+                                     reg_alpha) +
+                           NodeScore(right_gradient, right_hessian, reg_lambda,
+                                     reg_alpha) -
+                           NodeScore(parent_gradient, parent_hessian, reg_lambda,
+                                     reg_alpha)) -
                       gamma;
   if (!std::isfinite(gain)) {
     throw TrainingError("切分增益发生浮点溢出");
