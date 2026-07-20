@@ -21,7 +21,7 @@ namespace mpsboost::model_format_internal {
 inline constexpr std::array<std::uint8_t, 8> kMagic{
     'M', 'P', 'S', 'B', 'M', 'O', 'D', 0};
 inline constexpr std::uint16_t kFormatMajor = 1;
-inline constexpr std::uint16_t kFormatMinor = 1;
+inline constexpr std::uint16_t kFormatMinor = 2;
 inline constexpr std::size_t kHeaderSize = 32;
 
 template <typename Integer>

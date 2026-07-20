@@ -218,6 +218,9 @@ RegressionModel RegressionModel::Restore(QuantizationSchema schema,
               schema.feature_metadata()[node.feature_index].bin_count - 1) {
         throw TrainingError("模型树切分阈值超出特征分箱范围");
       }
+      if (node.IsLeaf() && !node.default_left) {
+        throw TrainingError("model leaf nodes must keep default_left true");
+      }
     }
   }
   RegressionModel model;

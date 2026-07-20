@@ -33,6 +33,7 @@ std::vector<std::uint8_t> BuildPayload(const RegressionModel& model) {
     AppendUnsigned(&payload, item.boundary_offset);
     AppendUnsigned(&payload, item.boundary_count);
     AppendUnsigned(&payload, item.bin_count);
+    AppendUnsigned(&payload, item.missing_count);
   }
   for (const float boundary : model.schema().boundaries()) {
     AppendFloat<float, std::uint32_t>(&payload, boundary);
@@ -50,8 +51,9 @@ std::vector<std::uint8_t> BuildPayload(const RegressionModel& model) {
       AppendUnsigned(&payload, node.right_child);
       AppendFloat<double, std::uint64_t>(&payload, node.leaf_value);
       AppendFloat<double, std::uint64_t>(&payload, node.gain);
+      AppendUnsigned(&payload, static_cast<std::uint8_t>(node.default_left ? 1 : 0));
       AppendUnsigned(&payload, node.flags);
-      for (int index = 0; index < 7; ++index) {
+      for (int index = 0; index < 6; ++index) {
         AppendUnsigned(&payload, std::uint8_t{0});
       }
     }
@@ -92,10 +94,15 @@ RegressionModel ParsePayload(const std::uint8_t* data,
   std::vector<FeatureBinMetadata> metadata;
   metadata.reserve(features);
   for (std::uint32_t feature = 0; feature < features; ++feature) {
-    metadata.push_back(FeatureBinMetadata{
+    FeatureBinMetadata item{
         reader.ReadUnsigned<std::uint64_t>("boundary_offset"),
         reader.ReadUnsigned<std::uint32_t>("feature boundary_count"),
-        reader.ReadUnsigned<std::uint32_t>("feature bin_count")});
+        reader.ReadUnsigned<std::uint32_t>("feature bin_count"),
+        0};
+    if (format_minor >= 2) {
+      item.missing_count = reader.ReadUnsigned<std::uint64_t>("feature missing_count");
+    }
+    metadata.push_back(item);
   }
   std::vector<float> boundaries;
   boundaries.reserve(static_cast<std::size_t>(boundary_count));
@@ -128,8 +135,17 @@ RegressionModel ParsePayload(const std::uint8_t* data,
       node.right_child = reader.ReadUnsigned<std::uint32_t>("right_child");
       node.leaf_value = reader.ReadFloat<double, std::uint64_t>("leaf_value");
       node.gain = reader.ReadFloat<double, std::uint64_t>("gain");
+      if (format_minor >= 2) {
+        const std::uint8_t default_left =
+            reader.ReadUnsigned<std::uint8_t>("default_left");
+        if (default_left > 1) {
+          throw TrainingError("model default_left must be 0 or 1");
+        }
+        node.default_left = default_left != 0;
+      }
       node.flags = reader.ReadUnsigned<std::uint8_t>("flags");
-      for (int reserved = 0; reserved < 7; ++reserved) {
+      const int reserved_count = format_minor >= 2 ? 6 : 7;
+      for (int reserved = 0; reserved < reserved_count; ++reserved) {
         if (reader.ReadUnsigned<std::uint8_t>("node reserved") != 0) {
           throw TrainingError("模型节点保留字段必须为零");
         }
