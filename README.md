@@ -10,7 +10,7 @@
 
 MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its current accelerated backend uses custom Metal compute kernels for squared-error gradients and two-stage histogram construction while keeping one deterministic tree-building implementation shared with the CPU oracle.
 
-中文：MPSBoost 是面向 Apple Silicon 的树模型加速项目，目标是在低依赖、低权限、易安装的前提下，为 GBDT、分类树、随机森林等模型提供统一的 CPU/MPS 后端。
+Documentation is available at [billzi2016.github.io/MPSBoost](https://billzi2016.github.io/MPSBoost/).
 
 > **Development status:** `0.3.0` is the v2 arboretum milestone. It extends the original MPS histogram engine with sklearn-style classifiers, native CPU multiclass softmax, random forests, ExtraTrees, decision trees, CatBoost-like numeric estimators, advanced regression objectives, feature explanations, CPU-suitable anomaly/ranking estimators, explicit environment guidance, and documented backend-selection boundaries.
 

@@ -262,10 +262,10 @@
 
 ## S23：文档站点翻译与国际化
 
-- [ ] S23.1 梳理所有必须进入文档站点的 Markdown 源文件。项目文档和项目 specs 必须在源文件所在目录原地翻译，例如 `README.md` 与 `README.zh-Hans.md` 并列，`specs/tasks.md` 与 `specs/tasks.zh-Hans.md` 并列。
-- [ ] S23.2 `docs-site` 自己的 PRD 源文件必须保留在 `docs-site/specs/`，英文 `*.md` 与简体中文 `*.zh-Hans.md` 同目录并列；这些文件不得移动到根目录 `specs/`。
+- [x] S23.1 梳理所有必须进入文档站点的 Markdown 源文件。项目文档和项目 specs 必须在源文件所在目录原地翻译，例如 `README.md` 与 `README.zh-Hans.md` 并列，`specs/tasks.md` 与 `specs/tasks.zh-Hans.md` 并列。
+- [x] S23.2 `docs-site` 自己的 PRD 源文件必须保留在 `docs-site/specs/`，英文 `*.md` 与简体中文 `*.zh-Hans.md` 同目录并列；这些文件不得移动到根目录 `specs/`。
 - [ ] S23.3 `docs-site/docs/en/` 与 `docs-site/docs/zh-Hans/` 只作为语言导航树；凡是源文件已存在于项目其他目录的页面，必须使用 symlink 指向源文件，不得复制一份 Markdown 到 `docs-site/docs/`。
-- [ ] S23.4 文档站点 PRD 导航目录使用 `docs-site/docs/en/docs-site-prd/` 与 `docs-site/docs/zh-Hans/docs-site-prd/`，两边都通过 symlink 指回 `docs-site/specs/`。
+- [x] S23.4 文档站点 PRD 导航目录使用 `docs-site/docs/en/docs-site-prd/` 与 `docs-site/docs/zh-Hans/docs-site-prd/`，两边都通过 symlink 指回 `docs-site/specs/`。
 - [ ] S23.5 翻译 README、CHANGELOG、RELEASE_AUDIT、mps_boost_skill、核心 specs、docs-site PRD、benchmark 文档、测试文档和用户指南页面。翻译必须发生在对应源文件归属目录，不得在 `docs-site/` 下维护另一套重复翻译副本。
 - [ ] S23.6 增加并维护 MkDocs i18n 配置，建立 `en/` 与 `zh-Hans/` 平行导航结构。英文导航不得指向中文文件名，中文导航不得指向仅英文内容；尚未翻译的页面必须显式标记，不得静默混用。
 - [ ] S23.7 校验中英文页面链接、术语、版本号、后端策略、PyPI 安装命令和环境诊断命令一致。

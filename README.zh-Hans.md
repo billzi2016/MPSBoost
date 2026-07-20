@@ -2,6 +2,8 @@
 
 MPSBoost 是面向 Apple Silicon 的树模型学习库。`0.3.0` 是 v2 arboretum 里程碑，包含 native CPU/MPS 后端、sklearn 风格 estimator、native CPU 多分类 softmax、随机森林、ExtraTrees、DecisionTree、CatBoost-like numeric estimator、高级回归目标、解释工具、异常检测和排序学习入口。
 
+文档站点：[billzi2016.github.io/MPSBoost](https://billzi2016.github.io/MPSBoost/)。
+
 ## 安装
 
 ```bash
