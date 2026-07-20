@@ -7,8 +7,43 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <limits>
 
 namespace mpsboost {
+
+namespace {
+
+bool HistogramOutputIsValid(const NodeHistograms& histograms,
+                            const BinnedDataset& dataset,
+                            std::uint64_t expected_rows) {
+  if (histograms.size() != dataset.features()) {
+    return false;
+  }
+  for (std::uint32_t feature = 0; feature < dataset.features(); ++feature) {
+    if (histograms[feature].size() !=
+        dataset.feature_metadata()[feature].bin_count) {
+      return false;
+    }
+    std::uint64_t observed_rows = 0;
+    for (const HistogramBin& bin : histograms[feature]) {
+      if (bin.count > std::numeric_limits<std::uint64_t>::max() - observed_rows) {
+        return false;
+      }
+      observed_rows += bin.count;
+      if (!std::isfinite(bin.gradient_sum) ||
+          !std::isfinite(bin.hessian_sum) || bin.hessian_sum < 0.0) {
+        return false;
+      }
+    }
+    if (observed_rows != expected_rows) {
+      return false;
+    }
+  }
+  return true;
+}
+
+}  // namespace
 
 NodeHistograms MpsBackend::BuildHistograms(
     const BinnedDataset& dataset,
@@ -207,6 +242,12 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
     NodeHistograms result = DecodeHistograms(dataset, values);
     impl_->ReturnScratchBuffer(partial_buffer);
     impl_->ReturnScratchBuffer(output_buffer);
+    if (!HistogramOutputIsValid(result, dataset, rows.size())) {
+      if (effective_baseline) {
+        throw TrainingError("MPS baseline histogram produced invalid statistics");
+      }
+      return BuildHistogramsInternal(dataset, rows, gradients, true);
+    }
     return result;
   }
 }

@@ -5,9 +5,28 @@
 
 #include "tree_internal.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <utility>
 
 namespace mpsboost::tree_internal {
+
+namespace {
+
+double SubtractHistogramHessian(double parent, double child) {
+  if (!std::isfinite(parent) || !std::isfinite(child) || parent < 0.0 ||
+      child < 0.0) {
+    throw TrainingError("Histogram subtraction Hessian values must be finite and non-negative");
+  }
+  const double difference = parent - child;
+  const double tolerance = 1e-5 * std::max({1.0, std::abs(parent), std::abs(child)});
+  if (difference < -tolerance) {
+    throw TrainingError("Histogram subtraction child Hessian exceeded parent");
+  }
+  return difference < 0.0 ? 0.0 : difference;
+}
+
+}  // namespace
 
 NodeHistograms SubtractHistograms(const NodeHistograms& parent,
                                   const NodeHistograms& child) {
@@ -28,10 +47,18 @@ NodeHistograms SubtractHistograms(const NodeHistograms& parent,
       if (child_bin.count > parent_bin.count) {
         throw TrainingError("Histogram subtraction 子节点计数超过父节点");
       }
+      const double gradient_sum =
+          parent_bin.gradient_sum - child_bin.gradient_sum;
+      if (!std::isfinite(parent_bin.gradient_sum) ||
+          !std::isfinite(child_bin.gradient_sum) ||
+          !std::isfinite(gradient_sum)) {
+        throw TrainingError("Histogram subtraction gradient values must be finite");
+      }
       feature_histogram.push_back(HistogramBin{
           parent_bin.count - child_bin.count,
-          parent_bin.gradient_sum - child_bin.gradient_sum,
-          parent_bin.hessian_sum - child_bin.hessian_sum});
+          gradient_sum,
+          SubtractHistogramHessian(parent_bin.hessian_sum,
+                                   child_bin.hessian_sum)});
     }
     result.push_back(std::move(feature_histogram));
   }
