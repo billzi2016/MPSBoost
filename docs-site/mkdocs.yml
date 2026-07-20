@@ -80,6 +80,7 @@ nav:
       - Constitution: specs/constitution.md
       - Project Tree: specs/project-tree.md
       - Agent Rules: specs/AGENTS.md
+      - Legacy Issues English Source: specs/legacy-issues.md
       - Legacy Issues: specs/legacy-issues.zh-Hans.md
       - V1 PRD: specs/v1-mps-histogram-engine/prd.md
       - V1 Modules:
