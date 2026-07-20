@@ -74,4 +74,4 @@ print(model.training_summary_)
 
 CPU backend 是项目内 native correctness oracle，不是临时替代品。MPS backend 用于适合 Apple GPU 的 histogram 热路径。`IsolationForest` 和 `LearningToRankRegressor` 属于 CPU-suitable workflow，请求 `device="mps"` 时会提示 CPU 更适合并继续运行。
 
-S22 portable backend 是后续规划，不替代当前 native CPU/MPS 后端，也不得伪装成 MPSBoost native。
+S22 portable backend 是后续规划，不替代当前 native CPU/MPS 后端；运行摘要必须明确报告实际使用的 backend。

@@ -54,4 +54,4 @@ MPSBOOST_SKIP_ENV_CHECK=1 python your_script.py
 
 ## S22 边界
 
-portable backend 是后续规划。外部 XGBoost/sklearn adapter 必须显式记录实际 backend，不得替代 native CPU oracle，也不得伪装成 MPSBoost native。
+portable backend 是后续规划。外部 XGBoost/sklearn adapter 必须显式记录实际 backend，不替代 native CPU oracle，也不改变当前 native CPU/MPS 默认路径。

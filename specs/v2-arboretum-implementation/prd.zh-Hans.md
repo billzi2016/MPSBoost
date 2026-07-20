@@ -74,7 +74,7 @@ v0/v1 已存在的中文材料可以保留作为历史规格和开发记录；v2
 - 解释能力：支持 gain、split count、permutation importance 和后续 SHAP-like 近似。
 - 训练可观测性：记录每轮指标、树数量、有效 split、退化原因和设备阶段耗时。
 
-这些语义必须进入 CPU oracle，再进入 MPS 后端。禁止只在 Python 层预处理后伪装成
+这些语义必须进入 CPU oracle，再进入 MPS 后端。禁止只在 Python 层预处理后声明为
 后端支持。
 
 ## 4. 设计原则

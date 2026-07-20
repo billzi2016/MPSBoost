@@ -11,7 +11,7 @@ MPSBoost native CPU backend 继续保留：
 - Apple Silicon 无 GPU 或小工作负载路径
 - 测试基线
 
-portable backend 不替代 native CPU，也不伪装成 native MPSBoost。
+portable backend 不替代 native CPU；运行摘要必须明确报告实际 backend，不改变当前 native CPU/MPS 默认路径。
 
 ## 目标后端
 

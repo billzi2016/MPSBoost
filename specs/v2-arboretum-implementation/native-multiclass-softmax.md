@@ -30,13 +30,13 @@ Switching from OvR to native softmax must not require users to change training c
 - `auto`: default strategy. Choose native softmax when available; otherwise choose
   a clearly documented fallback.
 - `softmax`: force native softmax. When native softmax is not implemented on the
-  target device, fail clearly; silent masquerading is forbidden.
+  target device, fail clearly or report the actual compatibility strategy.
 - `ovr`: explicitly use the OvR compatibility layer.
 
 Current stage:
 
 - CPU multiclass `auto` uses native softmax.
-- Before MPS native softmax completes, CPU softmax or OvR must not masquerade as MPS softmax.
+- Before MPS native softmax completes, CPU softmax or OvR must not be reported as MPS softmax.
 
 ## Label Encoding
 
@@ -148,7 +148,7 @@ Before these complete, MPS must not claim native softmax is complete.
 Current-stage gates:
 
 - `multi_strategy="softmax", device="mps"` must clearly indicate and use the OvR
-  compatibility strategy; it must not silently masquerade.
+  compatibility strategy, with the actual strategy shown in the training summary.
 - `multi_strategy="auto", device="mps"` may use the OvR compatibility fallback,
   but the training summary must show `strategy = "one_vs_rest"`.
 - CPU `auto` and CPU `softmax` must use native softmax.

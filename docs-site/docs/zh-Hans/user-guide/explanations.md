@@ -10,7 +10,7 @@ MPSBoost 提供多层解释能力：
 ## 设计原则
 
 - 不复制 prediction 或 scoring 逻辑。
-- 不把近似解释伪装为官方 SHAP。
+- 不把近似解释声明为官方 SHAP。
 - 官方 SHAP TreeExplainer adapter 作为单独任务推进。
 
 ## 使用方向
