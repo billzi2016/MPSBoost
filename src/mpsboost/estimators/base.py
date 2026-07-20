@@ -14,9 +14,10 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .. import _native
+from ..categorical import fit_transform_categorical
 from ..device_policy import choose_device, decision_to_dict
 from ..diagnostics import _metallib_path, is_available
-from ..matrix import as_dense_matrix, as_labels, as_sample_weight
+from ..matrix import as_labels, as_sample_weight
 from .importance import FeatureImportanceMixin
 from .model_state import SklearnAndPersistenceMixin
 
@@ -45,6 +46,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
+        "categorical_features",
         "random_state",
         "device",
         "verbosity",
@@ -63,6 +65,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
@@ -80,6 +83,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.min_child_weight = min_child_weight
         self.min_samples_leaf = min_samples_leaf
         self.reg_lambda = reg_lambda
+        self.categorical_features = categorical_features
         self.random_state = random_state
         self.device = device
         self.verbosity = verbosity
@@ -127,9 +131,12 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
             raise RuntimeError("同一 estimator 不支持并发 fit")
         try:
             self._validate_parameters()
-            matrix = as_dense_matrix(X)
-            labels = self._training_labels(y, matrix.shape[0])
-            weights = as_sample_weight(sample_weight, matrix.shape[0])
+            raw_rows = np.asarray(X).shape[0]
+            labels = self._training_labels(y, raw_rows)
+            weights = as_sample_weight(sample_weight, raw_rows)
+            matrix, categorical_metadata = fit_transform_categorical(
+                X, self.categorical_features, labels, weights
+            )
             parameters = _native._TrainingParameters(
                 self.n_estimators,
                 self.learning_rate,
@@ -177,6 +184,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
             # input errors must not leave a half-trained model behind.
             self.model_ = candidate
             self.n_features_in_ = matrix.shape[1]
+            self.categorical_metadata_ = categorical_metadata
             self.device_ = device_decision.selected
             self.device_decision_ = decision_to_dict(device_decision)
             self.n_estimators_ = candidate.tree_count
@@ -188,6 +196,11 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 "device_decision": self.device_decision_,
                 "n_estimators": candidate.tree_count,
                 "weighted": bool(sample_weight is not None),
+                "categorical_features": (
+                    []
+                    if categorical_metadata is None
+                    else list(categorical_metadata.features)
+                ),
                 "growth_strategy": self.growth_strategy,
                 "max_leaves": self.max_leaves,
                 "max_active_leaves": self.max_active_leaves,

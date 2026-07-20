@@ -13,7 +13,8 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
-from ..matrix import as_dense_matrix, as_sample_weight
+from ..categorical import fit_transform_categorical
+from ..matrix import as_sample_weight
 from .base import MPSBoostRegressor
 from .classification import MPSBoostClassifier
 from .errors import NotFittedError
@@ -38,6 +39,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
+        "categorical_features",
         "max_features",
         "sample_fraction",
         "bootstrap",
@@ -55,6 +57,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        categorical_features: Any = None,
         max_features: float = 1.0,
         sample_fraction: float = 1.0,
         bootstrap: bool = True,
@@ -73,6 +76,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            categorical_features=categorical_features,
             random_state=random_state,
             device=device,
             verbosity=verbosity,
@@ -94,9 +98,12 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             raise RuntimeError("concurrent fit is not supported for one estimator")
         try:
             self._validate_forest_parameters()
-            matrix = as_dense_matrix(X)
-            labels = self._training_labels(y, matrix.shape[0])
-            weights = as_sample_weight(sample_weight, matrix.shape[0])
+            raw_rows = np.asarray(X).shape[0]
+            labels = self._training_labels(y, raw_rows)
+            weights = as_sample_weight(sample_weight, raw_rows)
+            matrix, categorical_metadata = fit_transform_categorical(
+                X, self.categorical_features, labels, weights
+            )
             generator = np.random.default_rng(self.random_state)
             jobs = tuple(
                 (
@@ -124,6 +131,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             self.estimators_ = tuple(estimators)
             self.feature_subsets_ = tuple(feature_subsets)
             self.n_features_in_ = matrix.shape[1]
+            self.categorical_metadata_ = categorical_metadata
             self.n_estimators_ = len(estimators)
             self.device_ = self.device
             self.training_summary_ = {
@@ -133,6 +141,11 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
                 "max_features": float(self.max_features),
                 "n_jobs": self.n_jobs,
                 "weighted": bool(sample_weight is not None),
+                "categorical_features": (
+                    []
+                    if categorical_metadata is None
+                    else list(categorical_metadata.features)
+                ),
             }
             self._finalize_fitted_metadata()
             return self

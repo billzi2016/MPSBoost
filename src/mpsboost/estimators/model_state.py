@@ -14,6 +14,7 @@ from numpy.typing import NDArray
 
 from .. import _native
 from ..matrix import as_labels
+from ..categorical import transform_categorical
 from .errors import NotFittedError
 from .prediction import predict_native_model
 
@@ -54,6 +55,10 @@ class SklearnAndPersistenceMixin:
     def save_model(self, path: str | Path) -> None:
         """Save the model in a versioned format without training data or device identifiers."""
 
+        if getattr(self, "categorical_metadata_", None) is not None:
+            raise NotImplementedError(
+                "categorical model persistence requires categorical metadata support"
+            )
         self._require_model().save(str(path))
 
     def load_model(self, path: str | Path) -> "MPSBoostRegressor":
@@ -90,7 +95,8 @@ class SklearnAndPersistenceMixin:
         """Return native raw margins or regression values after feature-count validation."""
 
         model = self._require_model()
-        return predict_native_model(model, X, self.n_features_in_)
+        matrix = transform_categorical(X, getattr(self, "categorical_metadata_", None))
+        return predict_native_model(model, matrix, self.n_features_in_)
 
     def _training_labels(self, y: Any, n_samples: int) -> NDArray[np.float32]:
         """Normalize labels for the native training objective."""
@@ -114,6 +120,7 @@ class SklearnAndPersistenceMixin:
             "n_estimators_",
             "training_summary_",
             "classes_",
+            "categorical_metadata_",
         ):
             self.__dict__.pop(name, None)
 

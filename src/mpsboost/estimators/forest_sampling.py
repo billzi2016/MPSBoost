@@ -29,6 +29,7 @@ class ForestSamplingMixin:
             min_child_weight=self.min_child_weight,
             min_samples_leaf=self.min_samples_leaf,
             reg_lambda=self.reg_lambda,
+            categorical_features=None,
             random_state=random_state,
             device=self.device,
             verbosity=self.verbosity,
@@ -103,5 +104,4 @@ class ForestSamplingMixin:
             super()._validate_parameters()
         finally:
             self.n_estimators = saved_n_estimators
-
 

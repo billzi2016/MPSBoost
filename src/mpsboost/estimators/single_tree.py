@@ -23,6 +23,7 @@ class DecisionTreeRegressor(MPSBoostRegressor):
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
+        "categorical_features",
         "random_state",
         "device",
         "verbosity",
@@ -35,6 +36,7 @@ class DecisionTreeRegressor(MPSBoostRegressor):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
@@ -49,6 +51,7 @@ class DecisionTreeRegressor(MPSBoostRegressor):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            categorical_features=categorical_features,
             random_state=random_state,
             device=device,
             verbosity=verbosity,
@@ -93,6 +96,7 @@ class DecisionTreeClassifier(MPSBoostClassifier):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
@@ -107,6 +111,7 @@ class DecisionTreeClassifier(MPSBoostClassifier):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            categorical_features=categorical_features,
             random_state=random_state,
             device=device,
             verbosity=verbosity,
@@ -136,5 +141,4 @@ class ExtraTreeClassifier(DecisionTreeClassifier):
 
     _split_strategy = "random_threshold"
     _fitted_error_message = "ExtraTreeClassifier is not fitted or loaded"
-
 

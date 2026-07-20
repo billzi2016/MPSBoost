@@ -134,9 +134,12 @@ and early-failure behavior for models that are not implemented yet. It should no
 a pile of placeholder classes.
 
 Random forest row sampling, feature subsampling, ExtraTrees random thresholds, and CatBoost-like
-ordered permutations share one deterministic randomization contract. CatBoost-like estimators use
-the native histogram boosting path today and reject categorical-feature parameters until native
-categorical split semantics are implemented.
+ordered permutations share one deterministic randomization contract. Categorical features can be
+marked with `categorical_features=[...]`; CatBoost-like estimators also accept `cat_features=[...]`
+as an alias. Categories are ordered by training-target statistics and then passed through the same
+native histogram split engine. Unknown prediction categories are encoded as missing values and use
+the native missing-value default direction. Categorical model persistence intentionally fails until
+the public model format stores category mappings.
 
 Validation metric history and early stopping also share one estimator-independent monitoring
 contract, so future classifiers and tree ensembles do not duplicate callback semantics.
@@ -209,15 +212,15 @@ The public API currently includes `GradientBoostingRegressor`, `GradientBoosting
 their backwards-compatible project-branded aliases, the estimator capability registry,
 deterministic randomization and monitoring helpers, cache diagnostics and management helpers,
 `is_available`, `system_info`, and `__version__`. Training supports dense finite
-`float32`/`float64`-compatible data, squared error regression, strict binary-logistic
-classification for labels `0` and `1`, deterministic quantization, depth-limited histogram trees,
-sklearn-compatible `score()`, model save/load, gain/split/permutation feature importance,
-random forest `n_jobs`, explicit `device="mps"`, explicit `device="cpu"`, and initial
-`device="auto"` selection.
+`float32`/`float64`-compatible data, ordered categorical feature encoding, squared error
+regression, strict binary-logistic classification for labels `0` and `1`, deterministic
+quantization, depth-limited histogram trees, sklearn-compatible `score()`, model save/load for
+numeric models, gain/split/permutation feature importance, random forest `n_jobs`, explicit
+`device="mps"`, explicit `device="cpu"`, and initial `device="auto"` selection.
 
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 
-Classification, missing values, sparse matrices, categorical features, sampling, early stopping, public GPU prediction, and full third-party API compatibility are not implemented in this milestone. Small datasets are expected to be slower on the GPU because fixed device setup and synchronization costs dominate; the checked-in benchmark report preserves this regression region alongside larger wins.
+Sparse matrices, categorical model persistence, public GPU prediction, and full third-party API compatibility are not implemented in this milestone. Small datasets are expected to be slower on the GPU because fixed device setup and synchronization costs dominate; the checked-in benchmark report preserves this regression region alongside larger wins.
 
 ## Release audits
 

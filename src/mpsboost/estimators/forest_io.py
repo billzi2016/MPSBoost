@@ -22,6 +22,10 @@ class ForestPersistenceMixin:
         """Save a forest container while reusing the native format for every tree."""
 
         self._require_model()
+        if getattr(self, "categorical_metadata_", None) is not None:
+            raise NotImplementedError(
+                "categorical forest persistence requires categorical metadata support"
+            )
         target = Path(path)
         directory = target.parent if target.parent != Path("") else Path(".")
         if not directory.is_dir():
@@ -94,4 +98,3 @@ class ForestPersistenceMixin:
             raise
         finally:
             self._fit_lock.release()
-

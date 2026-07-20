@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
+from ..categorical import transform_categorical
 from .base import MPSBoostRegressor
 from .classification import MPSBoostClassifier
 from .forest import _ForestMixin
@@ -33,8 +34,9 @@ class RandomForestRegressor(_ForestMixin, MPSBoostRegressor):
         """Return the mean prediction across fitted native decision trees."""
 
         self._require_model()
+        matrix = transform_categorical(X, getattr(self, "categorical_metadata_", None))
         return predict_forest_regression(
-            self.estimators_, self.feature_subsets_, X, self.n_features_in_
+            self.estimators_, self.feature_subsets_, matrix, self.n_features_in_
         )
 
 
@@ -57,8 +59,9 @@ class RandomForestClassifier(_ForestMixin, MPSBoostClassifier):
         """Return mean class probabilities across fitted native decision trees."""
 
         self._require_model()
+        matrix = transform_categorical(X, getattr(self, "categorical_metadata_", None))
         return predict_forest_proba(
-            self.estimators_, self.feature_subsets_, X, self.n_features_in_
+            self.estimators_, self.feature_subsets_, matrix, self.n_features_in_
         )
 
 

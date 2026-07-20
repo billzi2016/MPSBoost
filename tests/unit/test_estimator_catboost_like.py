@@ -70,19 +70,6 @@ def test_catboost_like_classifier_uses_native_logistic_boosting():
     assert model.training_summary_["ordered_boosting"] is True
 
 
-def test_catboost_like_estimators_reject_unsupported_categorical_features():
-    """Categorical feature parameters must fail until native categorical splits exist."""
-
-    X = np.ones((4, 2), dtype=np.float32)
-    y_reg = np.array([0.0, 0.0, 1.0, 1.0], dtype=np.float32)
-    with pytest.raises(NotImplementedError, match="cat_features"):
-        CatBoostRegressor(cat_features=[0], device="cpu").fit(X, y_reg)
-
-    y_clf = np.array([0, 0, 1, 1], dtype=np.int64)
-    with pytest.raises(NotImplementedError, match="cat_features"):
-        CatBoostClassifier(cat_features=[0], device="cpu").fit(X, y_clf)
-
-
 def test_catboost_like_parameter_validation_fails_explicitly():
     """Ordered-boosting control parameters should fail before native training."""
 

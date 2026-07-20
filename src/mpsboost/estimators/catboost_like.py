@@ -1,14 +1,15 @@
 """Controlled CatBoost-like estimator entries for MPSBoost.
 
 These classes expose ordered-boosting parameters while reusing the real native histogram boosting
-backend. Categorical feature parameters fail early until native categorical split semantics exist.
+backend. CatBoost-style ``cat_features`` is routed into the shared categorical encoder.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from ..matrix import as_dense_matrix
+import numpy as np
+
 from ..randomization import ordered_boosting_permutations
 from .base import MPSBoostRegressor
 from .classification import MPSBoostClassifier
@@ -18,9 +19,8 @@ class _CatBoostLikeMixin:
     """Shared controlled CatBoost-like public parameters and validation.
 
     The current implementation uses the real native histogram boosting backend while exposing the
-    ordered-boosting contract that future categorical and ordered-statistics work will extend. The
-    class deliberately rejects categorical features until native categorical split semantics exist,
-    so users cannot accidentally depend on a silent preprocessing shortcut.
+    ordered-boosting contract that future ordered-statistics work will extend. Categorical
+    features use the same ordered native split adapter as the other estimator families.
     """
 
     _CATBOOST_PARAMETER_NAMES = (
@@ -41,6 +41,8 @@ class _CatBoostLikeMixin:
         self.ordered_boosting = ordered_boosting
         self.permutation_count = permutation_count
         self.cat_features = cat_features
+        if cat_features is not None:
+            self.categorical_features = cat_features
 
     def _validate_parameters(self) -> None:
         """Validate CatBoost-like parameters before delegating to the native trainer."""
@@ -54,10 +56,6 @@ class _CatBoostLikeMixin:
             raise TypeError("permutation_count must be an integer")
         if self.permutation_count <= 0:
             raise ValueError("permutation_count must be positive")
-        if self.cat_features is not None:
-            raise NotImplementedError(
-                "cat_features require native categorical split support and are not available yet"
-            )
 
     def _catboost_training_metadata(self, n_samples: int) -> dict[str, Any]:
         """Build deterministic ordered-boosting metadata for diagnostics and reproducibility."""
@@ -73,7 +71,7 @@ class _CatBoostLikeMixin:
             "permutation_heads": [
                 item[: min(8, n_samples)].tolist() for item in permutations
             ],
-            "cat_features": None,
+            "cat_features": self.cat_features,
         }
 
 
@@ -95,6 +93,7 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
@@ -112,6 +111,9 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            categorical_features=(
+                categorical_features if categorical_features is not None else cat_features
+            ),
             random_state=random_state,
             device=device,
             verbosity=verbosity,
@@ -130,7 +132,7 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
     ) -> "CatBoostRegressor":
         """Fit using the real native boosting path and attach ordered-boosting diagnostics."""
 
-        n_samples = as_dense_matrix(X).shape[0]
+        n_samples = np.asarray(X).shape[0]
         fitted = super().fit(X, y, sample_weight=sample_weight)
         fitted.training_summary_.update(self._catboost_training_metadata(n_samples))
         return fitted
@@ -154,6 +156,7 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
@@ -171,6 +174,9 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            categorical_features=(
+                categorical_features if categorical_features is not None else cat_features
+            ),
             random_state=random_state,
             device=device,
             verbosity=verbosity,
@@ -189,9 +195,8 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
     ) -> "CatBoostClassifier":
         """Fit using the real native logistic boosting path and attach ordered diagnostics."""
 
-        n_samples = as_dense_matrix(X).shape[0]
+        n_samples = np.asarray(X).shape[0]
         fitted = super().fit(X, y, sample_weight=sample_weight)
         fitted.training_summary_.update(self._catboost_training_metadata(n_samples))
         return fitted
-
 
