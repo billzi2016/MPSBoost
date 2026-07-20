@@ -165,6 +165,17 @@ The intended long-term policy is:
 MPS is an acceleration backend, not a requirement. If CPU is faster or more stable for a given
 workload, the project should say so and use CPU under `auto`.
 
+## Prediction path
+
+All delivered tree families share one prediction contract. Gradient boosting, single trees,
+random forests, ExtraTrees, and CatBoost-like numeric estimators all reuse the native flat-tree
+model format plus a shared Python aggregation helper for feature-count validation, feature-subset
+slicing, and forest averaging.
+
+Current MPS acceleration targets training hot paths. Prediction uses the shared native tree
+traversal path and may run faster on CPU for small batches. A future MPS batch traversal kernel
+can replace the traversal backend without changing estimator APIs or model files.
+
 ## Backend diagnostics
 
 The native backend exposes non-sensitive device and cache diagnostics:

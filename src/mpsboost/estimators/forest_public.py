@@ -11,10 +11,10 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
-from ..matrix import as_dense_matrix
 from .base import MPSBoostRegressor
 from .classification import MPSBoostClassifier
 from .forest import _ForestMixin
+from .prediction import predict_forest_proba, predict_forest_regression
 from .single_tree import (
     DecisionTreeClassifier,
     DecisionTreeRegressor,
@@ -33,14 +33,9 @@ class RandomForestRegressor(_ForestMixin, MPSBoostRegressor):
         """Return the mean prediction across fitted native decision trees."""
 
         self._require_model()
-        matrix = as_dense_matrix(X)
-        if matrix.shape[1] != self.n_features_in_:
-            raise ValueError("prediction feature count does not match training data")
-        predictions = np.zeros(matrix.shape[0], dtype=np.float64)
-        for tree, features in zip(self.estimators_, self.feature_subsets_):
-            predictions += tree.predict(matrix[:, features]).astype(np.float64, copy=False)
-        predictions /= float(len(self.estimators_))
-        return predictions.astype(np.float32)
+        return predict_forest_regression(
+            self.estimators_, self.feature_subsets_, X, self.n_features_in_
+        )
 
 
 class RandomForestClassifier(_ForestMixin, MPSBoostClassifier):
@@ -62,16 +57,9 @@ class RandomForestClassifier(_ForestMixin, MPSBoostClassifier):
         """Return mean class probabilities across fitted native decision trees."""
 
         self._require_model()
-        matrix = as_dense_matrix(X)
-        if matrix.shape[1] != self.n_features_in_:
-            raise ValueError("prediction feature count does not match training data")
-        probabilities = np.zeros((matrix.shape[0], 2), dtype=np.float64)
-        for tree, features in zip(self.estimators_, self.feature_subsets_):
-            probabilities += tree.predict_proba(matrix[:, features]).astype(
-                np.float64, copy=False
-            )
-        probabilities /= float(len(self.estimators_))
-        return probabilities.astype(np.float32)
+        return predict_forest_proba(
+            self.estimators_, self.feature_subsets_, X, self.n_features_in_
+        )
 
 
 class ExtraTreesRegressor(RandomForestRegressor):

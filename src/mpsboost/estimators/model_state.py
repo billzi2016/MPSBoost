@@ -13,8 +13,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .. import _native
-from ..matrix import as_dense_matrix, as_labels
+from ..matrix import as_labels
 from .errors import NotFittedError
+from .prediction import predict_native_model
 
 
 
@@ -89,10 +90,7 @@ class SklearnAndPersistenceMixin:
         """Return native raw margins or regression values after feature-count validation."""
 
         model = self._require_model()
-        matrix = as_dense_matrix(X)
-        if matrix.shape[1] != self.n_features_in_:
-            raise ValueError("prediction feature count does not match training data")
-        return np.asarray(model.predict(matrix), dtype=np.float32)
+        return predict_native_model(model, X, self.n_features_in_)
 
     def _training_labels(self, y: Any, n_samples: int) -> NDArray[np.float32]:
         """Normalize labels for the native training objective."""

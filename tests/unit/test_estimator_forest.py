@@ -53,6 +53,8 @@ def test_random_forest_regressor_trains_independent_native_trees():
     assert predictions.shape == (6,)
     assert model.score(X, y) > 0.0
     assert model.feature_importances_.shape == (2,)
+    with pytest.raises(ValueError, match="feature count"):
+        model.predict(np.ones((2, 3), dtype=np.float32))
 
 
 def test_random_forest_forwards_sample_weight_to_native_trees():
@@ -97,6 +99,8 @@ def test_random_forest_classifier_trains_independent_native_trees():
     assert np.allclose(probabilities.sum(axis=1), 1.0)
     assert probabilities[:3, 1].mean() < probabilities[3:, 1].mean()
     assert model.score(X, y) >= 5.0 / 6.0
+    with pytest.raises(ValueError, match="feature count"):
+        model.predict_proba(np.ones((2, 2), dtype=np.float32))
 
 
 def test_random_forest_random_state_is_deterministic():

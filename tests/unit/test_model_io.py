@@ -18,6 +18,7 @@ from mpsboost import (
     MPSBoostRegressor,
     RandomForestClassifier,
     RandomForestRegressor,
+    is_available,
 )
 
 
@@ -47,6 +48,36 @@ def test_save_load_round_trip_and_file_permissions(tmp_path):
     np.testing.assert_array_equal(original.predict(X), restored.predict(X))
     assert os.stat(path).st_mode & 0o077 == 0
     assert list(tmp_path.iterdir()) == [path]
+
+
+def test_cpu_and_mps_saved_models_preserve_prediction_contract(tmp_path):
+    """CPU and MPS fitted models should keep aligned predictions after save/load."""
+
+    if not is_available():
+        pytest.skip("real MPS backend is unavailable")
+    X = np.asarray([[float(value)] for value in range(16)], dtype=np.float32)
+    y = np.where(X[:, 0] < 8.0, -1.0, 2.0).astype(np.float32)
+    parameters = dict(
+        n_estimators=3,
+        learning_rate=0.5,
+        max_depth=2,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        reg_lambda=0.0,
+    )
+    cpu = MPSBoostRegressor(device="cpu", **parameters).fit(X, y)
+    mps = MPSBoostRegressor(device="mps", **parameters).fit(X, y)
+    cpu_path = tmp_path / "cpu.mb"
+    mps_path = tmp_path / "mps.mb"
+    cpu.save_model(cpu_path)
+    mps.save_model(mps_path)
+
+    restored_cpu = MPSBoostRegressor(device="cpu").load_model(cpu_path)
+    restored_mps = MPSBoostRegressor(device="mps").load_model(mps_path)
+
+    np.testing.assert_allclose(cpu.predict(X), restored_cpu.predict(X))
+    np.testing.assert_allclose(mps.predict(X), restored_mps.predict(X))
+    np.testing.assert_allclose(restored_cpu.predict(X), restored_mps.predict(X), atol=1e-5)
 
 
 def test_classifier_model_round_trip_preserves_probabilities(tmp_path):
