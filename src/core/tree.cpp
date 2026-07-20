@@ -79,7 +79,8 @@ RegressionTree TrainLevelWiseRegressionTree(
         break;
       }
       const PreparedSplit prepared =
-          PrepareSplitRows(dataset, active, layer_histograms[active_index], parameters);
+          PrepareSplitRows(dataset, active, layer_histograms[active_index],
+                           gradients, parameters);
       if (!prepared.valid) {
         continue;
       }
@@ -184,9 +185,11 @@ std::vector<double> RegressionTree::Predict(const BinnedDataset& dataset) const 
       if (node.feature_index >= feature_count_) {
         throw TrainingError("树分支特征索引越界");
       }
-      node_index = dataset.GetBin(row, node.feature_index) <= node.threshold_bin
-                       ? node.left_child
-                       : node.right_child;
+      const bool goes_left =
+          dataset.IsMissing(row, node.feature_index)
+              ? node.default_left
+              : dataset.GetBin(row, node.feature_index) <= node.threshold_bin;
+      node_index = goes_left ? node.left_child : node.right_child;
     }
   }
   return predictions;

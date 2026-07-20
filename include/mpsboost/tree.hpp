@@ -32,6 +32,7 @@ struct TreeNode final {
   std::uint32_t right_child{kInvalidNodeIndex};
   double leaf_value{0.0};
   double gain{0.0};
+  bool default_left{true};
   std::uint8_t flags{kTreeNodeLeafFlag};
 
   bool IsLeaf() const noexcept { return (flags & kTreeNodeLeafFlag) != 0; }

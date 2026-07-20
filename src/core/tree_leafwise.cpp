@@ -89,7 +89,7 @@ RegressionTree TrainLeafWiseRegressionTree(
               ? histogram_builder.BuildHistograms(dataset, active.rows, gradients)
               : std::move(active.cached_histograms);
       PreparedSplit prepared =
-          PrepareSplitRows(dataset, active, histograms, parameters);
+          PrepareSplitRows(dataset, active, histograms, gradients, parameters);
       if (prepared.valid &&
           IsBetterLeafWiseCandidate(prepared, active, best_prepared,
                                     active_leaves[best_index])) {

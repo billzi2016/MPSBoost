@@ -61,6 +61,7 @@ def test_hand_computed_root_split_leaf_values_and_prediction():
         "right_child": 2,
         "leaf_value": 0.0,
         "gain": 2.0,
+        "default_left": True,
     }
     assert nodes[1]["is_leaf"] is True
     assert nodes[1]["leaf_value"] == 0.0

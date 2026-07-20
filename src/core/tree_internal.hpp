@@ -27,8 +27,13 @@ struct SplitCandidate final {
   std::uint32_t feature{0};
   std::uint32_t threshold_bin{0};
   double gain{0.0};
+  bool default_left{true};
   NodeStatistics left;
   NodeStatistics right;
+};
+
+struct FeatureMissingStatistics final {
+  NodeStatistics missing;
 };
 
 struct ActiveNode final {
@@ -75,7 +80,8 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                              const NodeStatistics& parent,
                              std::uint32_t node_index,
                              std::uint32_t depth,
-                             const TreeTrainingParameters& parameters);
+                             const TreeTrainingParameters& parameters,
+                             const std::vector<FeatureMissingStatistics>& missing);
 
 NodeHistograms SubtractHistograms(const NodeHistograms& parent,
                                   const NodeHistograms& child);
@@ -105,6 +111,7 @@ std::vector<NodeHistograms> BuildPendingChildHistograms(
 PreparedSplit PrepareSplitRows(const BinnedDataset& dataset,
                                const ActiveNode& active,
                                const NodeHistograms& histograms,
+                               const std::vector<GradientPair>& gradients,
                                const TreeTrainingParameters& parameters);
 
 RegressionTree TrainLeafWiseRegressionTree(

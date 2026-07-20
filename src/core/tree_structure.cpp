@@ -108,6 +108,7 @@ void TreeTrainingAccess::ApplySplit(RegressionTree* tree,
   parent.right_child = *right_index;
   parent.leaf_value = 0.0;
   parent.gain = prepared.split.gain;
+  parent.default_left = prepared.split.default_left;
   parent.flags = 0;
 }
 

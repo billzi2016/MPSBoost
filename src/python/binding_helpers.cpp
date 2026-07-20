@@ -106,6 +106,7 @@ py::list TreeNodes(const RegressionTree& tree) {
     item["right_child"] = node.right_child;
     item["leaf_value"] = node.leaf_value;
     item["gain"] = node.gain;
+    item["default_left"] = node.default_left;
     result.append(std::move(item));
   }
   return result;
