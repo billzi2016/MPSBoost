@@ -1,4 +1,4 @@
-"""分层缓存服务的无副作用和安全性单元测试。"""
+"""Side-effect and safety unit tests for the layered cache service."""
 
 import pytest
 
@@ -16,11 +16,12 @@ from mpsboost._cache import (
 
 
 def test_cache_lookup_does_not_create_directories(tmp_path, monkeypatch):
-    """查询 L2 布局不得创建目录或污染用户文件系统。"""
+    """Querying L2 layout must not create directories or pollute user filesystems."""
 
     root = tmp_path / "cache"
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(root))
-    # 缓存仍属于 S7 内部能力，不能为了测试方便提前污染 0.2.0 顶层公共 API。
+    # Caching remains an internal S7 capability and must not pollute the 0.2.0
+    # top-level public API merely for test convenience.
     layout = cache_layout()
     assert layout.root == root
     assert layout.pipelines == root / "pipelines"
@@ -35,7 +36,7 @@ def test_cache_lookup_does_not_create_directories(tmp_path, monkeypatch):
 
 
 def test_explicit_creation_uses_layered_directories(tmp_path, monkeypatch):
-    """只有显式创建 API 才能创建 L2 目录。"""
+    """Only the explicit creation API may create L2 directories."""
 
     root = tmp_path / "cache"
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(root))
@@ -49,7 +50,7 @@ def test_explicit_creation_uses_layered_directories(tmp_path, monkeypatch):
 
 
 def test_cache_round_trip_and_version_invalidation(tmp_path, monkeypatch):
-    """缓存 key 必须包含版本；旧版本不得读出新版本内容。"""
+    """Cache keys must include versions; old versions must not read new content."""
 
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(tmp_path / "cache"))
     key = CacheKey("tuning", "v1", {"device": "test", "rows": 16})
@@ -61,7 +62,7 @@ def test_cache_round_trip_and_version_invalidation(tmp_path, monkeypatch):
 
 
 def test_corrupted_cache_is_ignored_and_removed(tmp_path, monkeypatch):
-    """损坏缓存必须安全失效，不能把坏字节交给调用方。"""
+    """Corrupt cache must fail safely and never return bad bytes to callers."""
 
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(tmp_path / "cache"))
     key = CacheKey("quantization", "v1", {"schema": "abc"})
@@ -72,7 +73,7 @@ def test_corrupted_cache_is_ignored_and_removed(tmp_path, monkeypatch):
 
 
 def test_clear_cache_removes_only_valid_cache_root(tmp_path, monkeypatch):
-    """清理 API 只操作显式缓存根目录，并返回移除文件数量。"""
+    """Cleanup API operates only on the explicit cache root and returns removed-file count."""
 
     root = tmp_path / "cache"
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(root))
@@ -82,11 +83,12 @@ def test_clear_cache_removes_only_valid_cache_root(tmp_path, monkeypatch):
 
 
 def test_clear_cache_rejects_home_and_symlink(tmp_path, monkeypatch):
-    """危险目标必须拒绝，避免误删用户目录或符号链接逃逸。"""
+    """Dangerous targets must be rejected to avoid deleting user directories or escaping symlinks."""
 
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(tmp_path))
-    with pytest.raises(ValueError, match="主目录|根目录"):
-        # tmp_path 不是主目录；这里直接测试符号链接分支之外的危险路径需要真实 HOME。
+    with pytest.raises(ValueError, match="home directory|filesystem root"):
+        # tmp_path is not home; testing this dangerous path outside the symlink branch
+        # requires the real HOME.
         monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(tmp_path.home()))
         clear_cache()
 
@@ -95,12 +97,12 @@ def test_clear_cache_rejects_home_and_symlink(tmp_path, monkeypatch):
     link = tmp_path / "link"
     link.symlink_to(target, target_is_directory=True)
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(link))
-    with pytest.raises(ValueError, match="符号链接"):
+    with pytest.raises(ValueError, match="symlinked"):
         clear_cache()
 
 
 def test_invalid_namespace_fails_before_directory_creation(tmp_path, monkeypatch):
-    """未知 namespace 早失败，并且不得创建缓存根目录。"""
+    """Unknown namespaces fail early and must not create the cache root."""
 
     root = tmp_path / "cache"
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(root))

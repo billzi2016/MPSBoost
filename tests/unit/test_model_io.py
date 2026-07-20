@@ -1,7 +1,8 @@
-"""版本化模型保存、加载与损坏拒绝测试。
+"""Tests for versioned model saving, loading, and corruption rejection.
 
-测试通过正式 estimator 和 native loader 读写真实文件；不使用 pickle、mock 文件系统或
-绕过校验的节点构造。失败加载必须保留调用方原有模型状态。
+Tests read and write real files through official estimators and native loaders; no
+pickle, mock filesystem, or validation-bypassing node construction is used. Failed
+loads must preserve the caller's existing model state.
 """
 
 import os
@@ -23,7 +24,7 @@ from mpsboost import (
 
 
 def _fitted_model():
-    """构造小型真实 CPU oracle 模型，避免多个用例复制训练参数。"""
+    """Build a small real CPU-oracle model without duplicating training parameters."""
 
     X = np.arange(12, dtype=np.float32).reshape(6, 2)
     y = np.array([0.0, 0.0, 1.0, 1.0, 2.0, 2.0])
@@ -39,7 +40,7 @@ def _fitted_model():
 
 
 def test_save_load_round_trip_and_file_permissions(tmp_path):
-    """加载后预测逐位一致，模型文件不得包含宽松权限或临时文件。"""
+    """Predictions match bitwise after loading, without permissive files or temporary artifacts."""
 
     X, original = _fitted_model()
     path = tmp_path / "model.mb"
@@ -305,7 +306,7 @@ def test_extra_trees_round_trip_uses_forest_container(tmp_path):
 
 @pytest.mark.parametrize("mutation", ["truncate", "checksum", "major"])
 def test_corrupt_model_is_rejected_without_replacing_existing_state(tmp_path, mutation):
-    """截断、内容篡改和未知 major 必须拒绝，已有模型仍可预测。"""
+    """Truncation, content tampering, and unknown major versions must be rejected while existing models predict."""
 
     X, model = _fitted_model()
     expected = model.predict(X)
@@ -319,6 +320,6 @@ def test_corrupt_model_is_rejected_without_replacing_existing_state(tmp_path, mu
     else:
         content[8:10] = (999).to_bytes(2, "little")
     path.write_bytes(content)
-    with pytest.raises(ValueError, match="长度|校验|版本"):
+    with pytest.raises(ValueError, match="length|integrity|version"):
         model.load_model(path)
     np.testing.assert_array_equal(model.predict(X), expected)

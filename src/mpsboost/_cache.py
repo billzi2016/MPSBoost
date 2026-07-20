@@ -1,16 +1,18 @@
-"""MPSBoost 分层缓存服务。
+"""MPSBoost layered cache service.
 
-本模块定义运行时 L2 缓存的唯一路径、key、读写、校验和清理入口。导入和查询路径不
-创建目录；只有显式写入或显式创建时才触碰文件系统。缓存只能提升速度，不能成为训练
-或预测正确性的前提，任何损坏、旧版本或无权限都必须安全失败或回到无缓存路径。
+This module defines the sole runtime L2-cache paths, keys, read/write, validation,
+and cleanup entries. Import and query paths create no directories; only explicit
+writes or creation touch the file system. Caching improves speed only and never
+becomes a prerequisite for correct training or prediction.
 
-- ``import mpsboost`` 没有文件系统副作用；
-- 只读环境仍可导入并查询配置；
-- 用户可以在真正需要缓存时决定权限、位置和清理策略；
-- 测试不会因一次普通导入污染用户主目录。
+- ``import mpsboost`` has no file-system side effects;
+- read-only environments can still import and query configuration;
+- users choose permissions, location, and cleanup when caching is needed;
+- ordinary imports never pollute the user home directory during tests.
 
-缓存按生命周期分为三层：L1 是进程内对象；L2 是本模块描述的用户可重建缓存；
-L3 是构建/CI 产物，由构建系统管理，不应混入运行时 API。
+Caching has three lifecycle layers: L1 is in-process objects; L2 is the
+user-rebuildable cache described here; L3 is build/CI output managed by tooling
+and excluded from the runtime API.
 """
 
 from __future__ import annotations
@@ -27,17 +29,17 @@ from typing import Mapping
 
 @dataclass(frozen=True, slots=True)
 class CacheLayout:
-    """用户级、可安全重建的 L2 缓存路径集合。
+    """User-level, safely rebuildable L2 cache paths.
 
-    L1 位于进程内存，没有文件系统路径；L3 由构建和 CI 工具拥有，故意不暴露在
-    运行时 API 中。这里的每个子目录必须使用独立格式版本和失效 key，不能因为共享
-    根目录就混用不同生命周期的数据。
+    L1 lives in process memory and has no file-system path; L3 belongs to build and
+    CI tooling and is intentionally absent from the runtime API. Each subdirectory
+    uses its own format version and invalidation key.
 
     Attributes:
-        root: MPSBoost 用户缓存根目录。
-        pipelines: Metal pipeline/binary archive 等可重建编译缓存。
-        quantization: 用户显式允许时保存的分箱元数据缓存。
-        tuning: 与设备和软件版本绑定的自动调优结果。
+        root: MPSBoost user cache root.
+        pipelines: Rebuildable compiled caches such as Metal pipeline/binary archives.
+        quantization: Binned metadata cache saved only with explicit user permission.
+        tuning: Autotuning results tied to device and software versions.
     """
 
     root: Path
@@ -48,10 +50,11 @@ class CacheLayout:
 
 @dataclass(frozen=True, slots=True)
 class CacheKey:
-    """一个已规范化的 L2 缓存 key。
+    """A normalized L2 cache key.
 
-    namespace 决定缓存子目录，version 决定格式失效，parts 保存不含敏感信息的语义字段。
-    文件名由 canonical JSON 的 SHA-256 生成，避免把路径、用户名或原始数据写入文件名。
+    namespace selects the cache subdirectory, version controls format invalidation,
+    and parts holds non-sensitive semantic fields. Filenames use SHA-256 of canonical
+    JSON, avoiding paths, usernames, or raw data.
     """
 
     namespace: str
@@ -61,7 +64,7 @@ class CacheKey:
 
 @dataclass(frozen=True, slots=True)
 class CacheInfo:
-    """可安全展示给用户的缓存摘要。"""
+    """Cache summary safe to display to users."""
 
     root: Path
     exists: bool
@@ -76,22 +79,22 @@ _ALLOWED_NAMESPACES = frozenset({"pipelines", "quantization", "tuning"})
 
 
 def cache_layout() -> CacheLayout:
-    """计算并返回 L2 缓存路径，但不创建任何目录。
+    """Compute and return L2 cache paths without creating directories.
 
-    ``MPSBOOST_CACHE_DIR`` 用于容器、CI 或高级用户显式改写根目录。未设置时遵循
-    macOS 用户缓存习惯，使用 ``~/Library/Caches/mpsboost``。正式写缓存前还必须
-    增加版本 key、原子写入、校验和损坏恢复；本函数只负责无副作用的路径规划。
+    ``MPSBOOST_CACHE_DIR`` lets containers, CI, or advanced users override the root.
+    Otherwise it follows macOS cache conventions. Version keys, atomic writes,
+    validation, and corruption recovery precede real writes; this function plans paths only.
     """
 
     configured = os.environ.get("MPSBOOST_CACHE_DIR")
     if configured:
-        # expanduser 支持用户显式配置 ``~/...``；不调用 resolve，避免查询不存在路径
-        # 或把符号链接语义提前固化。
+        # expanduser supports explicit ``~/...`` configuration. Do not call resolve
+        # so nonexistent paths are not queried and symlink semantics stay unfrozen.
         root = Path(configured).expanduser()
     else:
         root = Path.home() / "Library" / "Caches" / "mpsboost"
-    # 子目录按数据语义隔离，未来可以独立清理和升级，避免“一次缓存格式升级导致
-    # 所有类型缓存同时失效”。
+    # Subdirectories are isolated by data semantics so they can be cleared and
+    # upgraded independently without invalidating every cache type at once.
     return CacheLayout(
         root=root,
         pipelines=root / "pipelines",
@@ -101,7 +104,7 @@ def cache_layout() -> CacheLayout:
 
 
 def cache_info() -> CacheInfo:
-    """返回缓存路径摘要，不创建目录、不读取文件内容。"""
+    """Return a cache-path summary without creating directories or reading files."""
 
     layout = cache_layout()
     return CacheInfo(
@@ -114,11 +117,11 @@ def cache_info() -> CacheInfo:
 
 
 def ensure_cache_directories() -> CacheLayout:
-    """显式创建 L2 缓存目录并返回布局。
+    """Explicitly create L2 cache directories and return the layout.
 
     Raises:
-        ValueError: 缓存根目录解析为危险路径或符号链接。
-        OSError: 调用方没有权限创建目录。
+        ValueError: The cache root resolves to a dangerous path or symlink.
+        OSError: The caller lacks permission to create directories.
     """
 
     layout = cache_layout()
@@ -129,7 +132,7 @@ def ensure_cache_directories() -> CacheLayout:
 
 
 def cache_path(key: CacheKey) -> Path:
-    """计算指定 key 的缓存文件路径，不创建目录。"""
+    """Compute a cache-file path for key without creating directories."""
 
     payload = _canonical_key_payload(key)
     digest = hashlib.sha256(payload).hexdigest()
@@ -139,16 +142,17 @@ def cache_path(key: CacheKey) -> Path:
 
 
 def write_cache_bytes(key: CacheKey, payload: bytes) -> Path:
-    """使用校验容器原子写入缓存字节。
+    """Atomically write cache bytes in a validated container.
 
-    写入发生在同目录临时文件，完整 fsync 后再 ``replace``，避免读者看到半文件。payload
-    由调用方负责保证不含原始训练数据、标签、路径或凭据。
+    Writes use a same-directory temporary file followed by full fsync and ``replace``
+    so readers never observe partial files. Callers ensure payload excludes raw
+    training data, labels, paths, and credentials.
     """
 
     if not isinstance(payload, bytes):
-        raise TypeError("缓存 payload 必须是 bytes")
-    # 先规范化 key，再创建目录；未知 namespace、空版本或不可序列化字段必须无副作用
-    # 失败，避免错误调用污染用户 cache root。
+        raise TypeError("Cache payload must be bytes")
+    # Normalize the key before creating directories. Unknown namespaces, empty
+    # versions, and non-serializable fields must fail without polluting cache root.
     _canonical_key_payload(key)
     layout = ensure_cache_directories()
     target = _namespace_root(layout, key.namespace) / cache_path(key).name
@@ -174,9 +178,10 @@ def write_cache_bytes(key: CacheKey, payload: bytes) -> Path:
 
 
 def read_cache_bytes(key: CacheKey) -> bytes | None:
-    """读取并校验缓存；缺失、损坏或旧 key 返回 ``None``。
+    """Read and validate cache; missing, corrupt, or stale keys return ``None``.
 
-    损坏文件会被尽力删除。删除失败不影响调用方，因为缓存不是正确性前提。
+    Corrupt files are removed on a best-effort basis. Removal failure never affects
+    callers because caching is not a correctness prerequisite.
     """
 
     path = cache_path(key)
@@ -194,13 +199,13 @@ def read_cache_bytes(key: CacheKey) -> bytes | None:
 
 
 def clear_cache() -> int:
-    """显式清理整个 L2 缓存根目录。
+    """Explicitly clear the entire L2 cache root.
 
     Returns:
-        被移除的普通文件数量估计值。
+        Estimated count of removed regular files.
 
     Raises:
-        ValueError: 根目录是根目录、用户主目录、符号链接或其他危险目标。
+        ValueError: The root is filesystem root, user home, a symlink, or another dangerous target.
     """
 
     layout = cache_layout()
@@ -219,14 +224,14 @@ def _namespace_root(layout: CacheLayout, namespace: str) -> Path:
         return layout.quantization
     if namespace == "tuning":
         return layout.tuning
-    raise ValueError("缓存 namespace 不受支持")
+    raise ValueError("Cache namespace is unsupported")
 
 
 def _canonical_key_payload(key: CacheKey) -> bytes:
     if key.namespace not in _ALLOWED_NAMESPACES:
-        raise ValueError("缓存 namespace 不受支持")
+        raise ValueError("Cache namespace is unsupported")
     if not key.version:
-        raise ValueError("缓存 key version 不能为空")
+        raise ValueError("Cache key version must not be empty")
     payload = {
         "namespace": key.namespace,
         "version": key.version,
@@ -253,24 +258,24 @@ def _encode_record(key: CacheKey, payload: bytes) -> bytes:
 
 def _decode_record(key: CacheKey, record: bytes) -> bytes:
     if not record.startswith(_CACHE_MAGIC):
-        raise ValueError("缓存 magic 不匹配")
+        raise ValueError("Cache magic does not match")
     header_start = len(_CACHE_MAGIC) + 4
     if len(record) < header_start:
-        raise ValueError("缓存 header 截断")
+        raise ValueError("Cache header is truncated")
     header_size = int.from_bytes(record[len(_CACHE_MAGIC) : header_start], "little")
     header_end = header_start + header_size
     if header_end > len(record):
-        raise ValueError("缓存 header 越界")
+        raise ValueError("Cache header is out of bounds")
     header = json.loads(record[header_start:header_end].decode("utf-8"))
     if header.get("container") != _CACHE_CONTAINER_VERSION:
-        raise ValueError("缓存容器版本不匹配")
+        raise ValueError("Cache container version does not match")
     expected_key = json.loads(_canonical_key_payload(key).decode("utf-8"))
     if header.get("key") != expected_key:
-        raise ValueError("缓存 key 不匹配")
+        raise ValueError("Cache key does not match")
     payload = record[header_end:]
     checksum = hashlib.sha256(_canonical_key_payload(key) + b"\0" + payload).hexdigest()
     if header.get("checksum") != checksum:
-        raise ValueError("缓存 checksum 不匹配")
+        raise ValueError("Cache checksum does not match")
     return payload
 
 
@@ -279,8 +284,8 @@ def _validate_cache_root(root: Path) -> None:
     resolved = expanded.resolve(strict=False)
     home = Path.home().resolve(strict=False)
     if resolved == Path(resolved.anchor):
-        raise ValueError("拒绝把文件系统根目录作为 MPSBoost 缓存根目录")
+        raise ValueError("Refusing to use the filesystem root as the MPSBoost cache root")
     if resolved == home:
-        raise ValueError("拒绝把用户主目录作为 MPSBoost 缓存根目录")
+        raise ValueError("Refusing to use the user home directory as the MPSBoost cache root")
     if expanded.exists() and expanded.is_symlink():
-        raise ValueError("拒绝清理或创建符号链接形式的 MPSBoost 缓存根目录")
+        raise ValueError("Refusing to clear or create a symlinked MPSBoost cache root")

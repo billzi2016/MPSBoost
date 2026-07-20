@@ -81,5 +81,5 @@ version = ">=3.25"
 testpaths = ["tests"]
 addopts = "-q"
 markers = [
-  "gpu: 必须在具有真实可用 Metal 设备的 Apple Silicon 环境中运行的测试",
+  "gpu: tests that require a real usable Metal device on Apple Silicon",
 ]

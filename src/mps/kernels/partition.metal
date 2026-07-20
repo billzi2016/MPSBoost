@@ -1,8 +1,10 @@
-// MPSBoost GPU row partition/compaction kernel。
+// MPSBoost GPU row partition and compaction kernel.
 //
-// 职责：根据训练核心确认的 feature/threshold，把节点行索引稳定地划分为左右两段。
-// kernel 不选择 split、不创建节点，只执行可验证的数据搬运；当前实现使用单个 GPU
-// 线程顺序写出，优先冻结确定性契约。后续若改成并行 prefix-sum，必须保持同样顺序。
+// Responsibility: stably partitions node row indices into left and right segments
+// using the feature/threshold confirmed by the training core. The kernel neither
+// selects splits nor creates nodes; it only performs verifiable data movement. It
+// currently writes sequentially from one GPU thread to preserve deterministic order.
+// Any future parallel prefix-sum implementation must preserve that order.
 
 #include <metal_stdlib>
 

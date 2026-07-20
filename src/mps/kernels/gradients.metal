@@ -1,7 +1,8 @@
-// MPSBoost 平方误差 gradient/Hessian kernel。
+// MPSBoost squared-error gradient/Hessian kernel.
 //
-// 职责：把 float32 标签与当前预测映射为 float2(g, h)。目标函数语义由 C++ 领域层
-// 冻结，本文件只执行同一公式；不得加入损失选择、参数默认值或 CPU 回退。
+// Responsibility: maps float32 labels and current predictions to float2(g, h). The
+// C++ domain layer owns objective semantics; this file only executes that formula.
+// Do not add loss selection, parameter defaults, or CPU fallback here.
 
 #include <metal_stdlib>
 

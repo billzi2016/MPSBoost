@@ -31,13 +31,13 @@ double SubtractHistogramHessian(double parent, double child) {
 NodeHistograms SubtractHistograms(const NodeHistograms& parent,
                                   const NodeHistograms& child) {
   if (parent.size() != child.size()) {
-    throw TrainingError("Histogram subtraction 特征数量不一致");
+    throw TrainingError("Histogram subtraction feature counts do not match");
   }
   NodeHistograms result;
   result.reserve(parent.size());
   for (std::size_t feature = 0; feature < parent.size(); ++feature) {
     if (parent[feature].size() != child[feature].size()) {
-      throw TrainingError("Histogram subtraction bin 数量不一致");
+      throw TrainingError("Histogram subtraction bin counts do not match");
     }
     FeatureHistogram feature_histogram;
     feature_histogram.reserve(parent[feature].size());
@@ -45,7 +45,7 @@ NodeHistograms SubtractHistograms(const NodeHistograms& parent,
       const HistogramBin& parent_bin = parent[feature][bin];
       const HistogramBin& child_bin = child[feature][bin];
       if (child_bin.count > parent_bin.count) {
-        throw TrainingError("Histogram subtraction 子节点计数超过父节点");
+        throw TrainingError("Histogram subtraction child count exceeds parent count");
       }
       const double gradient_sum =
           parent_bin.gradient_sum - child_bin.gradient_sum;
@@ -85,7 +85,7 @@ std::vector<NodeHistograms> BuildCurrentLayerHistograms(
       computed_histograms =
           layer_builder->BuildLayerHistograms(dataset, layer_rows, gradients);
       if (computed_histograms.size() != layer_rows.size()) {
-        throw TrainingError("按层 histogram 返回节点数量与活跃层不一致");
+        throw TrainingError("Layer histogram result count does not match the active layer");
       }
     } else {
       computed_histograms.reserve(layer_rows.size());

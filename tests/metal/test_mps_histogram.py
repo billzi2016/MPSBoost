@@ -1,7 +1,8 @@
-"""真实 MPS gradient 与两阶段 histogram 正确性测试。
+"""Correctness tests for real MPS gradients and two-stage histograms.
 
-所有用例在真实默认 Metal 设备执行并逐元素对照 CPU oracle；禁止 mock command、替换
-metallib 或只检查 kernel 是否启动。覆盖非整组长度、偏斜 bin 和两种紧凑存储宽度。
+All cases run on the real default Metal device and compare each element with the CPU
+oracle. Mock commands, metallib replacement, and kernel-launch-only checks are
+forbidden. Coverage includes non-multiple lengths, skewed bins, and both storage widths.
 """
 
 import numpy as np
@@ -15,7 +16,7 @@ pytestmark = pytest.mark.gpu
 
 @pytest.mark.parametrize("length", [1, 7, 257, 1025])
 def test_mps_gradients_match_cpu_oracle(length):
-    """平方误差 kernel 必须覆盖非线程组整倍数并保持冻结语义。"""
+    """Squared-error kernel must cover non-threadgroup-multiple lengths under frozen semantics."""
 
     labels = np.linspace(-3.0, 4.0, length, dtype=np.float64).tolist()
     predictions = np.linspace(1.0, -2.0, length, dtype=np.float64).tolist()
@@ -29,7 +30,7 @@ def test_mps_gradients_match_cpu_oracle(length):
 
 @pytest.mark.parametrize("max_bins", [16, 257])
 def test_two_stage_histogram_matches_every_cpu_bin(max_bins):
-    """uint8/uint16 数据的 count/G/H 必须逐 feature、逐 bin 对照 CPU。"""
+    """uint8/uint16 count/G/H must match CPU for every feature and bin."""
 
     rows = 1025
     matrix = np.column_stack(

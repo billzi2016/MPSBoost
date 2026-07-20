@@ -1,15 +1,17 @@
-// MPSBoost 真实 GPU 链路验证 kernel。
+// MPSBoost real GPU pipeline validation kernel.
 //
-// 该 kernel 只验证 shader 编译、资源打包、pipeline、共享内存和 command 同步，不承担
-// 训练功能。它不能被用作直方图实现的替代品，也不能作为训练任务完成的证据。
+// This kernel validates shader compilation, resource packaging, pipeline creation,
+// shared memory, and command synchronization only; it has no training role. It must
+// not replace a histogram implementation or be evidence that training is complete.
 #include <metal_stdlib>
 
 using namespace metal;
 
-// 对等长向量执行逐元素相加。
+// Adds equally sized vectors element by element.
 //
-// left/right/output 由 host 保证至少包含 count 个 float。gid 仍检查边界，因为 grid
-// 调度与输入长度属于跨语言契约，shader 必须独立防止最后一个线程组越界。
+// The host guarantees that left, right, and output contain at least count floats.
+// The grid and input length form a cross-language contract, so the shader must still
+// independently prevent the final threadgroup from accessing out of bounds.
 kernel void vector_add(device const float* left [[buffer(0)]],
                        device const float* right [[buffer(1)]],
                        device float* output [[buffer(2)]],

@@ -1,7 +1,8 @@
-// MPSBoost 多轮 GBDT 训练状态机。
+// MPSBoost multi-round GBDT training state machine.
 //
-// 本文件是 boosting 顺序、base score、学习率缩放和模型预测的唯一实现。后端仅提供
-// gradient/histogram 计算；本文件不判断设备、不访问文件系统，也不保留训练数据。
+// This file is the single implementation of boosting order, base score, learning-rate
+// scaling, and model prediction. Backends provide only gradient/histogram computation;
+// this file does not select devices, access the file system, or retain training data.
 
 #include "mpsboost/trainer.hpp"
 
@@ -20,14 +21,14 @@ namespace trainer_internal {
 
 void ValidateTrainingParameters(const TrainingParameters& parameters) {
   if (parameters.n_estimators == 0) {
-    throw TrainingError("n_estimators 必须至少为 1");
+    throw TrainingError("n_estimators must be at least 1");
   }
   if (!std::isfinite(parameters.learning_rate) ||
       parameters.learning_rate <= 0.0 || parameters.learning_rate > 1.0) {
-    throw TrainingError("learning_rate 必须位于 (0, 1]");
+    throw TrainingError("learning_rate must be in (0, 1]");
   }
   if (parameters.max_bins < 2 || parameters.max_bins > 65536) {
-    throw TrainingError("max_bins 必须位于 [2, 65536]");
+    throw TrainingError("max_bins must be in [2, 65536]");
   }
   if (!std::isfinite(parameters.objective_alpha) ||
       parameters.objective_alpha <= 0.0 || parameters.objective_alpha >= 1.0) {
@@ -67,18 +68,18 @@ double ValidateWeightsAndTotal(const std::vector<double>& labels,
 double WeightedMeanLabel(const std::vector<double>& labels,
                          const std::vector<double>& sample_weights) {
   if (labels.empty()) {
-    throw TrainingError("标签不能为空");
+    throw TrainingError("Labels must not be empty");
   }
   double sum = 0.0;
   const double total_weight = ValidateWeightsAndTotal(labels, sample_weights);
   for (std::size_t index = 0; index < labels.size(); ++index) {
     const double label = labels[index];
     if (!std::isfinite(label)) {
-      throw TrainingError("标签必须是有限值");
+      throw TrainingError("Labels must be finite");
     }
     sum += label * sample_weights[index];
     if (!std::isfinite(sum)) {
-      throw TrainingError("标签累计发生浮点溢出");
+      throw TrainingError("Label accumulation overflowed");
     }
   }
   return sum / total_weight;
@@ -231,7 +232,7 @@ RegressionModel TrainRegressionModel(
     const HistogramBuilder& histogram_builder) {
   ValidateTrainingParameters(parameters);
   if (dataset.rows() != labels.size() || dataset.max_bins() != parameters.max_bins) {
-    throw TrainingError("训练数据、标签或 max_bins 契约不一致");
+    throw TrainingError("Training data, labels, or max_bins contract does not match");
   }
   ValidateWeightsAndTotal(labels, sample_weights);
 
@@ -256,7 +257,7 @@ RegressionModel TrainRegressionModel(
     for (std::size_t row = 0; row < predictions.size(); ++row) {
       predictions[row] += parameters.learning_rate * update[row];
       if (!std::isfinite(predictions[row])) {
-        throw TrainingError("Boosting prediction update 发生浮点溢出");
+        throw TrainingError("Boosting prediction update overflowed");
       }
     }
     model.trees_.push_back(std::move(tree));
@@ -268,7 +269,7 @@ std::vector<double> RegressionModel::Predict(const BinnedDataset& dataset) const
   if (dataset.features() != schema_.features() ||
       dataset.max_bins() != schema_.max_bins() ||
       dataset.boundaries() != schema_.boundaries()) {
-    throw TrainingError("预测数据未使用模型冻结的分箱 schema");
+    throw TrainingError("Prediction data does not use the model's frozen binned schema");
   }
   std::vector<double> result(static_cast<std::size_t>(dataset.rows()), base_score_);
   for (const RegressionTree& tree : trees_) {
@@ -289,7 +290,7 @@ RegressionModel RegressionModel::Restore(QuantizationSchema schema,
                                          std::vector<RegressionTree> trees) {
   if (!std::isfinite(base_score) || !std::isfinite(learning_rate) ||
       learning_rate <= 0.0 || learning_rate > 1.0 || trees.empty()) {
-    throw TrainingError("模型 base score、learning rate 或树数量不合法");
+    throw TrainingError("Model base score, learning rate, or tree count is invalid");
   }
   if (!std::isfinite(objective_alpha) || objective_alpha <= 0.0 ||
       objective_alpha >= 1.0) {
@@ -301,13 +302,13 @@ RegressionModel RegressionModel::Restore(QuantizationSchema schema,
   }
   for (const RegressionTree& tree : trees) {
     if (tree.feature_count() != schema.features()) {
-      throw TrainingError("模型树特征数与分箱 schema 不一致");
+      throw TrainingError("Model tree feature count does not match the binned schema");
     }
     for (const TreeNode& node : tree.nodes()) {
       if (!node.IsLeaf() &&
           node.threshold_bin >=
               schema.feature_metadata()[node.feature_index].bin_count - 1) {
-        throw TrainingError("模型树切分阈值超出特征分箱范围");
+        throw TrainingError("Model tree split threshold exceeds the feature bin range");
       }
       if (node.IsLeaf() && !node.default_left) {
         throw TrainingError("model leaf nodes must keep default_left true");

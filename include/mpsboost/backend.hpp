@@ -1,7 +1,8 @@
-// MPSBoost 计算后端的最小稳定契约。
+// MPSBoost minimal stable compute-backend contract.
 //
-// 本文件只声明设备无关 POD 数据和后端入口，不暴露 Objective-C/Metal 类型。训练核心
-// 将依赖此类抽象而不是具体设备对象，以满足依赖倒置并保持 CPU oracle 可独立实现。
+// This file declares only device-independent POD data and backend entries, exposing
+// no Objective-C/Metal types. The training core depends on these abstractions rather
+// than concrete devices, preserving dependency inversion and an independent CPU oracle.
 #pragma once
 
 #include <cstdint>
@@ -16,15 +17,16 @@
 
 namespace mpsboost {
 
-// 后端执行失败的统一异常。设备层必须保留具体阶段信息，但不能让 Python 用户只看到
-// 无上下文的原生错误码。
+// Unified exception for backend execution failures. Device layers retain stage
+// context rather than exposing Python users to uncontextualized native error codes.
 class BackendError final : public std::runtime_error {
  public:
   using std::runtime_error::runtime_error;
 };
 
-// 可安全返回给用户的设备能力摘要。这里故意不包含路径、用户名或可用于遥测的持久
-// 标识，只提供判断能否运行和估算内存所需的信息。
+// Device capability summary safe to return to users. It intentionally excludes
+// paths, usernames, and persistent identifiers usable for telemetry, providing
+// only information needed to decide availability and estimate memory.
 struct BackendInfo final {
   bool available{false};
   std::string device_name;
@@ -32,8 +34,9 @@ struct BackendInfo final {
   bool has_unified_memory{false};
 };
 
-// 单个特征 bin 的确定性二阶统计。count 使用无符号 64 位计数，G/H 使用 FP64，
-// 以便 CPU oracle 为后续设备 kernel 提供不依赖累计顺序的高精度对照。
+// Deterministic second-order statistics for one feature bin. count uses unsigned
+// 64-bit counting and G/H use FP64 so the CPU oracle provides a high-precision
+// reference for device kernels independent of accumulation order.
 struct HistogramBin final {
   std::uint64_t count{0};
   double gradient_sum{0.0};
@@ -43,8 +46,9 @@ struct HistogramBin final {
 using FeatureHistogram = std::vector<HistogramBin>;
 using NodeHistograms = std::vector<FeatureHistogram>;
 
-// 目标函数设备执行的最小接口。训练状态机只请求数学结果，不知道 gradient 是由 CPU
-// oracle 还是 Metal kernel 产生，从而让设备选择保持在应用装配层。
+// Minimal interface for device objective execution. The training state machine
+// requests only mathematical results and does not know whether gradients come from
+// the CPU oracle or a Metal kernel, keeping device selection in application wiring.
 class GradientComputer {
  public:
   virtual ~GradientComputer() = default;
@@ -53,22 +57,25 @@ class GradientComputer {
       const std::vector<double>& predictions) const = 0;
 };
 
-// 训练核心当前只依赖 histogram 能力，避免为了未来方法建立臃肿后端接口。S4 的
-// MPS 实现和本 CPU oracle 必须实现同一最小契约，后续能力通过接口隔离继续扩展。
+// The training core currently depends only on histogram capability, avoiding an
+// oversized backend interface for future methods. The S4 MPS implementation and
+// CPU oracle must implement the same minimal contract; later capabilities extend it
+// through interface segregation.
 class HistogramBuilder {
  public:
   virtual ~HistogramBuilder() = default;
 
-  // 为指定节点的行集合构建全部特征 histogram。实现不得改变 rows 顺序或保存任何
-  // 借用指针；返回形状必须与数据集特征及各自 bin_count 完全一致。
+  // Build histograms for all features over a selected node's rows. Implementations
+  // must not reorder rows or retain borrowed pointers; result shape must exactly
+  // match dataset features and their bin_count values.
   virtual NodeHistograms BuildHistograms(
       const BinnedDataset& dataset,
       const std::vector<std::uint64_t>& rows,
       const std::vector<GradientPair>& gradients) const = 0;
 };
 
-// 唯一 CPU histogram oracle。它只实现计算能力，不包含树生长、split 选择或参数
-// 语义，从而避免 CPU 与 MPS 各维护一套训练控制流。
+// Sole CPU histogram oracle. It implements computation only, not tree growth,
+// split selection, or parameter semantics, preventing separate CPU and MPS control flows.
 class CpuReferenceBackend final : public GradientComputer,
                                   public HistogramBuilder {
  public:
@@ -82,8 +89,9 @@ class CpuReferenceBackend final : public GradientComputer,
       const std::vector<GradientPair>& gradients) const override;
 };
 
-// 最近一次同步设备工作的非敏感耗时。它只用于诊断和 benchmark，不参与训练结果、
-// cache key 或调度决策，避免测量逻辑反向影响正确性。
+// Non-sensitive timing for the latest synchronized device work. It is for
+// diagnostics and benchmarks only and never affects training results, cache keys,
+// or scheduling decisions.
 struct BackendTiming final {
   double gradient_seconds{0.0};
   double histogram_encode_seconds{0.0};
@@ -94,8 +102,9 @@ struct BackendTiming final {
   std::uint64_t pooled_buffer_allocation_count{0};
 };
 
-// 单个 feature 的 GPU split scan 候选。该结构只承载设备侧扫描结果；训练核心仍会
-// 按唯一 FP64 规则完成最终 split 验证，避免并行累计顺序改变模型语义。
+// GPU split-scan candidate for one feature. This structure carries only device scan
+// results; the training core still validates the final split under unique FP64 rules,
+// preventing parallel accumulation order from changing model semantics.
 struct SplitScanCandidate final {
   bool valid{false};
   std::uint32_t feature{0};
@@ -109,22 +118,25 @@ struct SplitScanCandidate final {
   double gain{0.0};
 };
 
-// 可选的按层 histogram 能力。训练核心通过 dynamic_cast 探测该窄接口；不支持的后端
-// 自动使用既有逐节点 HistogramBuilder，因此不会产生第二套训练语义。
+// Optional layer-wise histogram capability. The training core detects this narrow
+// interface with dynamic_cast; unsupported backends use the existing per-node
+// HistogramBuilder, so no second training semantic path exists.
 class LayerHistogramBuilder {
  public:
   virtual ~LayerHistogramBuilder() = default;
 
-  // 为同一层多个活跃节点构建 histogram。每个输入节点独立返回 NodeHistograms，顺序
-  // 必须与 node_rows 一致；实现可以把节点批量编码到 GPU，但不得改变行集合内容。
+  // Build histograms for multiple active nodes in one layer. Each input node returns
+  // independent NodeHistograms in node_rows order; implementations may batch GPU
+  // encoding but must not change row-set contents.
   virtual std::vector<NodeHistograms> BuildLayerHistograms(
       const BinnedDataset& dataset,
       const std::vector<std::vector<std::uint64_t>>& node_rows,
       const std::vector<GradientPair>& gradients) const = 0;
 };
 
-// 真实 MPS 计算后端。Objective-C/Metal 对象全部隐藏在 Impl 中，稳定 C++ 头文件不
-// 暴露平台类型；对象不可复制，但可在单个训练会话中重复使用 pipeline 和 command queue。
+// Real MPS compute backend. Objective-C/Metal objects remain hidden in Impl so this
+// stable C++ header exposes no platform types. Objects are non-copyable but can reuse
+// pipeline and command queue within one training session.
 class MpsBackend final : public GradientComputer,
                          public HistogramBuilder,
                          public LayerHistogramBuilder {
@@ -149,8 +161,9 @@ class MpsBackend final : public GradientComputer,
       const std::vector<GradientPair>& gradients) const override;
   BackendTiming last_timing() const noexcept;
 
-  // 复用同一 context/pipeline/command 实现验证 wheel 的最小 GPU 链路。该方法只由
-  // 内部测试绑定调用，不属于 Python 公共数值 API。
+  // Reuse the same context/pipeline/command implementation to validate the wheel's
+  // minimal GPU pipeline. Only internal test bindings call this method; it is not a
+  // public Python numerical API.
   std::vector<float> RunVectorAddForTest(const std::vector<float>& left,
                                          const std::vector<float>& right) const;
   NodeHistograms BuildBaselineHistogramsForTest(
@@ -181,12 +194,14 @@ class MpsBackend final : public GradientComputer,
   std::unique_ptr<Impl> impl_;
 };
 
-// 查询默认 Metal 设备。无设备属于正常的“不可用”状态，不抛异常；运行时初始化失败
-// 才抛 BackendError，从而让 is_available() 与真正故障保持不同语义。
+// Query the default Metal device. No device is a normal unavailable state and does
+// not throw; only runtime initialization failure raises BackendError, keeping
+// is_available() distinct from real faults.
 BackendInfo QueryBackendInfo();
 
-// 在真实 GPU 上执行逐元素加法，用于验证 shader、pipeline、buffer、command 和同步整条
-// 链路。该入口仅用于后端集成测试，不是公共数值 API。
+// Add vectors element by element on a real GPU to validate the full shader,
+// pipeline, buffer, command, and synchronization path. This entry is only for
+// backend integration tests, not a public numerical API.
 std::vector<float> RunVectorAdd(const std::vector<float>& left,
                                 const std::vector<float>& right,
                                 const std::string& metallib_path);

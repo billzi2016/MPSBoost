@@ -1,7 +1,8 @@
-"""缓存删除与损坏不影响训练结果的集成测试。
+"""Integration tests ensuring cache deletion and corruption do not affect training.
 
-当前生产训练路径不依赖 L2 磁盘缓存。本测试固定这一契约：即使缓存被创建、损坏或删除，
-显式 CPU oracle 训练仍必须得到相同预测，后续 MPS 缓存接入也必须保持同一语义。
+The production training path does not depend on L2 disk cache. This test freezes
+that contract: explicit CPU-oracle training yields identical predictions even when
+caches are created, corrupted, or deleted.
 """
 
 import numpy as np
@@ -11,7 +12,7 @@ from mpsboost._cache import CacheKey, clear_cache, write_cache_bytes
 
 
 def test_l2_cache_deletion_does_not_change_training_result(tmp_path, monkeypatch):
-    """删除全部 L2 缓存后，训练输出必须保持一致。"""
+    """Training output must remain identical after deleting all L2 cache."""
 
     monkeypatch.setenv("MPSBOOST_CACHE_DIR", str(tmp_path / "cache"))
     X = np.arange(64, dtype=np.float32).reshape(32, 2)

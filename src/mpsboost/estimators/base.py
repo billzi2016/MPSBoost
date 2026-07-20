@@ -132,7 +132,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
 
         unknown = sorted(set(parameters) - set(self._PARAMETER_NAMES))
         if unknown:
-            raise ValueError(f"未知参数：{', '.join(unknown)}")
+            raise ValueError(f"Unknown parameter(s): {', '.join(unknown)}")
         for name, value in parameters.items():
             setattr(self, name, value)
         if parameters:
@@ -152,7 +152,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         """
 
         if not self._fit_lock.acquire(blocking=False):
-            raise RuntimeError("同一 estimator 不支持并发 fit")
+            raise RuntimeError("Concurrent fit calls on the same estimator are not supported")
         try:
             self._validate_parameters()
             raw_rows = np.asarray(X).shape[0]

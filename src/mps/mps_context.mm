@@ -26,7 +26,7 @@ std::size_t CheckedBytes(std::size_t count,
                          std::size_t item_size,
                          const char* field) {
   if (item_size != 0 && count > std::numeric_limits<std::size_t>::max() / item_size) {
-    throw BackendError(std::string(field) + "：字节数计算溢出");
+    throw BackendError(std::string(field) + ": byte-count calculation overflow");
   }
   return count * item_size;
 }
@@ -35,14 +35,14 @@ std::size_t CheckedAddBytes(std::size_t left,
                             std::size_t right,
                             const char* field) {
   if (right > std::numeric_limits<std::size_t>::max() - left) {
-    throw BackendError(std::string(field) + "：工作区字节数溢出");
+    throw BackendError(std::string(field) + ": workspace byte-count overflow");
   }
   return left + right;
 }
 
 std::uint32_t CheckedUInt32(std::uint64_t value, const char* field) {
   if (value > std::numeric_limits<std::uint32_t>::max()) {
-    throw BackendError(std::string(field) + " 超出当前 GPU ABI 的 uint32 范围");
+    throw BackendError(std::string(field) + " exceeds the uint32 range of the current GPU ABI");
   }
   return static_cast<std::uint32_t>(value);
 }
@@ -51,7 +51,7 @@ float CheckedFloat(double value, const char* field) {
   if (!std::isfinite(value) ||
       value > static_cast<double>(std::numeric_limits<float>::max()) ||
       value < -static_cast<double>(std::numeric_limits<float>::max())) {
-    throw BackendError(std::string(field) + " 无法安全转换为 GPU float32");
+    throw BackendError(std::string(field) + " cannot be safely converted to GPU float32");
   }
   return static_cast<float>(value);
 }
@@ -73,7 +73,7 @@ std::vector<std::uint32_t> MakeRowsU32(const std::vector<std::uint64_t>& rows,
   for (std::size_t index = 0; index < rows.size(); ++index) {
     rows_u32[index] = CheckedUInt32(rows[index], context);
     if (rows_u32[index] >= dataset_rows) {
-      throw TrainingError("GPU 行索引越界");
+      throw TrainingError("GPU row index is out of bounds");
     }
   }
   return rows_u32;
@@ -83,14 +83,14 @@ std::vector<float> MakeGradientValues(
     const BinnedDataset& dataset,
     const std::vector<GradientPair>& gradients) {
   if (dataset.rows() != gradients.size()) {
-    throw TrainingError("Gradient 数量与分箱数据行数不一致");
+    throw TrainingError("Gradient count does not match binned dataset row count");
   }
   std::vector<float> gradient_values(gradients.size() * 2);
   for (std::size_t index = 0; index < gradients.size(); ++index) {
     gradient_values[index * 2] = CheckedFloat(gradients[index].gradient, "Gradient");
     gradient_values[index * 2 + 1] = CheckedFloat(gradients[index].hessian, "Hessian");
     if (gradient_values[index * 2 + 1] < 0.0F) {
-      throw TrainingError("Hessian 必须非负");
+      throw TrainingError("Hessian must be non-negative");
     }
   }
   return gradient_values;
@@ -111,7 +111,7 @@ void BuildHistogramLayout(const BinnedDataset& dataset,
     const std::uint32_t bin_count = dataset.feature_metadata()[feature].bin_count;
     if (cell_features->size() >
         std::numeric_limits<std::uint32_t>::max() - bin_count) {
-      throw BackendError("Histogram cell 数量溢出");
+      throw BackendError("Histogram cell count overflow");
     }
     feature_offsets->push_back(
         CheckedUInt32(cell_features->size(), "Histogram feature offset"));
@@ -148,21 +148,21 @@ MpsBackend::Impl::Impl(const std::string& metallib_path) {
     @autoreleasepool {
       device_ = MTLCreateSystemDefaultDevice();
       if (device_ == nil) {
-        throw BackendError("MPS 后端不可用：系统没有返回默认 Metal 设备");
+        throw BackendError("MPS backend is unavailable: the system did not return a default Metal device");
       }
       NSString* path = [NSString stringWithUTF8String:metallib_path.c_str()];
       if (path == nil || ![[NSFileManager defaultManager] fileExistsAtPath:path]) {
-        throw BackendError("MPS shader library 不存在或路径不是有效 UTF-8");
+        throw BackendError("MPS shader library does not exist or its path is not valid UTF-8");
       }
       NSError* error = nil;
       library_ = [device_ newLibraryWithURL:[NSURL fileURLWithPath:path isDirectory:NO]
                                       error:&error];
       if (library_ == nil) {
-        throw BackendError(DescribeError("加载 MPS shader library 失败", error));
+        throw BackendError(DescribeError("Failed to load MPS shader library", error));
       }
       queue_ = [device_ newCommandQueue];
       if (queue_ == nil) {
-        throw BackendError("创建 MPS command queue 失败");
+        throw BackendError("Failed to create MPS command queue");
       }
       vector_add_ = MakePipeline(@"vector_add");
       gradients_ = MakePipeline(@"squared_error_gradients");
@@ -180,7 +180,7 @@ MpsBackend::Impl::Impl(const std::string& metallib_path) {
 id<MTLComputePipelineState> MpsBackend::Impl::MakePipeline(NSString* name) {
     id<MTLFunction> function = [library_ newFunctionWithName:name];
     if (function == nil) {
-      throw BackendError("MPS shader library 缺少 kernel：" +
+      throw BackendError("MPS shader library is missing kernel: " +
                          std::string([name UTF8String]));
     }
     NSError* error = nil;
@@ -188,7 +188,7 @@ id<MTLComputePipelineState> MpsBackend::Impl::MakePipeline(NSString* name) {
         [device_ newComputePipelineStateWithFunction:function
                                                error:&error];
     if (pipeline == nil) {
-      throw BackendError(DescribeError("创建 MPS compute pipeline 失败", error));
+      throw BackendError(DescribeError("Failed to create MPS compute pipeline", error));
     }
     return pipeline;
   }
@@ -203,7 +203,7 @@ id<MTLBuffer> MpsBackend::Impl::NewBuffer(const void* bytes,
                                                       length:length
                                                      options:MTLResourceStorageModeShared];
     if (buffer == nil) {
-      throw BackendError(std::string("分配 MPS buffer 失败：") + field);
+      throw BackendError(std::string("Failed to allocate MPS buffer: ") + field);
     }
     return buffer;
   }
@@ -224,8 +224,9 @@ void MpsBackend::Impl::ReturnScratchBuffer(id<MTLBuffer> buffer) const {
     if (buffer == nil) {
       return;
     }
-    // L1 buffer pool 只复用临时输出/partial 工作区；输入数据 buffer 仍由调用点明确
-    // 拥有，避免把可变训练数据跨节点或跨 estimator 意外共享。
+    // The L1 buffer pool reuses only temporary output/partial workspace. Call sites
+    // retain explicit ownership of input buffers to prevent mutable training data
+    // from being shared accidentally across nodes or estimators.
     pooled_buffers_.emplace(static_cast<std::size_t>([buffer length]), buffer);
   }
 
@@ -237,14 +238,14 @@ void MpsBackend::Impl::ValidateWorkingSet(std::initializer_list<std::size_t> len
     const std::uint64_t recommended =
         static_cast<std::uint64_t>([device_ recommendedMaxWorkingSetSize]);
     if (recommended != 0 && total > recommended) {
-      throw BackendError("MPS 工作区超过设备建议上限；请减少行数、特征数或 max_bins");
+      throw BackendError("MPS workspace exceeds the device-recommended limit; reduce rows, features, or max_bins");
     }
   }
 
 id<MTLCommandBuffer> MpsBackend::Impl::NewCommand(const char* stage) const {
     id<MTLCommandBuffer> command = [queue_ commandBuffer];
     if (command == nil) {
-      throw BackendError(std::string("创建 MPS command buffer 失败：") + stage);
+      throw BackendError(std::string("Failed to create MPS command buffer: ") + stage);
     }
     return command;
   }

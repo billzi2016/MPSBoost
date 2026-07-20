@@ -65,7 +65,7 @@ class Reader final {
     Float value = 0;
     std::memcpy(&value, &bits, sizeof(value));
     if (!std::isfinite(value)) {
-      throw TrainingError(std::string("模型浮点字段不是有限值：") + field);
+      throw TrainingError(std::string("Model floating-point field is not finite: ") + field);
     }
     return value;
   }
@@ -75,7 +75,7 @@ class Reader final {
  private:
   void Require(std::size_t count, const char* field) {
     if (count > size_ - position_) {
-      throw TrainingError(std::string("模型数据截断：") + field);
+      throw TrainingError(std::string("Model data is truncated: ") + field);
     }
   }
 

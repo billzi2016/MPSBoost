@@ -121,20 +121,20 @@ RegressionTree TrainLevelWiseRegressionTree(
           BuildPendingChildHistograms(dataset, pending_child_histograms, gradients,
                                       histogram_builder);
       if (built_child_histograms.size() != pending_child_histograms.size()) {
-        throw TrainingError("Histogram subtraction 子节点数量不一致");
+        throw TrainingError("Histogram subtraction child count does not match");
       }
       for (std::size_t index = 0; index < pending_child_histograms.size();
            ++index) {
         const PendingChildHistogram& pending = pending_child_histograms[index];
         if (pending.next_layer_index >= next_layer.size()) {
-          throw TrainingError("Histogram subtraction 子节点索引越界");
+          throw TrainingError("Histogram subtraction child index is out of bounds");
         }
         next_layer[pending.next_layer_index].cached_histograms =
             built_child_histograms[index];
         const std::size_t sibling_index =
             pending.next_layer_index ^ std::size_t{1};
         if (sibling_index >= next_layer.size()) {
-          throw TrainingError("Histogram subtraction 兄弟节点索引越界");
+          throw TrainingError("Histogram subtraction sibling index is out of bounds");
         }
         next_layer[sibling_index].cached_histograms =
             SubtractHistograms(pending.parent_histograms,
@@ -165,7 +165,7 @@ RegressionTree TrainSingleRegressionTree(
   }
   ValidateInteractionConstraints(parameters, dataset.features());
   if (dataset.rows() != static_cast<std::uint64_t>(gradients.size())) {
-    throw TrainingError("Gradient 数量与分箱数据行数不一致");
+    throw TrainingError("Gradient count does not match binned dataset row count");
   }
   if (parameters.growth_strategy ==
       TreeTrainingParameters::GrowthStrategy::kLeafWise) {
@@ -178,10 +178,10 @@ RegressionTree TrainSingleRegressionTree(
 
 std::vector<double> RegressionTree::Predict(const BinnedDataset& dataset) const {
   if (nodes_.empty()) {
-    throw TrainingError("树模型没有根节点");
+    throw TrainingError("Tree model has no root node");
   }
   if (dataset.features() != feature_count_) {
-    throw TrainingError("预测特征数量与树模型不一致");
+    throw TrainingError("Prediction feature count does not match the tree model");
   }
 
   std::vector<double> predictions(static_cast<std::size_t>(dataset.rows()));
@@ -190,18 +190,18 @@ std::vector<double> RegressionTree::Predict(const BinnedDataset& dataset) const 
     std::size_t visited = 0;
     while (true) {
       if (node_index >= nodes_.size() || ++visited > nodes_.size()) {
-        throw TrainingError("树节点索引越界或结构包含环");
+        throw TrainingError("Tree node index is out of bounds or the structure contains a cycle");
       }
       const TreeNode& node = nodes_[node_index];
       if (node.IsLeaf()) {
         if (!std::isfinite(node.leaf_value)) {
-          throw TrainingError("树叶值不是有限数");
+          throw TrainingError("Tree leaf value is not finite");
         }
         predictions[static_cast<std::size_t>(row)] = node.leaf_value;
         break;
       }
       if (node.feature_index >= feature_count_) {
-        throw TrainingError("树分支特征索引越界");
+        throw TrainingError("Tree branch feature index is out of bounds");
       }
       const bool goes_left =
           dataset.IsMissing(row, node.feature_index)

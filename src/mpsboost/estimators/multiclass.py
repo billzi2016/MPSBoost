@@ -245,7 +245,7 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
 
         acquired = self._fit_lock.acquire(blocking=False)
         if not acquired:
-            raise RuntimeError("模型训练或加载正在进行")
+            raise RuntimeError("Model training or loading is already in progress")
         try:
             try:
                 candidate = _native._load_multiclass_model(str(path))

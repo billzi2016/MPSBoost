@@ -121,19 +121,19 @@ NodeStatistics SumRows(const std::vector<std::uint64_t>& rows,
   NodeStatistics result;
   for (const std::uint64_t row : rows) {
     if (row >= gradients.size()) {
-      throw TrainingError("节点统计行索引越界");
+      throw TrainingError("Node-statistics row index is out of bounds");
     }
     const GradientPair& pair = gradients[static_cast<std::size_t>(row)];
     if (!std::isfinite(pair.gradient) || !std::isfinite(pair.hessian) ||
         pair.hessian < 0.0) {
-      throw TrainingError("Gradient/Hessian 必须有限且 Hessian 非负");
+      throw TrainingError("Gradient/Hessian must be finite and Hessian non-negative");
     }
     ++result.count;
     result.gradient_sum += pair.gradient;
     result.hessian_sum += pair.hessian;
     if (!std::isfinite(result.gradient_sum) ||
         !std::isfinite(result.hessian_sum)) {
-      throw TrainingError("节点 FP64 统计发生溢出");
+      throw TrainingError("Node FP64 statistics overflowed");
     }
   }
   return result;
@@ -150,7 +150,7 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                              const TreeTrainingParameters& parameters,
                              const std::vector<FeatureMissingStatistics>& missing) {
   if (histograms.size() != dataset.features()) {
-    throw TrainingError("Histogram 特征数量与数据集不一致");
+    throw TrainingError("Histogram feature count does not match the dataset");
   }
   if (missing.size() != dataset.features()) {
     throw TrainingError("missing statistics feature count mismatch");
@@ -162,22 +162,22 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
     }
     const FeatureHistogram& bins = histograms[feature];
     if (bins.size() != dataset.feature_metadata()[feature].bin_count) {
-      throw TrainingError("Histogram bin 数量与特征元数据不一致");
+      throw TrainingError("Histogram bin count does not match feature metadata");
     }
     std::uint64_t histogram_count = 0;
     for (const HistogramBin& bin : bins) {
       if (bin.count >
           std::numeric_limits<std::uint64_t>::max() - histogram_count) {
-        throw TrainingError("Histogram 样本计数溢出");
+        throw TrainingError("Histogram sample count overflowed");
       }
       histogram_count += bin.count;
       if (!std::isfinite(bin.gradient_sum) ||
           !std::isfinite(bin.hessian_sum) || bin.hessian_sum < 0.0) {
-        throw TrainingError("Histogram G/H 必须有限且 Hessian 非负");
+        throw TrainingError("Histogram G/H must be finite and Hessian non-negative");
       }
     }
     if (histogram_count != parent.count) {
-      throw TrainingError("Histogram 样本计数与节点统计不一致");
+      throw TrainingError("Histogram sample count does not match node statistics");
     }
     if (bins.size() < 2) {
       continue;
@@ -206,7 +206,7 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
       left.hessian_sum += bin_hessian;
       if (!std::isfinite(left.gradient_sum) ||
           !std::isfinite(left.hessian_sum)) {
-        throw TrainingError("Histogram 前缀累计发生浮点溢出");
+        throw TrainingError("Histogram prefix accumulation overflowed");
       }
       const NodeStatistics right = SubtractStatistics(non_missing_parent, left);
       if (left.count > non_missing_parent.count) {
@@ -239,7 +239,7 @@ PreparedSplit PrepareSplitRows(const BinnedDataset& dataset,
                                const std::vector<GradientPair>& gradients,
                                const TreeTrainingParameters& parameters) {
   if (histograms.size() != dataset.features()) {
-    throw TrainingError("Histogram 特征数量与数据集不一致");
+    throw TrainingError("Histogram feature count does not match the dataset");
   }
   std::vector<FeatureMissingStatistics> missing(dataset.features());
   for (std::uint32_t feature = 0; feature < dataset.features(); ++feature) {
@@ -285,7 +285,7 @@ PreparedSplit PrepareSplitRows(const BinnedDataset& dataset,
   }
   if (prepared.left_rows.size() != split.left.count ||
       prepared.right_rows.size() != split.right.count) {
-    throw TrainingError("样本分区数量与 histogram 统计不一致");
+    throw TrainingError("Sample partition counts do not match histogram statistics");
   }
   return prepared;
 }

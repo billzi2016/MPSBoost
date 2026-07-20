@@ -15,22 +15,22 @@ namespace {
 
 void RequireFinite(double value, const char* field) {
   if (!std::isfinite(value)) {
-    throw TrainingError(std::string(field) + " 必须是有限值");
+    throw TrainingError(std::string(field) + " must be finite");
   }
 }
 
 double ValidatedDenominator(double hessian_sum, double reg_lambda) {
-  RequireFinite(hessian_sum, "Hessian 和");
+  RequireFinite(hessian_sum, "Hessian sum");
   RequireFinite(reg_lambda, "reg_lambda");
   if (hessian_sum < 0.0) {
-    throw TrainingError("Hessian 和不能为负数");
+    throw TrainingError("Hessian sum cannot be negative");
   }
   if (reg_lambda < 0.0) {
-    throw TrainingError("reg_lambda 不能为负数");
+    throw TrainingError("reg_lambda cannot be negative");
   }
   const double denominator = hessian_sum + reg_lambda;
   if (!std::isfinite(denominator) || denominator <= 0.0) {
-    throw TrainingError("Hessian 和与 reg_lambda 之和必须是有限正数");
+    throw TrainingError("Hessian sum plus reg_lambda must be finite and positive");
   }
   return denominator;
 }
@@ -38,19 +38,19 @@ double ValidatedDenominator(double hessian_sum, double reg_lambda) {
 void RequireSameNonEmptyLength(const std::vector<double>& labels,
                                const std::vector<double>& predictions) {
   if (labels.empty()) {
-    throw TrainingError("标签不能为空");
+    throw TrainingError("Labels must not be empty");
   }
   if (labels.size() != predictions.size()) {
-    throw TrainingError("标签与预测长度不一致");
+    throw TrainingError("Label and prediction lengths do not match");
   }
 }
 
 double RequireBinaryLabel(double label) {
-  RequireFinite(label, "标签");
+  RequireFinite(label, "label");
   if (label == 0.0 || label == 1.0) {
     return label;
   }
-  throw TrainingError("二分类 logistic 标签必须是 0 或 1");
+  throw TrainingError("Binary logistic labels must be 0 or 1");
 }
 
 void RequireNonNegativeLabel(double label, const char* objective) {
@@ -73,7 +73,7 @@ double SafeExp(double value, const char* field) {
 }
 
 double SoftThresholdGradient(double gradient_sum, double reg_alpha) {
-  RequireFinite(gradient_sum, "Gradient 和");
+  RequireFinite(gradient_sum, "Gradient sum");
   RequireFinite(reg_alpha, "reg_alpha");
   if (reg_alpha < 0.0) {
     throw TrainingError("reg_alpha cannot be negative");
@@ -106,11 +106,11 @@ std::vector<GradientPair> ComputeSquaredErrorGradients(
   std::vector<GradientPair> result;
   result.reserve(labels.size());
   for (std::size_t index = 0; index < labels.size(); ++index) {
-    RequireFinite(labels[index], "标签");
-    RequireFinite(predictions[index], "预测");
+    RequireFinite(labels[index], "label");
+    RequireFinite(predictions[index], "prediction");
     const double gradient = predictions[index] - labels[index];
     if (!std::isfinite(gradient)) {
-      throw TrainingError("平方误差 gradient 发生浮点溢出");
+      throw TrainingError("Squared-error gradient overflowed");
     }
     result.push_back(GradientPair{gradient, 1.0});
   }
@@ -164,7 +164,7 @@ std::vector<GradientPair> ComputeBinaryLogisticGradients(
     const double gradient = probability - label;
     const double hessian = probability * (1.0 - probability);
     if (!std::isfinite(gradient) || !std::isfinite(hessian) || hessian < 0.0) {
-      throw TrainingError("二分类 logistic gradient/Hessian 发生浮点溢出");
+      throw TrainingError("Binary logistic gradient/Hessian overflowed");
     }
     result.push_back(GradientPair{gradient, hessian});
   }
@@ -295,7 +295,7 @@ double NodeScore(double gradient_sum,
   const double denominator = ValidatedDenominator(hessian_sum, reg_lambda);
   const double score = regularized_gradient * regularized_gradient / denominator;
   if (!std::isfinite(score)) {
-    throw TrainingError("节点分数发生浮点溢出");
+    throw TrainingError("Node score overflowed");
   }
   return score;
 }
@@ -312,7 +312,7 @@ double LeafWeight(double gradient_sum,
                          ValidatedDenominator(hessian_sum, reg_lambda),
                      max_delta_step);
   if (!std::isfinite(weight)) {
-    throw TrainingError("叶值发生浮点溢出");
+    throw TrainingError("Leaf value overflowed");
   }
   return weight;
 }
@@ -326,19 +326,20 @@ double SplitGain(double left_gradient,
                  double gamma) {
   RequireFinite(gamma, "gamma");
   if (gamma < 0.0) {
-    throw TrainingError("gamma 不能为负数");
+    throw TrainingError("gamma cannot be negative");
   }
-  // lambda 可以让零 Hessian 的分母在数值上非零，但空子节点并不是合法 split。
-  // 在唯一数学入口拒绝它，避免后端或测试绕过树控制流后得到看似有效的增益。
-  RequireFinite(left_hessian, "左子节点 Hessian 和");
-  RequireFinite(right_hessian, "右子节点 Hessian 和");
+  // lambda can make a zero-Hessian denominator nonzero numerically, but an empty
+  // child is not a valid split. Reject it here so backends and tests cannot bypass
+  // tree control flow and obtain an apparently valid gain.
+  RequireFinite(left_hessian, "left child Hessian sum");
+  RequireFinite(right_hessian, "right child Hessian sum");
   if (left_hessian <= 0.0 || right_hessian <= 0.0) {
-    throw TrainingError("切分左右子节点 Hessian 和必须严格为正");
+    throw TrainingError("Split child Hessian sums must be strictly positive");
   }
   const double parent_gradient = left_gradient + right_gradient;
   const double parent_hessian = left_hessian + right_hessian;
   if (!std::isfinite(parent_gradient) || !std::isfinite(parent_hessian)) {
-    throw TrainingError("父节点统计发生浮点溢出");
+    throw TrainingError("Parent node statistics overflowed");
   }
   const double gain = 0.5 *
                           (NodeScore(left_gradient, left_hessian, reg_lambda,
@@ -349,7 +350,7 @@ double SplitGain(double left_gradient,
                                      reg_alpha)) -
                       gamma;
   if (!std::isfinite(gain)) {
-    throw TrainingError("切分增益发生浮点溢出");
+    throw TrainingError("Split gain overflowed");
   }
   return gain;
 }

@@ -1,7 +1,8 @@
-"""Python estimator 到真实 MPS 训练与模型预测的端到端测试。
+"""End-to-end tests from Python estimators to real MPS training and prediction.
 
-该文件必须在自托管 Apple Silicon 真实设备运行，覆盖 Python→量化→GPU gradient/
-histogram→多轮树→预测完整链路；禁止 mock、CPU 回退或只验证内部 kernel。
+This file runs on self-hosted Apple Silicon hardware, covering Python to quantization
+to GPU gradient/histogram to multi-round trees to prediction. Mocks, CPU fallback,
+and internal-kernel-only checks are forbidden.
 """
 
 import numpy as np
@@ -13,7 +14,7 @@ pytestmark = pytest.mark.gpu
 
 
 def test_real_mps_regressor_matches_cpu_model_on_stable_dataset():
-    """同一冻结语义下，MPS 与 CPU oracle 的结构效果和预测应在累计容差内一致。"""
+    """Under frozen semantics, MPS and CPU oracle structure and predictions agree within tolerance."""
 
     X = np.arange(128, dtype=np.float32).reshape(64, 2)
     y = np.where(X[:, 0] < 64, -1.0, 2.0).astype(np.float64)

@@ -1,7 +1,8 @@
-// MPSBoost 单树领域模型与设备无关训练契约。
+// MPSBoost single-tree domain model and device-independent training contract.
 //
-// 职责：定义紧凑扁平节点、唯一按层生长入口和确定性预测。实现只消费分箱数据、
-// gradient/Hessian 与 histogram 抽象，不依赖 Python、Metal、缓存或文件系统。
+// Responsibility: defines compact flat nodes, the sole level-wise growth entry,
+// and deterministic prediction. Implementations consume only binned data,
+// gradient/Hessian, and histogram abstractions, not Python, Metal, caches, or files.
 #pragma once
 
 #include <cstdint>
@@ -24,8 +25,9 @@ constexpr std::uint32_t kInvalidNodeIndex =
     std::numeric_limits<std::uint32_t>::max();
 constexpr std::uint8_t kTreeNodeLeafFlag = 1U;
 
-// 扁平树节点。分支使用 feature_index/threshold_bin/children/gain；叶节点只使用
-// leaf_value。flags 明确区分叶子，禁止用 NaN、负索引等特殊值编码节点类型。
+// Flat tree node. Branches use feature_index/threshold_bin/children/gain; leaves
+// use only leaf_value. flags explicitly identify leaves; do not encode node type
+// with special values such as NaN or negative indices.
 struct TreeNode final {
   std::uint32_t feature_index{0};
   std::uint32_t threshold_bin{0};
@@ -39,8 +41,9 @@ struct TreeNode final {
   bool IsLeaf() const noexcept { return (flags & kTreeNodeLeafFlag) != 0; }
 };
 
-// 单树训练参数。min_child_weight 约束子节点 Hessian 和；平方误差下 Hessian 恒为 1，
-// 但保留独立字段才能让后续目标函数不改变树生长契约。
+// Single-tree training parameters. min_child_weight constrains child Hessian sums.
+// Squared error has Hessian 1, but a separate field preserves the growth contract
+// for later objectives.
 struct TreeTrainingParameters final {
   enum class SplitStrategy : std::uint32_t {
     kBestGain = 0,
@@ -73,12 +76,13 @@ class RegressionTree final {
   std::uint32_t feature_count() const noexcept { return feature_count_; }
   const std::vector<TreeNode>& nodes() const noexcept { return nodes_; }
 
-  // 对已量化数据执行确定性逐行预测。特征数量或内部索引不一致时明确失败；本函数
-  // 不修改树或数据集，因此同一模型可被多个只读调用方安全共享。
+  // Predict deterministically row by row over quantized data. Feature-count or
+  // internal-index mismatches fail explicitly. This function does not mutate the
+  // tree or dataset, so multiple read-only callers can safely share one model.
   std::vector<double> Predict(const BinnedDataset& dataset) const;
 
-  // 从模型文件字段恢复扁平树。该入口完整验证根节点、索引、环、可达性和叶值，只有
-  // 通过验证的树才能进入 RegressionModel，loader 不能直接写私有节点。
+  // Restore a flat tree from model-file fields. This entry validates root, indices,
+  // cycles, reachability, and leaf values; only validated trees enter RegressionModel.
   static RegressionTree Restore(std::uint32_t feature_count,
                                 std::vector<TreeNode> nodes);
 
@@ -94,8 +98,9 @@ class RegressionTree final {
   std::vector<TreeNode> nodes_;
 };
 
-// 使用唯一按层策略训练一棵深度受限回归树。训练核心负责控制流和稳定选 split，
-// HistogramBuilder 只负责统计计算；异常时局部结果销毁，不返回部分模型。
+// Train one depth-limited regression tree with the sole level-wise strategy. The
+// training core owns control flow and stable split selection; HistogramBuilder only
+// computes statistics. Exceptions discard local results and never return a partial model.
 RegressionTree TrainSingleRegressionTree(
     const BinnedDataset& dataset,
     const std::vector<GradientPair>& gradients,

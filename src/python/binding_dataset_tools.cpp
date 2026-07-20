@@ -35,7 +35,7 @@ void RegisterDatasetToolBindings(py::module_& module) {
     } else if (scalar_bytes == sizeof(double)) {
       scalar_type = ScalarType::kFloat64;
     } else {
-      throw py::value_error("scalar_bytes 必须是 4 或 8");
+      throw py::value_error("scalar_bytes must be 4 or 8");
     }
     ValidateDenseView(DenseMatrixView{&sentinel, rows, features,
                                       row_stride_bytes, column_stride_bytes,

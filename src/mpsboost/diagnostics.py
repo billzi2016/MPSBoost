@@ -1,7 +1,9 @@
-"""MPSBoost 后端诊断与真实 GPU smoke 验证。
+"""MPSBoost backend diagnostics and real GPU smoke validation.
 
-本模块负责定位 wheel 内的 shader 资源，并把原生层的非敏感设备信息整理为稳定 Python
-字典。它不创建缓存、不访问网络、不初始化训练状态，也不把测试入口导出到顶层 API。
+This module locates shader resources within the wheel and exposes non-sensitive
+native device information as stable Python dictionaries. It does not create
+caches, access the network, initialize training state, or export test entry
+points through the top-level API.
 """
 
 from __future__ import annotations
@@ -21,20 +23,21 @@ from ._cache import (
 
 
 def is_available() -> bool:
-    """返回当前 wheel 与机器是否具备可使用的真实 MPS 后端。
+    """Return whether this wheel and machine have a usable real MPS backend.
 
-    该结果来自原生 Metal 设备查询，不根据平台字符串猜测。查询无文件写入和网络副作用；
-    原生扩展或 shader 缺失属于安装损坏，会在导入或 smoke 验证时明确失败。
+    The result comes from a native Metal-device query rather than platform-string
+    inference. The query has no file-write or network side effects. Missing native
+    extensions or shaders indicate an invalid installation and fail explicitly.
     """
 
     return bool(_native._backend_info()["available"])
 
 
 def system_info() -> dict[str, Any]:
-    """返回可用于安装诊断的非敏感后端信息。
+    """Return non-sensitive backend information for installation diagnostics.
 
-    返回值不包含设备持久标识、用户名、路径或环境变量。字节大小使用整数返回，展示单位
-    由调用方决定，避免诊断层引入格式化语义。
+    The result excludes persistent device identifiers, usernames, paths, and
+    environment variables. Byte sizes remain integers so callers own display units.
     """
 
     info = dict(_native._backend_info())
@@ -76,7 +79,7 @@ def warn_if_mps_unavailable() -> None:
 
 
 def cache_info() -> dict[str, Any]:
-    """返回非敏感 L2 缓存路径摘要，不创建目录。"""
+    """Return a non-sensitive L2 cache-path summary without creating directories."""
 
     info = _cache_info()
     return {
@@ -89,10 +92,10 @@ def cache_info() -> dict[str, Any]:
 
 
 def create_cache() -> dict[str, str]:
-    """显式创建 L2 缓存目录，并返回创建后的路径。
+    """Explicitly create L2 cache directories and return their paths.
 
-    该函数是有文件系统副作用的公共入口，因此不会被 ``import``、``system_info`` 或
-    ``cache_info`` 自动调用。
+    This public entry point has file-system side effects, so ``import``,
+    ``system_info``, and ``cache_info`` never call it automatically.
     """
 
     layout = _ensure_cache_directories()
@@ -105,17 +108,18 @@ def create_cache() -> dict[str, str]:
 
 
 def clear_cache() -> int:
-    """显式清理 L2 缓存根目录，返回移除的普通文件数量估计值。"""
+    """Explicitly clear the L2 cache root and estimate removed regular files."""
 
     return _clear_cache()
 
 
 @contextmanager
 def _metallib_path() -> Iterator[str]:
-    """在上下文存续期内返回 wheel 中唯一 shader library 的真实路径。
+    """Yield the real path to the wheel's sole shader library for the context lifetime.
 
-    estimator、kernel 测试和 smoke 共享此资源定位逻辑，避免不同入口对压缩资源或临时
-    文件生命周期作出不同假设。调用方必须在 ``with`` 块内完成所有 GPU 工作。
+    Estimators, kernel tests, and smoke tests share this locator so entry points
+    cannot make incompatible assumptions about compressed resources or temporary
+    file lifetime. Callers must complete GPU work inside the ``with`` block.
     """
 
     resource = files("mpsboost").joinpath("_kernels.metallib")
@@ -126,20 +130,21 @@ def _metallib_path() -> Iterator[str]:
 def _run_vector_add_for_test(
     left: Sequence[float], right: Sequence[float]
 ) -> list[float]:
-    """在真实 GPU 上执行内部向量加法集成测试。
+    """Run the internal vector-add integration test on a real GPU.
 
     Args:
-        left: 左输入序列。
-        right: 与左输入等长的右输入序列。
+        left: Left input sequence.
+        right: Right input sequence with the same length as left.
 
     Returns:
-        GPU 计算得到的逐元素和。
+        Element-wise sum computed by the GPU.
 
     Raises:
-        BackendError: 设备、shader、pipeline、buffer 或 command 任一阶段失败。
+        BackendError: A device, shader, pipeline, buffer, or command stage fails.
 
-    ``as_file`` 同时支持普通 wheel 文件和未来可能的压缩资源。原生调用必须在上下文内
-    完成，防止临时资源路径在 GPU 加载前失效。
+    ``as_file`` supports ordinary wheel files and possible future compressed
+    resources. The native call must complete within the context so temporary paths
+    remain valid while the GPU loads the resource.
     """
 
     with _metallib_path() as metallib_path:

@@ -23,13 +23,13 @@ from mpsboost.estimator import NotFittedError
 
 
 def test_get_and_set_params_follow_estimator_protocol():
-    """全部显式构造参数必须可发现，未知参数失败且 set_params 返回自身。"""
+    """All explicit constructor parameters are discoverable; unknown parameters fail and set_params returns self."""
 
     model = MPSBoostRegressor(n_estimators=3, device="cpu")
     assert set(model.get_params()) == set(model._PARAMETER_NAMES)
     assert model.set_params(n_estimators=5) is model
     assert model.n_estimators == 5
-    with pytest.raises(ValueError, match="未知参数"):
+    with pytest.raises(ValueError, match="Unknown parameter"):
         model.set_params(unknown=1)
 
 
@@ -82,7 +82,7 @@ def test_leaf_wise_public_parameter_validation_fails_before_training():
 
 
 def test_unfitted_and_wrong_feature_prediction_fail_explicitly():
-    """未拟合与特征数变化必须给出稳定异常。"""
+    """Unfitted estimators and feature-count changes must raise stable exceptions."""
 
     model = MPSBoostRegressor(
         n_estimators=1, max_depth=0, min_samples_leaf=1, device="cpu"
@@ -159,24 +159,24 @@ def test_sklearn_tags_are_available_without_sklearn_dependency():
 
 
 def test_failed_refit_clears_previous_model_instead_of_exposing_partial_state():
-    """失败 refit 不得继续呈现与当前训练请求无关的旧模型。"""
+    """Failed refit must not retain an old model unrelated to the current request."""
 
     model = MPSBoostRegressor(
         n_estimators=1, max_depth=0, min_samples_leaf=1, device="cpu"
     ).fit(np.ones((2, 1), dtype=np.float32), np.array([1.0, 2.0]))
-    with pytest.raises(ValueError, match="样本数量"):
+    with pytest.raises(ValueError, match="sample counts do not match"):
         model.fit(np.ones((3, 1), dtype=np.float32), np.array([1.0, 2.0]))
     with pytest.raises(NotFittedError):
         model.predict(np.ones((1, 1), dtype=np.float32))
 
 
 def test_dense_adapter_rejects_sparse_complex_and_invalid_rank():
-    """当前版本范围外输入不能被静默展开或截断。"""
+    """Out-of-scope inputs must not be silently expanded or truncated."""
 
     model = MPSBoostRegressor(device="cpu")
     with pytest.raises(TypeError, match="dtype"):
         model.fit(np.ones((2, 1), dtype=np.complex64), np.ones(2))
-    with pytest.raises(ValueError, match="二维"):
+    with pytest.raises(ValueError, match="two-dimensional"):
         model.fit(np.ones(2), np.ones(2))
 
 

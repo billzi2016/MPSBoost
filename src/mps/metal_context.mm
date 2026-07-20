@@ -1,7 +1,9 @@
-// MPSBoost 最小 Metal 运行时实现。
+// MPSBoost minimal Metal runtime implementation.
 //
-// 职责：提供无副作用设备能力查询，并把历史 smoke 入口装配到唯一 MpsBackend runtime。
-// pipeline、buffer 与 command 的正式实现位于 mps_backend.mm，本文件不得复制设备逻辑。
+// Responsibility: provides side-effect-free device capability queries and connects
+// the legacy smoke entry to the sole MpsBackend runtime. The production pipeline,
+// buffer, and command implementation is in mps_backend.mm; do not duplicate device
+// logic in this file.
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>

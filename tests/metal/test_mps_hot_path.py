@@ -1,7 +1,8 @@
-"""真实 MPS split scan、partition 和 L1 buffer pool 测试。
+"""Tests for real MPS split scan, partition, and L1 buffer pool.
 
-本文件只验证内部 GPU 热路径能力，不暴露公共 API。期望值来自 CPU oracle 的 histogram
-和冻结公式；测试不得用 mock command 或 host 伪造设备结果。
+This file verifies internal GPU hot-path capability only and exposes no public API.
+Expected values come from CPU-oracle histograms and frozen formulas; tests must not
+fake device results with mock commands or host computation.
 """
 
 import numpy as np
@@ -14,7 +15,7 @@ pytestmark = pytest.mark.gpu
 
 
 def _best_candidates_from_cpu(histograms, reg_lambda=1.0, gamma=0.0):
-    """用 CPU histogram 和公开内部公式生成逐 feature 最佳候选。"""
+    """Generate the best candidate per feature from CPU histograms and exposed internal formulas."""
 
     candidates = []
     for feature, bins in enumerate(histograms):
@@ -68,7 +69,7 @@ def _best_candidates_from_cpu(histograms, reg_lambda=1.0, gamma=0.0):
 
 
 def test_split_scan_candidates_match_cpu_histogram_scan():
-    """GPU split scan 必须逐 feature 对照 CPU histogram 前缀扫描。"""
+    """GPU split scan must match CPU histogram prefix scans for every feature."""
 
     rows = 257
     X = np.column_stack(
@@ -112,7 +113,7 @@ def test_split_scan_candidates_match_cpu_histogram_scan():
 
 
 def test_partition_rows_matches_cpu_bin_rule_and_reuses_buffers():
-    """GPU partition 必须满足 bin <= threshold 左分支规则，并复用临时 buffer。"""
+    """GPU partition must route bin <= threshold left and reuse temporary buffers."""
 
     rows = 513
     X = np.column_stack(

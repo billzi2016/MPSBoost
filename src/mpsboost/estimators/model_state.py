@@ -65,7 +65,7 @@ class SklearnAndPersistenceMixin:
         """Load and validate a model, replacing fitted state only after complete success."""
 
         if not self._fit_lock.acquire(blocking=False):
-            raise RuntimeError("模型训练或加载正在进行")
+            raise RuntimeError("Model training or loading is already in progress")
         try:
             candidate = _native._load_regression_model(str(path))
             if candidate.objective != self._resolved_native_objective():
@@ -164,9 +164,9 @@ class SklearnAndPersistenceMixin:
             integer_ranges["n_jobs"] = (self.n_jobs, -1, 2**31 - 1)
         for name, (value, minimum, maximum) in integer_ranges.items():
             if isinstance(value, bool) or not isinstance(value, int):
-                raise TypeError(f"{name} 必须是整数")
+                raise TypeError(f"{name} must be an integer")
             if not minimum <= value <= maximum:
-                raise ValueError(f"{name} 必须位于 [{minimum}, {maximum}]")
+                raise ValueError(f"{name} must be in [{minimum}, {maximum}]")
         if self.n_jobs == 0:
             raise ValueError("n_jobs must be None, -1, or a non-zero integer")
         for name, numeric_value, lower, upper, lower_inclusive in (
@@ -180,12 +180,12 @@ class SklearnAndPersistenceMixin:
             if isinstance(numeric_value, bool) or not isinstance(
                 numeric_value, (int, float)
             ):
-                raise TypeError(f"{name} 必须是实数")
+                raise TypeError(f"{name} must be a real number")
             numeric = float(numeric_value)
             valid_lower = numeric >= lower if lower_inclusive else numeric > lower
             if not np.isfinite(numeric) or not valid_lower or numeric > upper:
                 bracket = "[" if lower_inclusive else "("
-                raise ValueError(f"{name} 必须位于 {bracket}{lower}, {upper}]")
+                raise ValueError(f"{name} must be in {bracket}{lower}, {upper}]")
         if self.growth_strategy not in {"level_wise", "leaf_wise"}:
             raise ValueError("growth_strategy must be 'level_wise' or 'leaf_wise'")
         if (
@@ -195,11 +195,11 @@ class SklearnAndPersistenceMixin:
         ):
             raise ValueError("max_active_leaves must not exceed max_leaves")
         if self.device not in {"mps", "cpu", "auto"}:
-            raise ValueError("device 只能是 'mps'、'cpu' 或 'auto'")
+            raise ValueError("device must be 'mps', 'cpu', or 'auto'")
         if self.random_state is not None and (
             isinstance(self.random_state, bool) or not isinstance(self.random_state, int)
         ):
-            raise TypeError("random_state 必须是整数或 None")
+            raise TypeError("random_state must be an integer or None")
         self._validate_objective_parameters()
 
     def _resolved_native_objective(self) -> str:

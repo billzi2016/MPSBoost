@@ -40,7 +40,7 @@ QuantizationSchema ParseSchema(Reader* reader, std::size_t size,
   const std::uint64_t boundary_count =
       reader->ReadUnsigned<std::uint64_t>("boundary_count");
   if (boundary_count > size / sizeof(float)) {
-    throw TrainingError("模型 boundary_count 超出 payload 范围");
+    throw TrainingError("Model boundary_count exceeds the payload range");
   }
   std::vector<FeatureBinMetadata> metadata;
   metadata.reserve(features);
@@ -70,7 +70,7 @@ void AppendTrees(std::vector<std::uint8_t>* payload,
   AppendUnsigned(payload, static_cast<std::uint32_t>(trees.size()));
   for (const RegressionTree& tree : trees) {
     if (tree.nodes().size() > std::numeric_limits<std::uint32_t>::max()) {
-      throw TrainingError("模型树节点数超出格式限制");
+      throw TrainingError("Model tree node count exceeds the format limit");
     }
     AppendUnsigned(payload, static_cast<std::uint32_t>(tree.nodes().size()));
     for (const TreeNode& node : tree.nodes()) {
@@ -95,7 +95,7 @@ std::vector<RegressionTree> ParseTrees(Reader* reader, std::size_t size,
   const std::uint32_t tree_count =
       reader->ReadUnsigned<std::uint32_t>("tree_count");
   if (tree_count == 0 || tree_count > size / 41) {
-    throw TrainingError("模型树数量不合法");
+    throw TrainingError("Model tree count is invalid");
   }
   std::vector<RegressionTree> trees;
   trees.reserve(tree_count);
@@ -103,7 +103,7 @@ std::vector<RegressionTree> ParseTrees(Reader* reader, std::size_t size,
     const std::uint32_t node_count =
         reader->ReadUnsigned<std::uint32_t>("node_count");
     if (node_count == 0 || node_count > size / 41) {
-      throw TrainingError("模型节点数量不合法");
+      throw TrainingError("Model node count is invalid");
     }
     std::vector<TreeNode> nodes;
     nodes.reserve(node_count);
@@ -128,7 +128,7 @@ std::vector<RegressionTree> ParseTrees(Reader* reader, std::size_t size,
       const int reserved_count = format_minor >= 2 ? 6 : 7;
       for (int reserved = 0; reserved < reserved_count; ++reserved) {
         if (reader->ReadUnsigned<std::uint8_t>("node reserved") != 0) {
-          throw TrainingError("模型节点保留字段必须为零");
+          throw TrainingError("Model node reserved fields must be zero");
         }
       }
       nodes.push_back(node);
@@ -222,7 +222,7 @@ RegressionModel ParsePayload(const std::uint8_t* data,
   }
   const std::uint64_t boundary_count = reader.ReadUnsigned<std::uint64_t>("boundary_count");
   if (boundary_count > size / sizeof(float)) {
-    throw TrainingError("模型 boundary_count 超出 payload 范围");
+    throw TrainingError("Model boundary_count exceeds the payload range");
   }
   std::vector<FeatureBinMetadata> metadata;
   metadata.reserve(features);
@@ -248,7 +248,7 @@ RegressionModel ParsePayload(const std::uint8_t* data,
   std::vector<RegressionTree> trees =
       ParseTrees(&reader, size, format_minor, features);
   if (!reader.at_end()) {
-    throw TrainingError("模型包含未识别的尾部字节");
+    throw TrainingError("Model contains unrecognized trailing bytes");
   }
   return RegressionModel::Restore(std::move(schema), base_score, learning_rate,
                                   objective, objective_alpha,
@@ -282,7 +282,7 @@ MulticlassModel ParseMulticlassPayload(const std::uint8_t* data,
   std::vector<RegressionTree> trees =
       ParseTrees(&reader, size, format_minor, schema.features());
   if (!reader.at_end()) {
-    throw TrainingError("模型包含未识别的尾部字节");
+    throw TrainingError("Model contains unrecognized trailing bytes");
   }
   return MulticlassModel::Restore(std::move(schema), class_count, learning_rate,
                                   std::move(base_scores),

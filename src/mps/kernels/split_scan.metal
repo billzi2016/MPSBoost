@@ -1,8 +1,9 @@
-// MPSBoost GPU split scan kernel。
+// MPSBoost GPU split-scan kernel.
 //
-// 职责：在已经构建好的 feature histogram 上扫描候选 threshold，输出每个 feature
-// 的最佳候选。最终 split 仍由 C++ 训练核心按 FP64 冻结规则确认；本 kernel 只减少
-// 热路径中重复的前缀扫描工作，不拥有树生长控制流或参数默认值。
+// Responsibility: scans candidate thresholds over completed feature histograms and
+// emits the best candidate for each feature. The C++ training core still confirms the
+// final split under its frozen FP64 rules; this kernel only removes repeated prefix
+// scans from the hot path and owns neither tree-growth control flow nor defaults.
 
 #include <metal_stdlib>
 

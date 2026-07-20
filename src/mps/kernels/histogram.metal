@@ -1,8 +1,9 @@
-// MPSBoost 两阶段分层直方图 kernel。
+// MPSBoost two-stage hierarchical histogram kernel.
 //
-// 第一阶段让每个 threadgroup 负责一个 feature/bin/partial，在线程组内归约 count/G/H；
-// 第二阶段合并有限数量的 partial。partial 数有硬上限，避免工作区随 rows×features×bins
-// 无界增长。本文件不选择 split，也不定义树生长语义。
+// The first stage assigns each threadgroup to one feature/bin/partial and reduces
+// count/G/H within that group. The second stage merges a bounded number of partials
+// so workspace cannot grow without bound with rows*features*bins. This file does not
+// select splits or define tree-growth semantics.
 
 #include <metal_stdlib>
 
@@ -15,8 +16,9 @@ struct HistogramValue {
   uint reserved;
 };
 
-// 公共实现显式接收 cell_count 作为 partial stride；保留单一模板主体，两个存储宽度
-// wrapper 只负责类型实例化，避免 uint8/uint16 演化出两套统计语义。
+// The shared implementation receives cell_count as the partial stride. Keep one
+// template body; the two storage-width wrappers only instantiate types so uint8 and
+// uint16 cannot diverge into separate statistical semantics.
 inline void AtomicAddFloat(threadgroup atomic_uint* address, float operand) {
   uint expected = atomic_load_explicit(address, memory_order_relaxed);
   while (true) {
@@ -58,8 +60,9 @@ inline void BuildFeaturePartial(
   }
   threadgroup_barrier(mem_flags::mem_threadgroup);
 
-  // 每个 feature/partial 只扫描自己分到的行，复杂度保持 O(rows×features)。原子冲突
-  // 被限制在线程组局部内存，跨 threadgroup 不争用同一个全局 bin。
+  // Each feature/partial scans only its assigned rows, preserving O(rows*features)
+  // complexity. Atomic contention stays in threadgroup-local memory, so threadgroups
+  // never contend for the same global bin.
   for (uint position = group_position.y * thread_count + thread_index;
        position < selected_rows;
        position += partial_count * thread_count) {
@@ -128,8 +131,9 @@ inline void BuildBaseline(
   const uint feature = cell_features[cell];
   const uint target_bin = cell_bins[cell];
   HistogramValue total{0, 0.0F, 0.0F, 0};
-  // 一线程顺序扫描一个 cell，作为最简单的 GPU 正确性基线。该路径不用于生产训练，
-  // 但能把分层归约错误与 host/数据布局错误分离定位。
+  // One thread scans one cell sequentially as the simplest GPU correctness baseline.
+  // Production training does not use this path; it isolates hierarchical-reduction
+  // defects from host-side and data-layout defects.
   for (uint position = 0; position < selected_rows; ++position) {
     const uint row = rows[position];
     if (row < dataset_rows && uint(bins[feature * dataset_rows + row]) == target_bin) {

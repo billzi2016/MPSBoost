@@ -17,16 +17,16 @@ namespace mpsboost::python_binding {
 DenseMatrixView MakeDenseView(const py::buffer& matrix) {
   const py::buffer_info info = matrix.request();
   if (info.ndim != 2) {
-    throw py::value_error("输入矩阵必须是二维 buffer");
+    throw py::value_error("Input matrix must be a two-dimensional buffer");
   }
   if (info.shape[0] <= 0 || info.shape[1] <= 0) {
-    throw py::value_error("输入矩阵必须至少包含一行和一个特征");
+    throw py::value_error("Input matrix must contain at least one row and one feature");
   }
   if (info.shape[1] > std::numeric_limits<std::uint32_t>::max()) {
-    throw py::value_error("输入特征数量超出 uint32 范围");
+    throw py::value_error("Input feature count exceeds the uint32 range");
   }
   if (info.strides[0] <= 0 || info.strides[1] <= 0) {
-    throw py::value_error("当前版本不支持零或负 stride");
+    throw py::value_error("Zero or negative strides are not supported");
   }
 
   ScalarType scalar_type;
@@ -37,7 +37,7 @@ DenseMatrixView MakeDenseView(const py::buffer& matrix) {
              info.itemsize == static_cast<py::ssize_t>(sizeof(double))) {
     scalar_type = ScalarType::kFloat64;
   } else {
-    throw py::type_error("输入 dtype 必须是原生 float32 或 float64");
+    throw py::type_error("Input dtype must be native float32 or float64");
   }
 
   const auto features = static_cast<std::uint64_t>(info.shape[1]);

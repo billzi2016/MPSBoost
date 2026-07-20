@@ -52,7 +52,7 @@ class ByteReader final {
     float value = 0.0F;
     std::memcpy(&value, &bits, sizeof(value));
     if (!std::isfinite(value)) {
-      throw DataError(std::string("分箱序列化字段不是有限值：") + field);
+      throw DataError(std::string("Binned serialization field is not finite: ") + field);
     }
     return value;
   }
@@ -61,7 +61,7 @@ class ByteReader final {
     Require(kMagic.size(), "magic");
     for (const std::uint8_t expected : kMagic) {
       if (bytes_[position_++] != expected) {
-        throw DataError("分箱序列化 magic 或版本不受支持");
+        throw DataError("Binned serialization magic or version is unsupported");
       }
     }
   }
@@ -71,7 +71,7 @@ class ByteReader final {
  private:
   void Require(std::size_t count, const char* field) {
     if (count > bytes_.size() - position_) {
-      throw DataError(std::string("分箱序列化数据截断：") + field);
+      throw DataError(std::string("Binned serialization data is truncated: ") + field);
     }
   }
 
@@ -130,21 +130,21 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
 
   if (result.rows_ == 0 || result.features() == 0 || result.max_bins() < 2 ||
       result.max_bins() > 65536) {
-    throw DataError("分箱序列化头字段不合法");
+    throw DataError("Binned serialization header fields are invalid");
   }
   const std::uint64_t expected_values = internal::CheckedMultiply(
-      result.rows_, static_cast<std::uint64_t>(result.features()), "序列化元素数量");
+      result.rows_, static_cast<std::uint64_t>(result.features()), "serialized element count");
   if (value_count != expected_values) {
-    throw DataError("分箱序列化元素数量不一致");
+    throw DataError("Binned serialization element count does not match");
   }
   result.schema_.storage_ =
       storage_value == static_cast<std::uint8_t>(BinStorage::kUInt8) ? BinStorage::kUInt8
       : storage_value == static_cast<std::uint8_t>(BinStorage::kUInt16) ? BinStorage::kUInt16
-      : throw DataError("分箱序列化存储类型不支持");
+      : throw DataError("Binned serialization storage type is unsupported");
   const BinStorage expected_storage =
       result.max_bins() <= 256 ? BinStorage::kUInt8 : BinStorage::kUInt16;
   if (result.storage() != expected_storage) {
-    throw DataError("分箱序列化存储类型与 max_bins 不一致");
+    throw DataError("Binned serialization storage type does not match max_bins");
   }
 
   result.schema_.feature_metadata_.reserve(result.features());
@@ -156,28 +156,28 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
     metadata.missing_count = reader.ReadUnsigned<std::uint64_t>("feature missing_count");
     const std::uint64_t end = internal::CheckedAdd(metadata.boundary_offset,
                                                    metadata.boundary_count,
-                                                   "特征边界区间");
+                                                   "feature boundary range");
     if (end > boundary_count || metadata.bin_count != metadata.boundary_count + 1 ||
         metadata.bin_count > result.max_bins()) {
-      throw DataError("分箱序列化特征元数据不合法");
+      throw DataError("Binned serialization feature metadata is invalid");
     }
     result.schema_.feature_metadata_.push_back(metadata);
   }
 
-  result.schema_.boundaries_.reserve(internal::CheckedSize(boundary_count, "边界数量"));
+  result.schema_.boundaries_.reserve(internal::CheckedSize(boundary_count, "boundary count"));
   for (std::uint64_t index = 0; index < boundary_count; ++index) {
     result.schema_.boundaries_.push_back(reader.ReadFloat("boundary"));
   }
   if (result.storage() == BinStorage::kUInt8) {
     std::vector<std::uint8_t> values;
-    values.reserve(internal::CheckedSize(value_count, "uint8 bin 数量"));
+    values.reserve(internal::CheckedSize(value_count, "uint8 bin count"));
     for (std::uint64_t index = 0; index < value_count; ++index) {
       values.push_back(reader.ReadUnsigned<std::uint8_t>("uint8 bin"));
     }
     result.bins_ = std::move(values);
   } else {
     std::vector<std::uint16_t> values;
-    values.reserve(internal::CheckedSize(value_count, "uint16 bin 数量"));
+    values.reserve(internal::CheckedSize(value_count, "uint16 bin count"));
     for (std::uint64_t index = 0; index < value_count; ++index) {
       values.push_back(reader.ReadUnsigned<std::uint16_t>("uint16 bin"));
     }
@@ -193,7 +193,7 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
   }
 
   if (!reader.at_end()) {
-    throw DataError("分箱序列化数据包含未识别的尾部字节");
+    throw DataError("Binned serialization data contains unrecognized trailing bytes");
   }
   internal::ValidateSchemaFields(result.schema_);
   for (std::uint32_t feature = 0; feature < result.features(); ++feature) {
@@ -201,7 +201,7 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
     std::uint64_t missing_count = 0;
     for (std::uint64_t row = 0; row < result.rows_; ++row) {
       if (result.GetBin(row, feature) >= metadata.bin_count) {
-        throw DataError("分箱序列化 bin 值超出特征范围");
+        throw DataError("Binned serialization bin value exceeds the feature range");
       }
       if (result.IsMissing(row, feature)) {
         ++missing_count;

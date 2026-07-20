@@ -1,7 +1,8 @@
-// MPSBoost 多轮回归训练与稳定模型契约。
+// MPSBoost multi-round regression training and stable model contract.
 //
-// 职责：定义设备无关 boosting 状态机、可预测模型和模型 I/O 入口。训练核心只依赖
-// GradientComputer/HistogramBuilder，不依赖 Python、Metal 对象、缓存或文件系统实现细节。
+// Responsibility: defines the device-independent boosting state machine,
+// predictive models, and model-I/O entries. The training core depends only on
+// GradientComputer/HistogramBuilder, not Python, Metal objects, caches, or files.
 #pragma once
 
 #include <cstdint>
@@ -50,11 +51,13 @@ class RegressionModel final {
   const QuantizationSchema& schema() const noexcept { return schema_; }
   const std::vector<RegressionTree>& trees() const noexcept { return trees_; }
 
-  // 预测已使用本模型 schema 转换的数据。函数不修改模型或输入，可并发只读调用；
-  // schema 不一致会明确失败，避免误用重新拟合边界的数据集。
+  // Predict data transformed with this model's schema. The function does not mutate
+  // model or input and supports concurrent read-only calls. Schema mismatches fail
+  // explicitly to prevent use of data with refitted boundaries.
   std::vector<double> Predict(const BinnedDataset& dataset) const;
 
-  // 模型 loader 的唯一构造入口。所有字段在接受前完整验证，失败不产生半成品模型。
+  // Sole construction entry for model loaders. All fields are fully validated before
+  // acceptance, and failures never produce a partially constructed model.
   static RegressionModel Restore(QuantizationSchema schema,
                                  double base_score,
                                  double learning_rate,
@@ -143,8 +146,9 @@ MulticlassModel TrainMulticlassSoftmaxModel(
     std::uint32_t class_count,
     const HistogramBuilder& histogram_builder);
 
-// 模型格式入口使用版本化二进制容器、完整性校验和同目录原子替换。文件中不包含训练
-// 数据、路径、设备标识或缓存；加载失败不影响调用方已有模型。
+// Model-format entries use a versioned binary container, integrity validation, and
+// same-directory atomic replacement. Files contain no training data, paths, device
+// identifiers, or caches; load failures do not affect a caller's existing model.
 std::vector<std::uint8_t> SerializeModel(const RegressionModel& model);
 RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes);
 std::vector<std::uint8_t> SerializeModel(const MulticlassModel& model);

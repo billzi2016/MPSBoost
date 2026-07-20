@@ -20,12 +20,12 @@ std::vector<SplitScanCandidate> MpsBackend::ScanSplitsForTest(
     double reg_lambda,
     double gamma) const {
   if (rows.empty()) {
-    throw TrainingError("Split scan 行集合不能为空");
+    throw TrainingError("Split-scan row set must not be empty");
   }
   if (min_samples_leaf == 0 || !std::isfinite(min_child_weight) ||
       min_child_weight < 0.0 || !std::isfinite(reg_lambda) ||
       reg_lambda < 0.0 || !std::isfinite(gamma) || gamma < 0.0) {
-    throw TrainingError("Split scan 参数不合法");
+    throw TrainingError("Split-scan parameters are invalid");
   }
   const NodeHistograms histograms = BuildHistograms(dataset, rows, gradients);
   std::vector<std::uint32_t> cell_features;
@@ -37,7 +37,7 @@ std::vector<SplitScanCandidate> MpsBackend::ScanSplitsForTest(
                        &feature_bin_counts, &maximum_feature_bins);
   const std::uint32_t features = dataset.features();
   const std::uint32_t cell_count =
-      CheckedUInt32(cell_features.size(), "Split scan cell 数量");
+      CheckedUInt32(cell_features.size(), "split-scan cell count");
 
   std::vector<DeviceHistogramValue> flat_histogram;
   flat_histogram.reserve(cell_count);
@@ -85,7 +85,7 @@ std::vector<SplitScanCandidate> MpsBackend::ScanSplitsForTest(
     const auto encoding_started = std::chrono::steady_clock::now();
     id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
     if (encoder == nil) {
-      throw BackendError("创建 split scan encoder 失败");
+      throw BackendError("Failed to create split-scan encoder");
     }
     [encoder setComputePipelineState:impl_->split_scan_];
     [encoder setBuffer:histogram_buffer offset:0 atIndex:0];
@@ -111,7 +111,7 @@ std::vector<SplitScanCandidate> MpsBackend::ScanSplitsForTest(
                                       encoding_started)
             .count();
     const auto command_started = std::chrono::steady_clock::now();
-    Impl::Complete(command, "MPS split scan command 执行失败");
+    Impl::Complete(command, "MPS split-scan command failed");
     impl_->timing_.hot_path_command_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() -
                                       command_started)
@@ -146,22 +146,22 @@ MpsBackend::PartitionRowsForTest(const BinnedDataset& dataset,
                                  std::uint32_t feature,
                                  std::uint32_t threshold_bin) const {
   if (rows.empty()) {
-    throw TrainingError("Partition 行集合不能为空");
+    throw TrainingError("Partition row set must not be empty");
   }
   if (feature >= dataset.features() ||
       threshold_bin >= dataset.feature_metadata()[feature].bin_count) {
-    throw TrainingError("Partition feature 或 threshold 越界");
+    throw TrainingError("Partition feature or threshold is out of bounds");
   }
-  const std::uint32_t dataset_rows = CheckedUInt32(dataset.rows(), "Partition 数据行数");
-  const std::uint32_t selected_rows = CheckedUInt32(rows.size(), "Partition 行数");
+  const std::uint32_t dataset_rows = CheckedUInt32(dataset.rows(), "partition dataset row count");
+  const std::uint32_t selected_rows = CheckedUInt32(rows.size(), "partition row count");
   const std::vector<std::uint32_t> rows_u32 =
-      MakeRowsU32(rows, dataset_rows, "Partition 行索引");
+      MakeRowsU32(rows, dataset_rows, "partition row index");
   const std::size_t bin_item_size =
       dataset.storage() == BinStorage::kUInt8 ? sizeof(std::uint8_t)
                                               : sizeof(std::uint16_t);
   const std::size_t bin_bytes =
       CheckedBytes(static_cast<std::size_t>(dataset.bin_value_count()),
-                   bin_item_size, "Partition 分箱 buffer");
+                   bin_item_size, "partition binned-data buffer");
   const std::size_t row_bytes =
       CheckedBytes(rows_u32.size(), sizeof(std::uint32_t), "Partition rows");
   const std::size_t count_bytes =
@@ -186,7 +186,7 @@ MpsBackend::PartitionRowsForTest(const BinnedDataset& dataset,
     const auto encoding_started = std::chrono::steady_clock::now();
     id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
     if (encoder == nil) {
-      throw BackendError("创建 partition encoder 失败");
+      throw BackendError("Failed to create partition encoder");
     }
     id<MTLComputePipelineState> pipeline =
         dataset.storage() == BinStorage::kUInt8 ? impl_->partition_u8_
@@ -212,7 +212,7 @@ MpsBackend::PartitionRowsForTest(const BinnedDataset& dataset,
                                       encoding_started)
             .count();
     const auto command_started = std::chrono::steady_clock::now();
-    Impl::Complete(command, "MPS partition command 执行失败");
+    Impl::Complete(command, "MPS partition command failed");
     impl_->timing_.hot_path_command_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() -
                                       command_started)
@@ -221,7 +221,7 @@ MpsBackend::PartitionRowsForTest(const BinnedDataset& dataset,
     const auto* counts =
         static_cast<const std::uint32_t*>([counts_buffer contents]);
     if (static_cast<std::uint64_t>(counts[0]) + counts[1] != rows.size()) {
-      throw BackendError("Partition 输出计数与输入行数不一致");
+      throw BackendError("Partition output count does not match input row count");
     }
     const auto* left_u32 =
         static_cast<const std::uint32_t*>([left_buffer contents]);

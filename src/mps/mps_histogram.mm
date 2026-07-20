@@ -66,9 +66,11 @@ std::vector<NodeHistograms> MpsBackend::BuildLayerHistograms(
   if (node_rows.empty()) {
     return {};
   }
-  // 现阶段每个节点仍保持独立 histogram 输出，保证训练核心的 split 选择和分区校验
-  // 不变；同层入口让调用方避免逐节点动态分派，并让后端 L1 buffer pool 跨节点复用
-  // partial/output 工作区。后续可以在此函数内部进一步合并 command，而不改核心语义。
+  // Each node currently retains independent histogram output, preserving the training
+  // core's split selection and partition validation. The layer entry avoids per-node
+  // dynamic dispatch and lets the backend L1 buffer pool reuse partial/output
+  // workspace across nodes. This function may merge commands later without changing
+  // core semantics.
   std::vector<NodeHistograms> result;
   result.reserve(node_rows.size());
   for (const std::vector<std::uint64_t>& rows : node_rows) {
@@ -83,13 +85,13 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
     const std::vector<GradientPair>& gradients,
     bool baseline) const {
   if (rows.empty()) {
-    throw TrainingError("节点行集合不能为空");
+    throw TrainingError("Node row set must not be empty");
   }
   if (dataset.rows() != gradients.size()) {
-    throw TrainingError("Gradient 数量与分箱数据行数不一致");
+    throw TrainingError("Gradient count does not match binned dataset row count");
   }
-  const std::uint32_t dataset_rows = CheckedUInt32(dataset.rows(), "数据行数");
-  const std::uint32_t selected_rows = CheckedUInt32(rows.size(), "节点行数");
+  const std::uint32_t dataset_rows = CheckedUInt32(dataset.rows(), "dataset row count");
+  const std::uint32_t selected_rows = CheckedUInt32(rows.size(), "node row count");
   const std::uint32_t features = dataset.features();
   std::vector<std::uint32_t> cell_features;
   std::vector<std::uint32_t> cell_bins;
@@ -99,10 +101,10 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
   BuildHistogramLayout(dataset, &cell_features, &cell_bins, &feature_offsets,
                        &feature_bin_counts, &maximum_feature_bins);
   const std::uint32_t cell_count =
-      CheckedUInt32(cell_features.size(), "Histogram cell 数量");
+      CheckedUInt32(cell_features.size(), "histogram cell count");
   const std::size_t threadgroup_bytes = CheckedBytes(
       maximum_feature_bins, sizeof(std::uint32_t) * 3,
-      "Histogram threadgroup 工作区");
+      "histogram threadgroup workspace");
   const bool effective_baseline =
       baseline || threadgroup_bytes > [impl_->device_ maxThreadgroupMemoryLength];
   id<MTLComputePipelineState> partial_pipeline =
@@ -118,14 +120,14 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
       (selected_rows + reduction_width - 1) / reduction_width);
 
   std::vector<std::uint32_t> rows_u32 =
-      MakeRowsU32(rows, dataset_rows, "Histogram 行索引");
+      MakeRowsU32(rows, dataset_rows, "histogram row index");
   std::vector<float> gradient_values = MakeGradientValues(dataset, gradients);
 
   const std::size_t bin_item_size =
       dataset.storage() == BinStorage::kUInt8 ? sizeof(std::uint8_t) : sizeof(std::uint16_t);
   const std::size_t bin_bytes = CheckedBytes(
-      static_cast<std::size_t>(dataset.bin_value_count()), bin_item_size, "分箱 buffer");
-  const std::size_t row_bytes = CheckedBytes(rows_u32.size(), sizeof(std::uint32_t), "行索引 buffer");
+      static_cast<std::size_t>(dataset.bin_value_count()), bin_item_size, "binned-data buffer");
+  const std::size_t row_bytes = CheckedBytes(rows_u32.size(), sizeof(std::uint32_t), "row-index buffer");
   const std::size_t gradient_bytes =
       CheckedBytes(gradient_values.size(), sizeof(float), "Gradient buffer");
   const std::size_t cell_map_bytes =
@@ -133,11 +135,11 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
   const std::size_t feature_map_bytes =
       CheckedBytes(features, sizeof(std::uint32_t), "Histogram feature map");
   const std::size_t partial_values =
-      CheckedBytes(cell_count, partial_count, "Histogram partial 数量");
+      CheckedBytes(cell_count, partial_count, "histogram partial count");
   const std::size_t partial_bytes =
       CheckedBytes(partial_values, sizeof(DeviceHistogramValue), "Histogram partial");
   const std::size_t output_bytes =
-      CheckedBytes(cell_count, sizeof(DeviceHistogramValue), "Histogram 输出");
+      CheckedBytes(cell_count, sizeof(DeviceHistogramValue), "histogram output");
   impl_->ValidateWorkingSet(
       {bin_bytes, row_bytes, gradient_bytes, cell_map_bytes, cell_map_bytes,
        feature_map_bytes, feature_map_bytes,
@@ -166,7 +168,7 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
     id<MTLComputeCommandEncoder> partial_encoder =
         [histogram_command computeCommandEncoder];
     if (partial_encoder == nil) {
-      throw BackendError("创建 histogram partial encoder 失败");
+      throw BackendError("Failed to create histogram partial encoder");
     }
     [partial_encoder setComputePipelineState:partial_pipeline];
     [partial_encoder setBuffer:bins_buffer offset:0 atIndex:0];
@@ -208,12 +210,13 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
     }
     [partial_encoder endEncoding];
     if (!effective_baseline) {
-      // 同一 command buffer 中后一个 encoder 会看到前一个 encoder 的完整写入结果，
-      // 无需 host 中间同步；这消除每个节点一次额外提交与 wait。
+      // A later encoder in the same command buffer observes the earlier encoder's
+      // complete writes, so no host-side intermediate synchronization is required.
+      // This removes one extra submission and wait per node.
       id<MTLComputeCommandEncoder> reduce_encoder =
           [histogram_command computeCommandEncoder];
       if (reduce_encoder == nil) {
-        throw BackendError("创建 histogram reduction encoder 失败");
+        throw BackendError("Failed to create histogram reduction encoder");
       }
       [reduce_encoder setComputePipelineState:impl_->histogram_reduce_];
       [reduce_encoder setBuffer:partial_buffer offset:0 atIndex:0];
@@ -231,7 +234,7 @@ NodeHistograms MpsBackend::BuildHistogramsInternal(
                                       encoding_started)
             .count();
     const auto command_started = std::chrono::steady_clock::now();
-    Impl::Complete(histogram_command, "MPS histogram command 执行失败");
+    Impl::Complete(histogram_command, "MPS histogram command failed");
     impl_->timing_.histogram_command_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() -
                                       command_started)

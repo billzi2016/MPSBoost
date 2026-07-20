@@ -73,21 +73,24 @@ std::vector<GradientPair> ComputeMulticlassSoftmaxGradients(
     std::uint32_t class_count,
     std::uint32_t target_class);
 
-// 计算节点分数 G²/(H+lambda)。H 和 lambda 必须非负，分母必须严格为正。
+// Compute the node score G^2/(H+lambda). H and lambda must be non-negative,
+// and the denominator must be strictly positive.
 double NodeScore(double gradient_sum,
                  double hessian_sum,
                  double reg_lambda,
                  double reg_alpha = 0.0);
 
-// 计算叶值 -G/(H+lambda)。验证规则与 NodeScore 完全一致。
+// Compute the leaf value -G/(H+lambda). Validation rules match NodeScore exactly.
 double LeafWeight(double gradient_sum,
                   double hessian_sum,
                   double reg_lambda,
                   double reg_alpha = 0.0,
                   double max_delta_step = 0.0);
 
-// 计算 0.5*(score_left+score_right-score_parent)-gamma。左右统计必须代表非空、
-// 正 Hessian 候选；gamma 必须非负。函数不决定是否切分，调用方只接受严格正增益。
+// Compute 0.5*(score_left+score_right-score_parent)-gamma. Left and right
+// statistics must represent non-empty candidates with positive Hessians; gamma
+// must be non-negative. This function does not decide whether to split; callers
+// accept only strictly positive gain.
 double SplitGain(double left_gradient,
                  double left_hessian,
                  double right_gradient,

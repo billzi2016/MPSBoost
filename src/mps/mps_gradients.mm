@@ -15,18 +15,18 @@ std::vector<GradientPair> MpsBackend::ComputeSquaredError(
     const std::vector<double>& labels,
     const std::vector<double>& predictions) const {
   if (labels.empty() || labels.size() != predictions.size()) {
-    throw TrainingError(labels.empty() ? "标签不能为空" : "标签与预测长度不一致");
+    throw TrainingError(labels.empty() ? "Labels must not be empty" : "Label and prediction lengths do not match");
   }
-  const std::uint32_t count = CheckedUInt32(labels.size(), "Gradient 样本数量");
+  const std::uint32_t count = CheckedUInt32(labels.size(), "gradient sample count");
   std::vector<float> labels_f(labels.size());
   std::vector<float> predictions_f(predictions.size());
   for (std::size_t index = 0; index < labels.size(); ++index) {
-    labels_f[index] = CheckedFloat(labels[index], "标签");
-    predictions_f[index] = CheckedFloat(predictions[index], "预测");
+    labels_f[index] = CheckedFloat(labels[index], "label");
+    predictions_f[index] = CheckedFloat(predictions[index], "prediction");
   }
-  const std::size_t scalar_bytes = CheckedBytes(labels.size(), sizeof(float), "Gradient 输入");
+  const std::size_t scalar_bytes = CheckedBytes(labels.size(), sizeof(float), "gradient input");
   const std::size_t output_bytes =
-      CheckedBytes(labels.size(), sizeof(float) * 2, "Gradient 输出");
+      CheckedBytes(labels.size(), sizeof(float) * 2, "gradient output");
 
   @autoreleasepool {
     id<MTLBuffer> labels_buffer = impl_->NewBuffer(labels_f.data(), scalar_bytes, "labels");
@@ -36,7 +36,7 @@ std::vector<GradientPair> MpsBackend::ComputeSquaredError(
     id<MTLCommandBuffer> command = impl_->NewCommand("gradient");
     id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
     if (encoder == nil) {
-      throw BackendError("创建 gradient encoder 失败");
+      throw BackendError("Failed to create gradient encoder");
     }
     [encoder setComputePipelineState:impl_->gradients_];
     [encoder setBuffer:labels_buffer offset:0 atIndex:0];
@@ -49,7 +49,7 @@ std::vector<GradientPair> MpsBackend::ComputeSquaredError(
         threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
     [encoder endEncoding];
     const auto gradient_started = std::chrono::steady_clock::now();
-    Impl::Complete(command, "MPS gradient command 执行失败");
+    Impl::Complete(command, "MPS gradient command failed");
     impl_->timing_.gradient_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() -
                                       gradient_started)
@@ -68,13 +68,13 @@ std::vector<float> MpsBackend::RunVectorAddForTest(
     const std::vector<float>& left,
     const std::vector<float>& right) const {
   if (left.size() != right.size()) {
-    throw BackendError("GPU smoke 输入长度不一致");
+    throw BackendError("GPU smoke input lengths do not match");
   }
   if (left.empty()) {
     return {};
   }
-  const std::uint32_t count = CheckedUInt32(left.size(), "GPU smoke 元素数量");
-  const std::size_t bytes = CheckedBytes(left.size(), sizeof(float), "GPU smoke 输入");
+  const std::uint32_t count = CheckedUInt32(left.size(), "GPU smoke element count");
+  const std::size_t bytes = CheckedBytes(left.size(), sizeof(float), "GPU smoke input");
   @autoreleasepool {
     id<MTLBuffer> left_buffer = impl_->NewBuffer(left.data(), bytes, "smoke left");
     id<MTLBuffer> right_buffer = impl_->NewBuffer(right.data(), bytes, "smoke right");
@@ -82,7 +82,7 @@ std::vector<float> MpsBackend::RunVectorAddForTest(
     id<MTLCommandBuffer> command = impl_->NewCommand("vector_add");
     id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
     if (encoder == nil) {
-      throw BackendError("创建 vector_add encoder 失败");
+      throw BackendError("Failed to create vector_add encoder");
     }
     [encoder setComputePipelineState:impl_->vector_add_];
     [encoder setBuffer:left_buffer offset:0 atIndex:0];
@@ -94,7 +94,7 @@ std::vector<float> MpsBackend::RunVectorAddForTest(
     [encoder dispatchThreads:MTLSizeMake(count, 1, 1)
         threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
     [encoder endEncoding];
-    Impl::Complete(command, "MPS vector_add command 执行失败");
+    Impl::Complete(command, "MPS vector_add command failed");
     std::vector<float> output(left.size());
     std::memcpy(output.data(), [output_buffer contents], bytes);
     return output;

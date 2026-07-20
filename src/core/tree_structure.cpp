@@ -16,7 +16,7 @@ namespace mpsboost::tree_internal {
 
 void ValidateParameters(const TreeTrainingParameters& parameters) {
   if (parameters.min_samples_leaf == 0) {
-    throw TrainingError("min_samples_leaf 必须至少为 1");
+    throw TrainingError("min_samples_leaf must be at least 1");
   }
   if (parameters.max_leaves == 1) {
     throw TrainingError("max_leaves must be zero or at least 2");
@@ -30,10 +30,10 @@ void ValidateParameters(const TreeTrainingParameters& parameters) {
   }
   if (!std::isfinite(parameters.min_child_weight) ||
       parameters.min_child_weight < 0.0) {
-    throw TrainingError("min_child_weight 必须是有限非负数");
+    throw TrainingError("min_child_weight must be finite and non-negative");
   }
   if (!std::isfinite(parameters.reg_lambda) || parameters.reg_lambda < 0.0) {
-    throw TrainingError("reg_lambda 必须是有限非负数");
+    throw TrainingError("reg_lambda must be finite and non-negative");
   }
   if (!std::isfinite(parameters.reg_alpha) || parameters.reg_alpha < 0.0) {
     throw TrainingError("reg_alpha must be finite and non-negative");
@@ -43,7 +43,7 @@ void ValidateParameters(const TreeTrainingParameters& parameters) {
     throw TrainingError("max_delta_step must be finite and non-negative");
   }
   if (!std::isfinite(parameters.gamma) || parameters.gamma < 0.0) {
-    throw TrainingError("gamma 必须是有限非负数");
+    throw TrainingError("gamma must be finite and non-negative");
   }
   if (!std::isfinite(parameters.min_gain_to_split) ||
       parameters.min_gain_to_split < 0.0) {
@@ -94,7 +94,7 @@ TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda) {
 
 std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node) {
   if (nodes->size() >= kInvalidNodeIndex) {
-    throw TrainingError("树节点数量超出 uint32 索引范围");
+    throw TrainingError("Tree node count exceeds the uint32 index range");
   }
   const auto index = static_cast<std::uint32_t>(nodes->size());
   nodes->push_back(std::move(node));
@@ -150,15 +150,15 @@ void TreeTrainingAccess::ApplySplit(RegressionTree* tree,
 void ValidateTreeStructure(std::uint32_t feature_count,
                            const std::vector<TreeNode>& nodes) {
   if (feature_count == 0 || nodes.empty() || nodes.size() >= kInvalidNodeIndex) {
-    throw TrainingError("模型树的特征数或节点数不合法");
+    throw TrainingError("Model tree feature count or node count is invalid");
   }
   std::vector<std::uint8_t> state(nodes.size(), 0);
   const auto visit = [&](const auto& self, std::uint32_t index) -> void {
     if (index >= nodes.size()) {
-      throw TrainingError("模型树的子节点索引越界");
+      throw TrainingError("Model tree child index is out of bounds");
     }
     if (state[index] == 1) {
-      throw TrainingError("模型树结构包含环");
+      throw TrainingError("Model tree structure contains a cycle");
     }
     if (state[index] == 2) {
       return;
@@ -167,13 +167,13 @@ void ValidateTreeStructure(std::uint32_t feature_count,
     const TreeNode& node = nodes[index];
     if (node.IsLeaf()) {
       if (node.flags != kTreeNodeLeafFlag || !std::isfinite(node.leaf_value)) {
-        throw TrainingError("模型树叶值不是有限数");
+        throw TrainingError("Model tree leaf value is not finite");
       }
     } else {
       if (node.flags != 0 || node.feature_index >= feature_count ||
           !std::isfinite(node.gain) || node.gain <= 0.0 ||
           node.left_child == node.right_child) {
-        throw TrainingError("模型树分支字段不合法");
+        throw TrainingError("Model tree branch fields are invalid");
       }
       self(self, node.left_child);
       self(self, node.right_child);
@@ -182,7 +182,7 @@ void ValidateTreeStructure(std::uint32_t feature_count,
   };
   visit(visit, 0);
   if (std::find(state.begin(), state.end(), std::uint8_t{0}) != state.end()) {
-    throw TrainingError("模型树包含不可达节点");
+    throw TrainingError("Model tree contains unreachable nodes");
   }
 }
 

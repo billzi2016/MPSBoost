@@ -1,13 +1,15 @@
-# MPSBoost 原生构建入口。
+# MPSBoost native build entry.
 #
-# 职责：构建 Python 扩展、编译 Metal shader、安装运行时资源。业务算法和用户参数
-# 不得写入构建脚本。普通用户安装预编译 wheel 时不会执行此文件。
+# Responsibility: builds the Python extension, compiles Metal shaders, and installs
+# runtime resources. Business algorithms and user parameters do not belong here.
+# This file does not run when ordinary users install a prebuilt wheel.
 cmake_minimum_required(VERSION 3.25)
 
-# 默认面向仍受项目支持的较低 macOS 版本，避免在新系统构建出的 wheel 被错误限制为
-# 只能在构建机系统运行。发布流水线仍可显式传入更高目标进行兼容性验证。
+# Default to the oldest macOS version still supported, preventing wheels built on
+# newer systems from being incorrectly restricted to the build host. Release jobs
+# may explicitly pass a higher target for compatibility validation.
 if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "MPSBoost 最低 macOS 版本")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "MPSBoost minimum macOS version")
 endif()
 
 project(MPSBoost LANGUAGES CXX OBJCXX)
@@ -30,10 +32,11 @@ find_program(MPSBOOST_XCRUN_EXECUTABLE xcrun REQUIRED)
 find_library(MPSBOOST_FOUNDATION_FRAMEWORK Foundation REQUIRED)
 find_library(MPSBOOST_METAL_FRAMEWORK Metal REQUIRED)
 
-# scikit-build-core 从 pyproject.toml 注入版本。直接运行 CMake 时使用开发后备值，
-# 但正式 wheel 的唯一版本来源始终是 pyproject.toml。
+# scikit-build-core injects the version from pyproject.toml. Direct CMake uses a
+# development fallback, but pyproject.toml remains the sole version source for wheels.
 if(DEFINED SKBUILD_PROJECT_VERSION_FULL)
-  # FULL 保留 a1、rc1 等预发布后缀；非 FULL 变量只含基础三段版本。
+  # FULL retains prerelease suffixes such as a1 and rc1; the non-FULL variable has
+  # only the base three-part version.
   set(MPSBOOST_VERSION "${SKBUILD_PROJECT_VERSION_FULL}")
 else()
   set(MPSBOOST_VERSION "0.3.0")
@@ -54,8 +57,9 @@ set(MPSBOOST_METAL_SOURCES
 )
 set(MPSBOOST_METALLIB_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/_kernels.metallib")
 
-# 每个 shader 独立生成 AIR，再链接为唯一 metallib。这样增量构建能准确失效单个源，
-# 最终用户仍只加载一个版本匹配的资源，不需要 Xcode 或本地 shader 编译器。
+# Each shader produces independent AIR, then links into one metallib. Incremental
+# builds invalidate individual sources precisely while users load one matching
+# resource without Xcode or a local shader compiler.
 set(MPSBOOST_AIR_OUTPUTS)
 foreach(MPSBOOST_METAL_SOURCE IN LISTS MPSBOOST_METAL_SOURCES)
   get_filename_component(MPSBOOST_METAL_STEM "${MPSBOOST_METAL_SOURCE}" NAME_WE)
@@ -66,7 +70,7 @@ foreach(MPSBOOST_METAL_SOURCE IN LISTS MPSBOOST_METAL_SOURCES)
     COMMAND "${MPSBOOST_XCRUN_EXECUTABLE}" -sdk macosx metal
             -c "${MPSBOOST_METAL_SOURCE}" -o "${MPSBOOST_AIR_OUTPUT}"
     DEPENDS "${MPSBOOST_METAL_SOURCE}"
-    COMMENT "编译 MPSBoost Metal shader: ${MPSBOOST_METAL_STEM}"
+    COMMENT "Compile MPSBoost Metal shader: ${MPSBOOST_METAL_STEM}"
     VERBATIM
   )
   list(APPEND MPSBOOST_AIR_OUTPUTS "${MPSBOOST_AIR_OUTPUT}")
@@ -77,7 +81,7 @@ add_custom_command(
   COMMAND "${MPSBOOST_XCRUN_EXECUTABLE}" -sdk macosx metallib
           ${MPSBOOST_AIR_OUTPUTS} -o "${MPSBOOST_METALLIB_OUTPUT}"
   DEPENDS ${MPSBOOST_AIR_OUTPUTS}
-  COMMENT "编译 MPSBoost Metal shader library"
+  COMMENT "Compile MPSBoost Metal shader library"
   VERBATIM
 )
 add_custom_target(mpsboost_metallib ALL DEPENDS "${MPSBOOST_METALLIB_OUTPUT}")

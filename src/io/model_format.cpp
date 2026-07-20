@@ -70,7 +70,7 @@ std::vector<std::uint8_t> SerializeModel(const MulticlassModel& model) {
 RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes) {
   if (bytes.size() < kHeaderSize ||
       !std::equal(kMagic.begin(), kMagic.end(), bytes.begin())) {
-    throw TrainingError("模型 magic 不匹配或头部截断");
+    throw TrainingError("Model magic does not match or header is truncated");
   }
   Reader header(bytes.data() + kMagic.size(), bytes.size() - kMagic.size());
   const std::uint16_t major = header.ReadUnsigned<std::uint16_t>("major");
@@ -79,17 +79,17 @@ RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes) {
   const std::uint64_t payload_size = header.ReadUnsigned<std::uint64_t>("payload size");
   const std::uint64_t checksum = header.ReadUnsigned<std::uint64_t>("checksum");
   if (major != kFormatMajor) {
-    throw TrainingError("模型 major 版本不受支持");
+    throw TrainingError("Model major version is unsupported");
   }
   if (model_kind != kRegressionModelKind) {
     throw TrainingError("model kind is incompatible with regression loader");
   }
   if (payload_size != bytes.size() - kHeaderSize) {
-    throw TrainingError("模型 payload 长度不一致");
+    throw TrainingError("Model payload length does not match");
   }
   const std::uint8_t* payload = bytes.data() + kHeaderSize;
   if (Checksum(payload, static_cast<std::size_t>(payload_size)) != checksum) {
-    throw TrainingError("模型完整性校验失败");
+    throw TrainingError("Model integrity check failed");
   }
   return ParsePayload(payload, static_cast<std::size_t>(payload_size), minor);
 }
@@ -97,7 +97,7 @@ RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes) {
 MulticlassModel DeserializeMulticlassModel(const std::vector<std::uint8_t>& bytes) {
   if (bytes.size() < kHeaderSize ||
       !std::equal(kMagic.begin(), kMagic.end(), bytes.begin())) {
-    throw TrainingError("模型 magic 不匹配或头部截断");
+    throw TrainingError("Model magic does not match or header is truncated");
   }
   Reader header(bytes.data() + kMagic.size(), bytes.size() - kMagic.size());
   const std::uint16_t major = header.ReadUnsigned<std::uint16_t>("major");
@@ -106,17 +106,17 @@ MulticlassModel DeserializeMulticlassModel(const std::vector<std::uint8_t>& byte
   const std::uint64_t payload_size = header.ReadUnsigned<std::uint64_t>("payload size");
   const std::uint64_t checksum = header.ReadUnsigned<std::uint64_t>("checksum");
   if (major != kFormatMajor) {
-    throw TrainingError("模型 major 版本不受支持");
+    throw TrainingError("Model major version is unsupported");
   }
   if (model_kind != kMulticlassModelKind) {
     throw TrainingError("model kind is incompatible with multiclass loader");
   }
   if (payload_size != bytes.size() - kHeaderSize) {
-    throw TrainingError("模型 payload 长度不一致");
+    throw TrainingError("Model payload length does not match");
   }
   const std::uint8_t* payload = bytes.data() + kHeaderSize;
   if (Checksum(payload, static_cast<std::size_t>(payload_size)) != checksum) {
-    throw TrainingError("模型完整性校验失败");
+    throw TrainingError("Model integrity check failed");
   }
   return ParseMulticlassPayload(payload, static_cast<std::size_t>(payload_size),
                                 minor);
