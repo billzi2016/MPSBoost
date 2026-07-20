@@ -26,6 +26,7 @@ compile_commands.json
 /tests/real_world/downloads/
 /tests/real_world/reports/
 /tests/real_world/artifacts/
+/docs-site/site/
 *.dataset.lock
 
 # macOS

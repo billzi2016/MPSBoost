@@ -1,0 +1,75 @@
+site_name: MPSBoost
+site_description: MPSBoost 中文文档
+site_url: https://billzi2016.github.io/MPSBoost/
+repo_url: https://github.com/billzi2016/MPSBoost
+repo_name: billzi2016/MPSBoost
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - 首页: zh-Hans/index.md
+  - 快速开始:
+      - 安装与环境: zh-Hans/getting-started/install.md
+      - 最小示例: zh-Hans/getting-started/quick-start.md
+  - 用户指南:
+      - 后端策略: zh-Hans/user-guide/backend-policy.md
+      - Estimator API: zh-Hans/user-guide/estimators.md
+  - 项目:
+      - README: zh-Hans/project/README.md
+      - 贡献指南: zh-Hans/project/CONTRIBUTING.md
+      - Changelog: zh-Hans/project/CHANGELOG.md
+      - Release Audit: zh-Hans/project/RELEASE_AUDIT.md
+      - Agent Skill: zh-Hans/project/mps_boost_skill.md
+      - 图标资源说明: zh-Hans/assets/icons/README.md
+  - Benchmark:
+      - S4 M2 Ultra: zh-Hans/benchmarks/results/s4-m2-ultra-py313.md
+      - S6 M2 Ultra: zh-Hans/benchmarks/results/s6-m2-ultra-py313.md
+  - 测试:
+      - 真实世界测试: zh-Hans/tests/real_world/README.md
+  - 规格:
+      - 规格索引: zh-Hans/specs/README.md
+      - 任务清单: zh-Hans/specs/tasks.md
+      - 宪法: zh-Hans/specs/constitution.md
+      - 项目树: zh-Hans/specs/project-tree.md
+      - Agent 规则: zh-Hans/specs/AGENTS.md
+      - Legacy Issues: zh-Hans/specs/legacy-issues.md
+      - Legacy Issues zh-Hans: zh-Hans/specs/legacy-issues.zh-Hans.md
+      - V1 PRD: zh-Hans/specs/v1-mps-histogram-engine/prd.md
+      - V1 模块:
+          - Python API: zh-Hans/specs/v1-mps-histogram-engine/modules/01-python-api.md
+          - 数据与分箱: zh-Hans/specs/v1-mps-histogram-engine/modules/02-data-quantization.md
+          - 训练核心: zh-Hans/specs/v1-mps-histogram-engine/modules/03-training-core.md
+          - MPS 后端: zh-Hans/specs/v1-mps-histogram-engine/modules/04-mps-backend.md
+          - 缓存: zh-Hans/specs/v1-mps-histogram-engine/modules/05-cache.md
+          - 模型 IO: zh-Hans/specs/v1-mps-histogram-engine/modules/06-model-io.md
+          - 质量: zh-Hans/specs/v1-mps-histogram-engine/modules/07-quality.md
+          - 打包发布: zh-Hans/specs/v1-mps-histogram-engine/modules/08-packaging-release.md
+      - V2 Arboretum: zh-Hans/specs/v2-arboretum-implementation/prd.md
+      - V2 多分类 Softmax: zh-Hans/specs/v2-arboretum-implementation/native-multiclass-softmax.md
+      - V3 真实世界测试: zh-Hans/specs/v3-real-world-tests/prd.md
+  - 文档站点 PRD:
+      - MkDocs PRD: zh-Hans/prd/mkdocs_prd.zh-Hans.md
+      - GitHub Actions PRD: zh-Hans/prd/github_action_prd.zh-Hans.md

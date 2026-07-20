@@ -259,3 +259,11 @@
 - [ ] S22.5 明确边界：外部后端必须是显式 portable mode 或 `device="auto"` 的可观测选择，不得替代 native CPU oracle，也不得伪装成 MPSBoost native。
 - [ ] S22.6 覆盖 macOS MPS、macOS CPU、Linux CPU、Linux CUDA 的 smoke 测试矩阵和 backend summary 断言。
 - [ ] S22.7 验收 G20：同一用户接口可在 Apple Silicon、普通 Linux、CUDA Linux 环境运行，且依赖、性能和实际后端对用户透明可查。
+
+## S23：文档站点翻译与国际化
+
+- [ ] S23.1 梳理 `docs-site/docs/zh-Hans/` 中需要英文版本的页面和 symlink 源文件。
+- [ ] S23.2 将 README、CHANGELOG、RELEASE_AUDIT、mps_boost_skill 和核心 specs 翻译为英文站点页面，保持中文源文件不漂移。
+- [ ] S23.3 增加 MkDocs i18n 配置，建立 `en/` 与 `zh-Hans/` 平行导航结构。
+- [ ] S23.4 校验中英文页面链接、术语、版本号、后端策略和 PyPI 安装命令一致。
+- [ ] S23.5 验收 G21：文档站点具备可维护的双语结构，翻译内容准确且不影响 0.3.0 已发布源码语义。
