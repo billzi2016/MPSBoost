@@ -8,6 +8,11 @@ model determinism, and CPU/MPS parity. Standard hosted GitHub CI does not provid
 the required MPS hardware environment, so a normal pull-request workflow cannot
 currently prove that a change is correct.
 
+Self-hosted MPS CI also has a hard security problem: it is very difficult to
+fully defend a personal machine that executes external code. I am still studying
+the right security model for this project. Until that is solved, general code
+contributions are not enabled.
+
 Until the project has a reliable self-hosted MPS CI path and a stable review
 process, contributions are limited to maintainer-controlled development.
 
