@@ -56,6 +56,7 @@ def test_iris_multiclass_classification_cpu_acceptance():
     probabilities = model.predict_proba(X_test)
     predictions = model.predict(X_test)
 
+    assert model.training_summary_["strategy"] == "native_softmax"
     assert probabilities.shape == (y_test.shape[0], 3)
     assert float(sklearn_metrics.accuracy_score(y_test, predictions)) >= 0.90
 
@@ -83,6 +84,7 @@ def test_iris_multiclass_grid_search_cv_acceptance():
 
     search.fit(X, y)
 
+    assert search.best_estimator_.training_summary_["strategy"] == "native_softmax"
     assert search.best_estimator_.classes_.tolist() == [0, 1, 2]
     assert float(search.best_score_) >= 0.90
 
@@ -115,6 +117,7 @@ def test_digits_multiclass_classification_cpu_acceptance():
 
     predictions = model.predict(X_test)
 
+    assert model.training_summary_["strategy"] == "native_softmax"
     assert float(sklearn_metrics.accuracy_score(y_test, predictions)) >= 0.75
 
 

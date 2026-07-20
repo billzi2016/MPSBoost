@@ -45,7 +45,7 @@ DATASET_MATRIX: tuple[DatasetSpec, ...] = (
         source="sklearn.datasets.load_iris",
         default_ci=True,
         status="active",
-        reason="The public classifier supports multiclass through real one-vs-rest native models.",
+        reason="The public classifier defaults to native CPU softmax for multiclass labels.",
     ),
     DatasetSpec(
         name="Digits",
@@ -53,7 +53,7 @@ DATASET_MATRIX: tuple[DatasetSpec, ...] = (
         source="sklearn.datasets.load_digits",
         default_ci=True,
         status="active",
-        reason="The public classifier supports multiclass through real one-vs-rest native models.",
+        reason="The public classifier defaults to native CPU softmax for multiclass labels.",
     ),
     DatasetSpec(
         name="California Housing",

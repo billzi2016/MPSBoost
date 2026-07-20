@@ -82,6 +82,25 @@ def test_explicit_ovr_multiclass_fallback_remains_available():
     assert model.training_summary_["strategy"] == "one_vs_rest"
 
 
+def test_mps_native_softmax_requires_future_backend_work():
+    """Explicit MPS softmax must fail instead of silently training on CPU."""
+
+    X = np.asarray(
+        [[0.0], [0.1], [0.2], [1.0], [1.1], [1.2], [2.0], [2.1], [2.2]],
+        dtype=np.float32,
+    )
+    y = np.asarray([0, 0, 0, 1, 1, 1, 2, 2, 2], dtype=np.int64)
+
+    with pytest.raises(NotImplementedError, match="device='mps'"):
+        MPSBoostClassifier(
+            n_estimators=1,
+            max_depth=0,
+            min_samples_leaf=1,
+            multi_strategy="softmax",
+            device="mps",
+        ).fit(X, y)
+
+
 def test_binary_classifier_preserves_non_zero_numeric_labels():
     """Binary classification should map arbitrary numeric labels back to users."""
 

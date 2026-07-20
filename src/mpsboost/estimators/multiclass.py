@@ -272,9 +272,9 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
     def _should_use_native_softmax(self) -> bool:
         """Return whether this fit should use the native CPU softmax trainer."""
 
-        return self.multi_strategy == "softmax" or (
-            self.multi_strategy == "auto" and self.device in {"cpu", "auto"}
-        )
+        if self.device not in {"cpu", "auto"}:
+            return False
+        return self.multi_strategy in {"auto", "softmax"}
 
     def _fit_native_softmax(
         self,

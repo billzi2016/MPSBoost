@@ -50,7 +50,7 @@ def _covertype_subset(rows: int = 30000):
 
 
 def test_covertype_subset_multiclass_cpu_acceptance():
-    """Large-row multiclass tabular data should train through the public OvR API."""
+    """Large-row multiclass tabular data should train through native CPU softmax."""
 
     X_train, X_test, y_train, y_test = _covertype_subset(rows=30000)
     scaler = sklearn_preprocessing.StandardScaler()
@@ -71,6 +71,7 @@ def test_covertype_subset_multiclass_cpu_acceptance():
 
     predictions = model.predict(X_test)
 
+    assert model.training_summary_["strategy"] == "native_softmax"
     assert len(model.classes_) >= 4
     assert float(sklearn_metrics.accuracy_score(y_test, predictions)) >= 0.45
 
@@ -96,12 +97,16 @@ def test_covertype_subset_real_mps_parity_and_timing_smoke():
     )
 
     started = perf_counter()
-    cpu = mb.GradientBoostingClassifier(device="cpu", **parameters).fit(X_train, y_train)
+    cpu = mb.GradientBoostingClassifier(
+        device="cpu", multi_strategy="ovr", **parameters
+    ).fit(X_train, y_train)
     cpu_seconds = perf_counter() - started
     started = perf_counter()
     mps = mb.GradientBoostingClassifier(device="mps", **parameters).fit(X_train, y_train)
     mps_seconds = perf_counter() - started
 
+    assert cpu.training_summary_["strategy"] == "one_vs_rest"
+    assert mps.training_summary_["strategy"] == "one_vs_rest"
     np.testing.assert_allclose(
         mps.predict_proba(X_test[:512]),
         cpu.predict_proba(X_test[:512]),

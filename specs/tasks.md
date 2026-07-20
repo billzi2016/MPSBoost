@@ -245,6 +245,6 @@
 - [x] S21.5 扩展 native model 格式，保存 `num_class`、多分类 objective、class mapping 和多 class tree/update 结构，并保持旧模型格式兼容读取。
 - [x] S21.6 实现 Python classifier 的 `multi_strategy="auto" | "softmax" | "ovr"`，其中 `auto` 在 native softmax 可用时默认选择 softmax。
 - [x] S21.7 实现 `predict_proba` 的 native softmax 输出，概率每行必须归一、有限，并与 `predict` 的 argmax class 一致。
-- [ ] S21.8 增加 MPS native softmax 路径或明确分阶段门槛；在 MPS 未完成前不得把 CPU softmax 伪装成 MPS softmax。
-- [ ] S21.9 覆盖 Iris、Digits、Covertype subset 等真实多分类数据集，并同时验证 CPU oracle、MPS 行为和 sklearn model-selection 兼容性。
+- [x] S21.8 增加 MPS native softmax 路径或明确分阶段门槛；在 MPS 未完成前不得把 CPU softmax 伪装成 MPS softmax。
+- [x] S21.9 覆盖 Iris、Digits、Covertype subset 等真实多分类数据集，并同时验证 CPU oracle、MPS 行为和 sklearn model-selection 兼容性。
 - [ ] S21.10 验收 G19：默认多分类实现达到 native softmax，OvR 仅保留为显式 fallback/兼容策略。
