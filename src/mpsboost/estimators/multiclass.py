@@ -8,6 +8,8 @@ instead of pretending that the binary objective is natively multiclass. Binary
 
 from __future__ import annotations
 
+import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import numpy as np
@@ -35,24 +37,31 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         classes = np.unique(labels)
         if classes.size < 2:
             raise ValueError("classification requires at least two classes")
-        if classes.size == 2 and np.array_equal(classes, np.asarray([0.0, 1.0])):
+        encoded = np.searchsorted(classes, labels)
+        if classes.size == 2:
             self._multiclass_strategy_ = "binary_logistic"
-            fitted = super().fit(X, y, sample_weight=sample_weight)
-            fitted.classes_ = fitted.classes_.astype(np.int64, copy=False)
+            fitted = super().fit(X, encoded, sample_weight=sample_weight)
+            fitted.classes_ = classes
             return fitted
 
         self._validate_parameters()
         weights = as_sample_weight(sample_weight, labels.shape[0])
-        estimators: list[_BinaryMPSBoostClassifier] = []
-        for index, class_value in enumerate(classes):
-            estimator = _BinaryMPSBoostClassifier(**self.get_params())
-            estimator.random_state = (
-                None if self.random_state is None else int(self.random_state) + index
-            )
-            binary_labels = (labels == class_value).astype(np.float64)
+        worker_count = self._resolved_ovr_jobs(classes.size)
+
+        def train_binary(index: int) -> _BinaryMPSBoostClassifier:
+            """Train one class-vs-rest native binary model with deterministic seeding."""
+
+            estimator = self._make_binary_estimator(index)
+            binary_labels = (encoded == index).astype(np.float64)
             estimator.fit(X, binary_labels, sample_weight=weights)
-            estimators.append(estimator)
-        self.classes_ = classes.astype(np.int64, copy=False)
+            return estimator
+
+        if worker_count == 1:
+            estimators = [train_binary(index) for index in range(classes.size)]
+        else:
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                estimators = list(executor.map(train_binary, range(classes.size)))
+        self.classes_ = classes.copy()
         self.estimators_ = tuple(estimators)
         self.n_features_in_ = estimators[0].n_features_in_
         self.n_estimators_ = sum(item.n_estimators_ for item in estimators)
@@ -63,6 +72,7 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
             "classes": self.classes_.tolist(),
             "n_classes": int(classes.size),
             "n_estimators": self.n_estimators_,
+            "n_jobs": worker_count,
             "weighted": bool(sample_weight is not None),
         }
         return self
@@ -73,7 +83,8 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         if getattr(self, "_multiclass_strategy_", None) != "one_vs_rest":
             return super().predict_proba(X)
         self._require_multiclass_estimators()
-        scores = np.column_stack([estimator.predict_proba(X)[:, 1] for estimator in self.estimators_])
+        scores = self.decision_function(X)
+        scores = 1.0 / (1.0 + np.exp(-np.clip(scores, -709.0, 709.0)))
         row_sums = scores.sum(axis=1, keepdims=True)
         zero_rows = row_sums[:, 0] <= 0.0
         if np.any(zero_rows):
@@ -95,8 +106,18 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         predictions = self.predict(X)
         labels = as_labels(y, predictions.shape[0])
         weights = as_sample_weight(sample_weight, predictions.shape[0])
-        correct = predictions == labels.astype(np.int64)
+        correct = predictions == labels
         return float(np.average(correct.astype(np.float64), weights=weights))
+
+    def decision_function(self, X: Any) -> NDArray[np.float32]:
+        """Return binary margins or one-vs-rest class margins."""
+
+        if getattr(self, "_multiclass_strategy_", None) != "one_vs_rest":
+            return self._predict_raw(X).astype(np.float32, copy=False)
+        self._require_multiclass_estimators()
+        return np.column_stack(
+            [estimator._predict_raw(X) for estimator in self.estimators_]
+        ).astype(np.float32, copy=False)
 
     def feature_importance(self, kind: str = "gain") -> NDArray[np.float32]:
         """Average OvR feature importance across class-specific binary models."""
@@ -129,3 +150,21 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         if not hasattr(self, "estimators_"):
             raise NotFittedError(self._fitted_error_message)
         return self.estimators_
+
+    def _resolved_ovr_jobs(self, n_classes: int) -> int:
+        """Normalize sklearn-style n_jobs for class-parallel OvR training."""
+
+        if self.n_jobs is None:
+            return 1
+        if self.n_jobs == -1:
+            return min(n_classes, os.cpu_count() or 1)
+        return min(n_classes, int(self.n_jobs))
+
+    def _make_binary_estimator(self, class_index: int) -> _BinaryMPSBoostClassifier:
+        """Build the binary native estimator used by one OvR branch."""
+
+        estimator = _BinaryMPSBoostClassifier(**self.get_params())
+        estimator.random_state = (
+            None if self.random_state is None else int(self.random_state) + class_index
+        )
+        return estimator

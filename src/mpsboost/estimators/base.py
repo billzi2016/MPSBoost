@@ -52,6 +52,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "interaction_constraints",
         "categorical_features",
         "random_state",
+        "n_jobs",
         "device",
         "verbosity",
     )
@@ -75,6 +76,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         interaction_constraints: Any = None,
         categorical_features: Any = None,
         random_state: int | None = None,
+        n_jobs: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
     ) -> None:
@@ -97,6 +99,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.interaction_constraints = interaction_constraints
         self.categorical_features = categorical_features
         self.random_state = random_state
+        self.n_jobs = n_jobs
         self.device = device
         self.verbosity = verbosity
         self._fit_lock = Lock()

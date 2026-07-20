@@ -235,3 +235,16 @@
 - [ ] S20.3 文档文件不纳入本任务；`specs/`、README、未来双语站点内容允许继续保留中文。
 - [ ] S20.4 必须使用 `specs/legacy-issues.md` 中规定的 `rg` 命令查找中文，并在新增程序目录后同步扩展搜索范围。
 - [ ] S20.5 完成后只能在搜索命令无程序文件中文命中、相关测试通过、且没有行为改动时打勾。
+
+## S21：原生多分类 Softmax 与 sklearn 兼容接口
+
+- [ ] S21.1 明确多分类路线：OvR 只能作为 compatibility layer/fallback，不能作为最终默认最佳实现。
+- [ ] S21.2 保持 sklearn/XGBoost 风格 public API 不变：`fit`、`predict`、`predict_proba`、`decision_function`、`score`、`get_params`、`set_params`、`GridSearchCV` 必须继续可用。
+- [ ] S21.3 增加 native multiclass softmax objective 规格：`num_class`、class 编码、base margin、softmax probability、gradient/Hessian、样本权重和数值稳定规则必须写清楚。
+- [ ] S21.4 实现 CPU oracle 的 native softmax 多分类训练，不允许用 OvR 测试假装原生 softmax 已完成。
+- [ ] S21.5 扩展 native model 格式，保存 `num_class`、多分类 objective、class mapping 和多 class tree/update 结构，并保持旧模型格式兼容读取。
+- [ ] S21.6 实现 Python classifier 的 `multi_strategy="auto" | "softmax" | "ovr"`，其中 `auto` 在 native softmax 可用时默认选择 softmax。
+- [ ] S21.7 实现 `predict_proba` 的 native softmax 输出，概率每行必须归一、有限，并与 `predict` 的 argmax class 一致。
+- [ ] S21.8 增加 MPS native softmax 路径或明确分阶段门槛；在 MPS 未完成前不得把 CPU softmax 伪装成 MPS softmax。
+- [ ] S21.9 覆盖 Iris、Digits、Covertype subset 等真实多分类数据集，并同时验证 CPU oracle、MPS 行为和 sklearn model-selection 兼容性。
+- [ ] S21.10 验收 G19：默认多分类实现达到 native softmax，OvR 仅保留为显式 fallback/兼容策略。

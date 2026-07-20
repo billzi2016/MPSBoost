@@ -120,6 +120,33 @@ def test_classifier_works_with_standard_sklearn_protocol():
     assert search.best_score_ >= 0.0
 
 
+def test_multiclass_classifier_works_with_grid_search_cv():
+    """Multiclass classifiers should behave like ordinary sklearn estimators."""
+
+    X = np.array(
+        [[0.0], [0.1], [0.2], [1.0], [1.1], [1.2], [2.0], [2.1], [2.2]],
+        dtype=np.float32,
+    )
+    y = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2], dtype=np.int64)
+    search = GridSearchCV(
+        mb.GradientBoostingClassifier(
+            max_depth=1,
+            min_samples_leaf=1,
+            min_child_weight=0.0,
+            n_jobs=2,
+            device="cpu",
+        ),
+        param_grid={"n_estimators": [1, 2], "learning_rate": [0.5]},
+        cv=3,
+        n_jobs=1,
+    )
+
+    search.fit(X, y)
+
+    assert isinstance(search.best_estimator_, mb.GradientBoostingClassifier)
+    assert search.best_score_ >= 0.0
+
+
 def test_decision_tree_estimators_follow_standard_sklearn_protocol():
     """Decision tree estimators should clone and tune through the standard protocol."""
 

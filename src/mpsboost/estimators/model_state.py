@@ -121,6 +121,8 @@ class SklearnAndPersistenceMixin:
             "training_summary_",
             "classes_",
             "categorical_metadata_",
+            "estimators_",
+            "_multiclass_strategy_",
         ):
             self.__dict__.pop(name, None)
 
@@ -139,11 +141,15 @@ class SklearnAndPersistenceMixin:
             if optional_value is None:
                 continue
             integer_ranges[optional_name] = (optional_value, 2, 2**32 - 1)
+        if self.n_jobs is not None:
+            integer_ranges["n_jobs"] = (self.n_jobs, -1, 2**31 - 1)
         for name, (value, minimum, maximum) in integer_ranges.items():
             if isinstance(value, bool) or not isinstance(value, int):
                 raise TypeError(f"{name} 必须是整数")
             if not minimum <= value <= maximum:
                 raise ValueError(f"{name} 必须位于 [{minimum}, {maximum}]")
+        if self.n_jobs == 0:
+            raise ValueError("n_jobs must be None, -1, or a non-zero integer")
         for name, numeric_value, lower, upper, lower_inclusive in (
             ("learning_rate", self.learning_rate, 0.0, 1.0, False),
             ("min_child_weight", self.min_child_weight, 0.0, np.inf, True),

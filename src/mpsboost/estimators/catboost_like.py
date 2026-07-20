@@ -99,6 +99,7 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
         interaction_constraints: Any = None,
         categorical_features: Any = None,
         random_state: int | None = None,
+        n_jobs: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
         ordered_boosting: bool = True,
@@ -123,6 +124,7 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
                 categorical_features if categorical_features is not None else cat_features
             ),
             random_state=random_state,
+            n_jobs=n_jobs,
             device=device,
             verbosity=verbosity,
         )
@@ -170,6 +172,7 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
         interaction_constraints: Any = None,
         categorical_features: Any = None,
         random_state: int | None = None,
+        n_jobs: int | None = None,
         device: str = "mps",
         verbosity: int = 1,
         ordered_boosting: bool = True,
@@ -194,6 +197,7 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
                 categorical_features if categorical_features is not None else cat_features
             ),
             random_state=random_state,
+            n_jobs=n_jobs,
             device=device,
             verbosity=verbosity,
         )
