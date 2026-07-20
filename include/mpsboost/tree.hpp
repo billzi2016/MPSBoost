@@ -63,6 +63,7 @@ struct TreeTrainingParameters final {
   GrowthStrategy growth_strategy{GrowthStrategy::kLevelWise};
   std::uint32_t random_seed{0};
   std::vector<std::int8_t> monotonic_constraints;
+  std::vector<std::vector<std::uint32_t>> interaction_constraints;
 };
 
 class RegressionTree final {

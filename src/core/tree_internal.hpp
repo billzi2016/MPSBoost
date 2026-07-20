@@ -49,6 +49,7 @@ struct ActiveNode final {
   NodeHistograms cached_histograms;
   double lower_bound{-std::numeric_limits<double>::infinity()};
   double upper_bound{std::numeric_limits<double>::infinity()};
+  std::vector<std::uint32_t> path_features;
 };
 
 struct PendingChildHistogram final {
@@ -95,6 +96,7 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                              const NodeStatistics& parent,
                              double lower_bound,
                              double upper_bound,
+                             const std::vector<std::uint32_t>& path_features,
                              std::uint32_t node_index,
                              std::uint32_t depth,
                              const TreeTrainingParameters& parameters,
@@ -116,6 +118,17 @@ MonotonicChildBounds MonotonicBoundsForSplit(
     double parent_upper_bound,
     std::uint32_t feature,
     const TreeTrainingParameters& parameters);
+
+bool InteractionAllowsFeature(const std::vector<std::uint32_t>& path_features,
+                              std::uint32_t feature,
+                              const TreeTrainingParameters& parameters);
+
+std::vector<std::uint32_t> ExtendInteractionPath(
+    const std::vector<std::uint32_t>& path_features,
+    std::uint32_t feature);
+
+void ValidateInteractionConstraints(const TreeTrainingParameters& parameters,
+                                    std::uint32_t feature_count);
 
 std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node);
 

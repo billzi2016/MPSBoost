@@ -192,3 +192,28 @@ class SklearnAndPersistenceMixin:
                 raise ValueError("monotonic_constraints values must be -1, 0, or 1")
             result.append(integer)
         return result
+
+    def _normalized_interaction_constraints(self, n_features: int) -> list[list[int]]:
+        """Return validated feature groups for native path interaction checks."""
+
+        constraints = getattr(self, "interaction_constraints", None)
+        if constraints is None:
+            return []
+        groups: list[list[int]] = []
+        for group in constraints:
+            normalized_group: list[int] = []
+            for value in group:
+                if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+                    raise TypeError("interaction_constraints values must be integers")
+                index = int(value)
+                if index < 0:
+                    index += n_features
+                if not 0 <= index < n_features:
+                    raise ValueError("interaction constraint feature index is out of range")
+                normalized_group.append(index)
+            if not normalized_group:
+                raise ValueError("interaction constraint groups must be non-empty")
+            if len(set(normalized_group)) != len(normalized_group):
+                raise ValueError("interaction constraint groups must not contain duplicates")
+            groups.append(sorted(normalized_group))
+        return groups

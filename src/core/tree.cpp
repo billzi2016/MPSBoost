@@ -19,6 +19,7 @@ using tree_internal::ActiveNode;
 using tree_internal::BuildCurrentLayerHistograms;
 using tree_internal::BuildPendingChildHistograms;
 using tree_internal::EffectiveMaxLeaves;
+using tree_internal::ExtendInteractionPath;
 using tree_internal::NodeStatistics;
 using tree_internal::PendingChildHistogram;
 using tree_internal::PreparedSplit;
@@ -27,6 +28,7 @@ using tree_internal::SubtractHistograms;
 using tree_internal::SumRows;
 using tree_internal::TreeTrainingAccess;
 using tree_internal::TrainLeafWiseRegressionTree;
+using tree_internal::ValidateInteractionConstraints;
 using tree_internal::ValidateParameters;
 using tree_internal::ValidateTreeStructure;
 
@@ -56,7 +58,9 @@ RegressionTree TrainLevelWiseRegressionTree(
 
   std::vector<ActiveNode> current_layer;
   current_layer.push_back(
-      ActiveNode{0, 0, std::move(root_rows), root_statistics, {}});
+      ActiveNode{0, 0, std::move(root_rows), root_statistics, {},
+                 -std::numeric_limits<double>::infinity(),
+                 std::numeric_limits<double>::infinity(), {}});
   std::uint32_t leaf_count = 1;
   const std::uint32_t max_leaves = EffectiveMaxLeaves(parameters);
 
@@ -92,14 +96,16 @@ RegressionTree TrainLevelWiseRegressionTree(
       ++leaf_count;
 
       const std::uint32_t child_depth = active.depth + 1;
+      const std::vector<std::uint32_t> child_path =
+          ExtendInteractionPath(active.path_features, prepared.split.feature);
       next_layer.push_back(ActiveNode{
           left_index, child_depth, std::move(prepared.left_rows),
           prepared.split.left, {}, prepared.split.left_lower_bound,
-          prepared.split.left_upper_bound});
+          prepared.split.left_upper_bound, child_path});
       next_layer.push_back(ActiveNode{
           right_index, child_depth, std::move(prepared.right_rows),
           prepared.split.right, {}, prepared.split.right_lower_bound,
-          prepared.split.right_upper_bound});
+          prepared.split.right_upper_bound, child_path});
       if (child_depth < parameters.max_depth) {
         const bool build_left =
             prepared.split.left.count <= prepared.split.right.count;
@@ -157,6 +163,7 @@ RegressionTree TrainSingleRegressionTree(
       throw TrainingError("monotonic_constraints values must be -1, 0, or 1");
     }
   }
+  ValidateInteractionConstraints(parameters, dataset.features());
   if (dataset.rows() != static_cast<std::uint64_t>(gradients.size())) {
     throw TrainingError("Gradient 数量与分箱数据行数不一致");
   }

@@ -97,6 +97,7 @@ pybind11_add_module(
   src/core/objective.cpp
   src/core/tree.cpp
   src/core/tree_histogram.cpp
+  src/core/tree_interactions.cpp
   src/core/tree_leafwise.cpp
   src/core/tree_monotonic.cpp
   src/core/tree_split.cpp

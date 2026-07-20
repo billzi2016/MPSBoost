@@ -144,6 +144,7 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                              const NodeStatistics& parent,
                              double lower_bound,
                              double upper_bound,
+                             const std::vector<std::uint32_t>& path_features,
                              std::uint32_t node_index,
                              std::uint32_t depth,
                              const TreeTrainingParameters& parameters,
@@ -156,6 +157,9 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
   }
   SplitCandidate best;
   for (std::uint32_t feature = 0; feature < dataset.features(); ++feature) {
+    if (!InteractionAllowsFeature(path_features, feature, parameters)) {
+      continue;
+    }
     const FeatureHistogram& bins = histograms[feature];
     if (bins.size() != dataset.feature_metadata()[feature].bin_count) {
       throw TrainingError("Histogram bin 数量与特征元数据不一致");
@@ -255,8 +259,8 @@ PreparedSplit PrepareSplitRows(const BinnedDataset& dataset,
   }
   const SplitCandidate split =
       FindBestSplit(histograms, dataset, active.statistics, active.lower_bound,
-                    active.upper_bound, active.node_index, active.depth,
-                    parameters, missing);
+                    active.upper_bound, active.path_features, active.node_index,
+                    active.depth, parameters, missing);
   if (!split.valid) {
     return {};
   }

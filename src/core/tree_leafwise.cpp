@@ -7,6 +7,7 @@
 #include "tree_internal.hpp"
 
 #include <cstddef>
+#include <limits>
 #include <utility>
 
 namespace mpsboost::tree_internal {
@@ -67,7 +68,9 @@ RegressionTree TrainLeafWiseRegressionTree(
 
   std::vector<ActiveNode> active_leaves;
   active_leaves.push_back(
-      ActiveNode{0, 0, std::move(root_rows), root_statistics, {}});
+      ActiveNode{0, 0, std::move(root_rows), root_statistics, {},
+                 -std::numeric_limits<double>::infinity(),
+                 std::numeric_limits<double>::infinity(), {}});
   std::uint32_t leaf_count = 1;
   const std::uint32_t max_leaves = EffectiveMaxLeaves(parameters);
   const std::uint32_t max_active_leaves = EffectiveMaxActiveLeaves(parameters);
@@ -114,14 +117,16 @@ RegressionTree TrainLeafWiseRegressionTree(
     ++leaf_count;
 
     const std::uint32_t child_depth = active.depth + 1;
+    const std::vector<std::uint32_t> child_path =
+        ExtendInteractionPath(active.path_features, best_prepared.split.feature);
     ActiveNode left{left_index, child_depth, std::move(best_prepared.left_rows),
                     best_prepared.split.left, {},
                     best_prepared.split.left_lower_bound,
-                    best_prepared.split.left_upper_bound};
+                    best_prepared.split.left_upper_bound, child_path};
     ActiveNode right{right_index, child_depth, std::move(best_prepared.right_rows),
                      best_prepared.split.right, {},
                      best_prepared.split.right_lower_bound,
-                     best_prepared.split.right_upper_bound};
+                     best_prepared.split.right_upper_bound, child_path};
     CacheChildHistograms(dataset, gradients, histogram_builder, parameters,
                          best_prepared,
                          best_histograms, &left, &right);

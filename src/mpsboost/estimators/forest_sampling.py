@@ -30,6 +30,7 @@ class ForestSamplingMixin:
             min_samples_leaf=self.min_samples_leaf,
             reg_lambda=self.reg_lambda,
             monotonic_constraints=self._local_monotonic_constraints(),
+            interaction_constraints=self._local_interaction_constraints(),
             categorical_features=None,
             random_state=random_state,
             device=self.device,
@@ -70,6 +71,23 @@ class ForestSamplingMixin:
             return list(constraints)
         raw = list(constraints)
         return [raw[int(feature)] for feature in features]
+
+    def _local_interaction_constraints(self) -> list[list[int]] | None:
+        """Map global interaction groups to local sampled feature indices."""
+
+        constraints = getattr(self, "_training_interaction_constraints", None)
+        if not constraints:
+            return None
+        features = getattr(self, "_current_feature_subset", None)
+        if features is None:
+            return [list(group) for group in constraints]
+        local_index = {int(feature): index for index, feature in enumerate(features)}
+        groups: list[list[int]] = []
+        for group in constraints:
+            local_group = [local_index[feature] for feature in group if feature in local_index]
+            if local_group:
+                groups.append(local_group)
+        return groups
 
     def _sample_rows(self, labels: NDArray[np.float32], random_state: int) -> NDArray[np.int64]:
         """Sample training rows for one tree."""

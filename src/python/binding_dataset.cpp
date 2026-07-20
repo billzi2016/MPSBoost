@@ -36,7 +36,9 @@ TrainingParameters MakeTrainingParameters(std::uint32_t n_estimators,
                                           std::uint32_t max_active_leaves,
                                           std::uint32_t random_seed,
                                           const std::vector<std::int8_t>&
-                                              monotonic_constraints) {
+                                              monotonic_constraints,
+                                          const std::vector<std::vector<std::uint32_t>>&
+                                              interaction_constraints) {
   TrainingParameters::Objective objective_kind =
       TrainingParameters::Objective::kSquaredError;
   if (objective == "squared_error") {
@@ -82,7 +84,8 @@ TrainingParameters MakeTrainingParameters(std::uint32_t n_estimators,
                                                    split_kind,
                                                    growth_kind,
                                                    random_seed,
-                                                   monotonic_constraints}};
+                                                   monotonic_constraints,
+                                                   interaction_constraints}};
 }
 
 }  // namespace
@@ -126,6 +129,8 @@ void RegisterDatasetBindings(py::module_& module) {
            py::arg("max_active_leaves") = 0,
            py::arg("random_seed") = 0,
            py::arg("monotonic_constraints") = std::vector<std::int8_t>{},
+           py::arg("interaction_constraints") =
+               std::vector<std::vector<std::uint32_t>>{},
            "Create the internal named training-parameter value object.");
 }
 

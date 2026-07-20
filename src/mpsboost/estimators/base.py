@@ -47,6 +47,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "min_samples_leaf",
         "reg_lambda",
         "monotonic_constraints",
+        "interaction_constraints",
         "categorical_features",
         "random_state",
         "device",
@@ -67,6 +68,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
         monotonic_constraints: Any = None,
+        interaction_constraints: Any = None,
         categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
@@ -86,6 +88,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.min_samples_leaf = min_samples_leaf
         self.reg_lambda = reg_lambda
         self.monotonic_constraints = monotonic_constraints
+        self.interaction_constraints = interaction_constraints
         self.categorical_features = categorical_features
         self.random_state = random_state
         self.device = device
@@ -160,6 +163,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 monotonic_constraints=self._normalized_monotonic_constraints(
                     matrix.shape[1]
                 ),
+                interaction_constraints=self._normalized_interaction_constraints(
+                    matrix.shape[1]
+                ),
             )
             mps_available = is_available()
             device_decision = choose_device(
@@ -208,6 +214,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                     else list(categorical_metadata.features)
                 ),
                 "monotonic_constraints": self._normalized_monotonic_constraints(
+                    matrix.shape[1]
+                ),
+                "interaction_constraints": self._normalized_interaction_constraints(
                     matrix.shape[1]
                 ),
                 "growth_strategy": self.growth_strategy,

@@ -40,6 +40,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         "min_samples_leaf",
         "reg_lambda",
         "monotonic_constraints",
+        "interaction_constraints",
         "categorical_features",
         "max_features",
         "sample_fraction",
@@ -59,6 +60,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
         monotonic_constraints: Any = None,
+        interaction_constraints: Any = None,
         categorical_features: Any = None,
         max_features: float = 1.0,
         sample_fraction: float = 1.0,
@@ -79,6 +81,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
             monotonic_constraints=monotonic_constraints,
+            interaction_constraints=interaction_constraints,
             categorical_features=categorical_features,
             random_state=random_state,
             device=device,
@@ -106,6 +109,9 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             weights = as_sample_weight(sample_weight, raw_rows)
             matrix, categorical_metadata = fit_transform_categorical(
                 X, self.categorical_features, labels, weights
+            )
+            self._training_interaction_constraints = (
+                self._normalized_interaction_constraints(matrix.shape[1])
             )
             generator = np.random.default_rng(self.random_state)
             jobs = tuple(
@@ -152,6 +158,9 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
                 "monotonic_constraints": self._normalized_monotonic_constraints(
                     matrix.shape[1]
                 ),
+                "interaction_constraints": self._normalized_interaction_constraints(
+                    matrix.shape[1]
+                ),
             }
             self._finalize_fitted_metadata()
             return self
@@ -159,6 +168,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             self._clear_fitted_state()
             raise
         finally:
+            self.__dict__.pop("_training_interaction_constraints", None)
             self._fit_lock.release()
 
     def feature_importance(self, kind: str = "gain") -> NDArray[np.float32]:
