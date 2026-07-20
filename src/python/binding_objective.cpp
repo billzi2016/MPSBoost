@@ -33,7 +33,9 @@ RegressionTree TrainSingleTreeCpu(const BinnedDataset& dataset,
                                   const std::string& growth_strategy,
                                   std::uint32_t max_leaves,
                                   std::uint32_t max_active_leaves,
-                                  std::uint32_t random_seed) {
+                                  std::uint32_t random_seed,
+                                  const std::vector<std::int8_t>&
+                                      monotonic_constraints) {
   const std::vector<GradientPair> gradients =
       ComputeSquaredErrorGradients(labels, predictions);
   TreeTrainingParameters::SplitStrategy split_kind =
@@ -58,7 +60,8 @@ RegressionTree TrainSingleTreeCpu(const BinnedDataset& dataset,
                                           max_active_leaves, min_samples_leaf,
                                           min_child_weight, reg_lambda, gamma,
                                           min_gain_to_split, split_kind,
-                                          growth_kind, random_seed};
+                                          growth_kind, random_seed,
+                                          monotonic_constraints};
   const CpuReferenceBackend backend;
   return TrainSingleRegressionTree(dataset, gradients, parameters, backend);
 }
@@ -113,6 +116,7 @@ void RegisterObjectiveBindings(py::module_& module) {
              py::arg("max_leaves") = 0,
              py::arg("max_active_leaves") = 0,
              py::arg("random_seed") = 0,
+             py::arg("monotonic_constraints") = std::vector<std::int8_t>{},
              "Train one real CPU-oracle depth-limited regression tree.");
 }
 

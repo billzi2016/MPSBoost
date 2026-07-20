@@ -46,6 +46,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
+        "monotonic_constraints",
         "categorical_features",
         "random_state",
         "device",
@@ -65,6 +66,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        monotonic_constraints: Any = None,
         categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
@@ -83,6 +85,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.min_child_weight = min_child_weight
         self.min_samples_leaf = min_samples_leaf
         self.reg_lambda = reg_lambda
+        self.monotonic_constraints = monotonic_constraints
         self.categorical_features = categorical_features
         self.random_state = random_state
         self.device = device
@@ -154,6 +157,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                     0 if self.max_active_leaves is None else self.max_active_leaves
                 ),
                 random_seed=0 if self.random_state is None else self.random_state,
+                monotonic_constraints=self._normalized_monotonic_constraints(
+                    matrix.shape[1]
+                ),
             )
             mps_available = is_available()
             device_decision = choose_device(
@@ -200,6 +206,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                     []
                     if categorical_metadata is None
                     else list(categorical_metadata.features)
+                ),
+                "monotonic_constraints": self._normalized_monotonic_constraints(
+                    matrix.shape[1]
                 ),
                 "growth_strategy": self.growth_strategy,
                 "max_leaves": self.max_leaves,

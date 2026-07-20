@@ -65,6 +65,8 @@ NodeStatistics AddStatistics(const NodeStatistics& left,
 void ConsiderMissingDirection(const NodeStatistics& left,
                               const NodeStatistics& right,
                               const NodeStatistics& missing,
+                              double parent_lower_bound,
+                              double parent_upper_bound,
                               bool default_left,
                               std::uint32_t feature,
                               std::uint32_t threshold,
@@ -88,8 +90,24 @@ void ConsiderMissingDirection(const NodeStatistics& left,
   if (gain <= 0.0 || gain < parameters.min_gain_to_split) {
     return;
   }
+  const MonotonicChildBounds bounds = MonotonicBoundsForSplit(
+      candidate_left, candidate_right, parent_lower_bound, parent_upper_bound,
+      feature, parameters);
+  if (!bounds.valid) {
+    return;
+  }
   const SplitCandidate candidate{
-      true, feature, threshold, gain, default_left, candidate_left, candidate_right,
+      true,
+      feature,
+      threshold,
+      gain,
+      default_left,
+      candidate_left,
+      candidate_right,
+      bounds.left_lower_bound,
+      bounds.left_upper_bound,
+      bounds.right_lower_bound,
+      bounds.right_upper_bound,
   };
   if (IsBetterSplit(candidate, *best)) {
     *best = candidate;
@@ -124,6 +142,8 @@ NodeStatistics SumRows(const std::vector<std::uint64_t>& rows,
 SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                              const BinnedDataset& dataset,
                              const NodeStatistics& parent,
+                             double lower_bound,
+                             double upper_bound,
                              std::uint32_t node_index,
                              std::uint32_t depth,
                              const TreeTrainingParameters& parameters,
@@ -198,10 +218,12 @@ SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                            static_cast<std::uint32_t>(bins.size() - 1))) {
         continue;
       }
-      ConsiderMissingDirection(left, right, missing_stats, true, feature,
-                               threshold, parameters, &best);
-      ConsiderMissingDirection(left, right, missing_stats, false, feature,
-                               threshold, parameters, &best);
+      ConsiderMissingDirection(left, right, missing_stats, lower_bound,
+                               upper_bound, true, feature, threshold,
+                               parameters, &best);
+      ConsiderMissingDirection(left, right, missing_stats, lower_bound,
+                               upper_bound, false, feature, threshold,
+                               parameters, &best);
     }
   }
   return best;
@@ -232,8 +254,9 @@ PreparedSplit PrepareSplitRows(const BinnedDataset& dataset,
     }
   }
   const SplitCandidate split =
-      FindBestSplit(histograms, dataset, active.statistics, active.node_index,
-                    active.depth, parameters, missing);
+      FindBestSplit(histograms, dataset, active.statistics, active.lower_bound,
+                    active.upper_bound, active.node_index, active.depth,
+                    parameters, missing);
   if (!split.valid) {
     return {};
   }

@@ -29,6 +29,7 @@ class ForestSamplingMixin:
             min_child_weight=self.min_child_weight,
             min_samples_leaf=self.min_samples_leaf,
             reg_lambda=self.reg_lambda,
+            monotonic_constraints=self._local_monotonic_constraints(),
             categorical_features=None,
             random_state=random_state,
             device=self.device,
@@ -47,12 +48,28 @@ class ForestSamplingMixin:
 
         rows = self._sample_rows(labels, row_seed)
         features = self._sample_features(matrix.shape[1], feature_seed)
-        tree = self._make_tree(feature_seed).fit(
-            matrix[rows][:, features],
-            labels[rows],
-            sample_weight=sample_weights[rows],
-        )
+        self._current_feature_subset = features
+        try:
+            tree = self._make_tree(feature_seed).fit(
+                matrix[rows][:, features],
+                labels[rows],
+                sample_weight=sample_weights[rows],
+            )
+        finally:
+            self.__dict__.pop("_current_feature_subset", None)
         return tree, features
+
+    def _local_monotonic_constraints(self) -> list[int] | None:
+        """Return monotonic constraints sliced to the active feature subset."""
+
+        constraints = self.monotonic_constraints
+        if constraints is None:
+            return None
+        features = getattr(self, "_current_feature_subset", None)
+        if features is None:
+            return list(constraints)
+        raw = list(constraints)
+        return [raw[int(feature)] for feature in features]
 
     def _sample_rows(self, labels: NDArray[np.float32], random_state: int) -> NDArray[np.int64]:
         """Sample training rows for one tree."""
@@ -104,4 +121,3 @@ class ForestSamplingMixin:
             super()._validate_parameters()
         finally:
             self.n_estimators = saved_n_estimators
-

@@ -94,10 +94,12 @@ RegressionTree TrainLevelWiseRegressionTree(
       const std::uint32_t child_depth = active.depth + 1;
       next_layer.push_back(ActiveNode{
           left_index, child_depth, std::move(prepared.left_rows),
-          prepared.split.left, {}});
+          prepared.split.left, {}, prepared.split.left_lower_bound,
+          prepared.split.left_upper_bound});
       next_layer.push_back(ActiveNode{
           right_index, child_depth, std::move(prepared.right_rows),
-          prepared.split.right, {}});
+          prepared.split.right, {}, prepared.split.right_lower_bound,
+          prepared.split.right_upper_bound});
       if (child_depth < parameters.max_depth) {
         const bool build_left =
             prepared.split.left.count <= prepared.split.right.count;
@@ -146,6 +148,15 @@ RegressionTree TrainSingleRegressionTree(
     const TreeTrainingParameters& parameters,
     const HistogramBuilder& histogram_builder) {
   ValidateParameters(parameters);
+  if (!parameters.monotonic_constraints.empty() &&
+      parameters.monotonic_constraints.size() != dataset.features()) {
+    throw TrainingError("monotonic_constraints length must match feature count");
+  }
+  for (const std::int8_t constraint : parameters.monotonic_constraints) {
+    if (constraint < -1 || constraint > 1) {
+      throw TrainingError("monotonic_constraints values must be -1, 0, or 1");
+    }
+  }
   if (dataset.rows() != static_cast<std::uint64_t>(gradients.size())) {
     throw TrainingError("Gradient 数量与分箱数据行数不一致");
   }

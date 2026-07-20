@@ -39,6 +39,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
+        "monotonic_constraints",
         "categorical_features",
         "max_features",
         "sample_fraction",
@@ -57,6 +58,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        monotonic_constraints: Any = None,
         categorical_features: Any = None,
         max_features: float = 1.0,
         sample_fraction: float = 1.0,
@@ -76,6 +78,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            monotonic_constraints=monotonic_constraints,
             categorical_features=categorical_features,
             random_state=random_state,
             device=device,
@@ -145,6 +148,9 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
                     []
                     if categorical_metadata is None
                     else list(categorical_metadata.features)
+                ),
+                "monotonic_constraints": self._normalized_monotonic_constraints(
+                    matrix.shape[1]
                 ),
             }
             self._finalize_fitted_metadata()

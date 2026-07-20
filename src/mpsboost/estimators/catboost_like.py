@@ -93,6 +93,7 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        monotonic_constraints: Any = None,
         categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
@@ -111,6 +112,7 @@ class CatBoostRegressor(_CatBoostLikeMixin, MPSBoostRegressor):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            monotonic_constraints=monotonic_constraints,
             categorical_features=(
                 categorical_features if categorical_features is not None else cat_features
             ),
@@ -156,6 +158,7 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
+        monotonic_constraints: Any = None,
         categorical_features: Any = None,
         random_state: int | None = None,
         device: str = "mps",
@@ -174,6 +177,7 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
+            monotonic_constraints=monotonic_constraints,
             categorical_features=(
                 categorical_features if categorical_features is not None else cat_features
             ),
@@ -199,4 +203,3 @@ class CatBoostClassifier(_CatBoostLikeMixin, MPSBoostClassifier):
         fitted = super().fit(X, y, sample_weight=sample_weight)
         fitted.training_summary_.update(self._catboost_training_metadata(n_samples))
         return fitted
-

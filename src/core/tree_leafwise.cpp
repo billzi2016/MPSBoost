@@ -115,9 +115,13 @@ RegressionTree TrainLeafWiseRegressionTree(
 
     const std::uint32_t child_depth = active.depth + 1;
     ActiveNode left{left_index, child_depth, std::move(best_prepared.left_rows),
-                    best_prepared.split.left, {}};
+                    best_prepared.split.left, {},
+                    best_prepared.split.left_lower_bound,
+                    best_prepared.split.left_upper_bound};
     ActiveNode right{right_index, child_depth, std::move(best_prepared.right_rows),
-                     best_prepared.split.right, {}};
+                     best_prepared.split.right, {},
+                     best_prepared.split.right_lower_bound,
+                     best_prepared.split.right_upper_bound};
     CacheChildHistograms(dataset, gradients, histogram_builder, parameters,
                          best_prepared,
                          best_histograms, &left, &right);

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 #include <limits>
 #include <vector>
 
@@ -61,6 +62,7 @@ struct TreeTrainingParameters final {
   SplitStrategy split_strategy{SplitStrategy::kBestGain};
   GrowthStrategy growth_strategy{GrowthStrategy::kLevelWise};
   std::uint32_t random_seed{0};
+  std::vector<std::int8_t> monotonic_constraints;
 };
 
 class RegressionTree final {

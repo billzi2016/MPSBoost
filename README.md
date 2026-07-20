@@ -212,11 +212,12 @@ The public API currently includes `GradientBoostingRegressor`, `GradientBoosting
 their backwards-compatible project-branded aliases, the estimator capability registry,
 deterministic randomization and monitoring helpers, cache diagnostics and management helpers,
 `is_available`, `system_info`, and `__version__`. Training supports dense finite
-`float32`/`float64`-compatible data, ordered categorical feature encoding, squared error
-regression, strict binary-logistic classification for labels `0` and `1`, deterministic
-quantization, depth-limited histogram trees, sklearn-compatible `score()`, model save/load for
-numeric models, gain/split/permutation feature importance, random forest `n_jobs`, explicit
-`device="mps"`, explicit `device="cpu"`, and initial `device="auto"` selection.
+`float32`/`float64`-compatible data, ordered categorical feature encoding, feature-level
+monotonic constraints, squared error regression, strict binary-logistic classification for labels
+`0` and `1`, deterministic quantization, depth-limited histogram trees, sklearn-compatible
+`score()`, model save/load for numeric models, gain/split/permutation feature importance, random
+forest `n_jobs`, explicit `device="mps"`, explicit `device="cpu"`, and initial `device="auto"`
+selection.
 
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 

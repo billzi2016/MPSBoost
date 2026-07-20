@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 #include "mpsboost/backend.hpp"
@@ -30,6 +31,10 @@ struct SplitCandidate final {
   bool default_left{true};
   NodeStatistics left;
   NodeStatistics right;
+  double left_lower_bound{-std::numeric_limits<double>::infinity()};
+  double left_upper_bound{std::numeric_limits<double>::infinity()};
+  double right_lower_bound{-std::numeric_limits<double>::infinity()};
+  double right_upper_bound{std::numeric_limits<double>::infinity()};
 };
 
 struct FeatureMissingStatistics final {
@@ -42,12 +47,22 @@ struct ActiveNode final {
   std::vector<std::uint64_t> rows;
   NodeStatistics statistics;
   NodeHistograms cached_histograms;
+  double lower_bound{-std::numeric_limits<double>::infinity()};
+  double upper_bound{std::numeric_limits<double>::infinity()};
 };
 
 struct PendingChildHistogram final {
   std::size_t next_layer_index{0};
   std::vector<std::uint64_t> rows;
   NodeHistograms parent_histograms;
+};
+
+struct MonotonicChildBounds final {
+  bool valid{true};
+  double left_lower_bound{-std::numeric_limits<double>::infinity()};
+  double left_upper_bound{std::numeric_limits<double>::infinity()};
+  double right_lower_bound{-std::numeric_limits<double>::infinity()};
+  double right_upper_bound{std::numeric_limits<double>::infinity()};
 };
 
 struct PreparedSplit final {
@@ -78,6 +93,8 @@ NodeStatistics SumRows(const std::vector<std::uint64_t>& rows,
 SplitCandidate FindBestSplit(const NodeHistograms& histograms,
                              const BinnedDataset& dataset,
                              const NodeStatistics& parent,
+                             double lower_bound,
+                             double upper_bound,
                              std::uint32_t node_index,
                              std::uint32_t depth,
                              const TreeTrainingParameters& parameters,
@@ -87,6 +104,18 @@ NodeHistograms SubtractHistograms(const NodeHistograms& parent,
                                   const NodeHistograms& child);
 
 TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda);
+TreeNode MakeBoundedLeaf(const NodeStatistics& statistics,
+                         double reg_lambda,
+                         double lower_bound,
+                         double upper_bound);
+
+MonotonicChildBounds MonotonicBoundsForSplit(
+    const NodeStatistics& left,
+    const NodeStatistics& right,
+    double parent_lower_bound,
+    double parent_upper_bound,
+    std::uint32_t feature,
+    const TreeTrainingParameters& parameters);
 
 std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node);
 

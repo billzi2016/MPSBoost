@@ -62,11 +62,24 @@ std::uint32_t EffectiveMaxActiveLeaves(
   return EffectiveMaxLeaves(parameters);
 }
 
-TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda) {
+TreeNode MakeBoundedLeaf(const NodeStatistics& statistics,
+                         double reg_lambda,
+                         double lower_bound,
+                         double upper_bound) {
+  if (lower_bound > upper_bound) {
+    throw TrainingError("monotonic leaf bounds are inconsistent");
+  }
   TreeNode node;
-  node.leaf_value =
-      LeafWeight(statistics.gradient_sum, statistics.hessian_sum, reg_lambda);
+  node.leaf_value = std::clamp(
+      LeafWeight(statistics.gradient_sum, statistics.hessian_sum, reg_lambda),
+      lower_bound, upper_bound);
   return node;
+}
+
+TreeNode MakeLeaf(const NodeStatistics& statistics, double reg_lambda) {
+  return MakeBoundedLeaf(statistics, reg_lambda,
+                         -std::numeric_limits<double>::infinity(),
+                         std::numeric_limits<double>::infinity());
 }
 
 std::uint32_t AppendNode(std::vector<TreeNode>* nodes, TreeNode node) {
@@ -97,10 +110,16 @@ void TreeTrainingAccess::ApplySplit(RegressionTree* tree,
   if (!prepared.valid || left_index == nullptr || right_index == nullptr) {
     throw TrainingError("internal split application contract failed");
   }
-  *left_index = AppendNode(&tree->nodes_,
-                           MakeLeaf(prepared.split.left, parameters.reg_lambda));
+  *left_index = AppendNode(
+      &tree->nodes_,
+      MakeBoundedLeaf(prepared.split.left, parameters.reg_lambda,
+                      prepared.split.left_lower_bound,
+                      prepared.split.left_upper_bound));
   *right_index = AppendNode(
-      &tree->nodes_, MakeLeaf(prepared.split.right, parameters.reg_lambda));
+      &tree->nodes_,
+      MakeBoundedLeaf(prepared.split.right, parameters.reg_lambda,
+                      prepared.split.right_lower_bound,
+                      prepared.split.right_upper_bound));
   TreeNode& parent = tree->nodes_[active.node_index];
   parent.feature_index = prepared.split.feature;
   parent.threshold_bin = prepared.split.threshold_bin;

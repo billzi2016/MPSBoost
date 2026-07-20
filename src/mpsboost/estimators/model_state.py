@@ -173,3 +173,22 @@ class SklearnAndPersistenceMixin:
             isinstance(self.random_state, bool) or not isinstance(self.random_state, int)
         ):
             raise TypeError("random_state 必须是整数或 None")
+
+    def _normalized_monotonic_constraints(self, n_features: int) -> list[int]:
+        """Return validated monotonic constraints for native split and leaf checks."""
+
+        constraints = getattr(self, "monotonic_constraints", None)
+        if constraints is None:
+            return []
+        normalized = list(constraints)
+        if len(normalized) != n_features:
+            raise ValueError("monotonic_constraints length must match feature count")
+        result: list[int] = []
+        for value in normalized:
+            if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+                raise TypeError("monotonic_constraints values must be integers")
+            integer = int(value)
+            if integer not in {-1, 0, 1}:
+                raise ValueError("monotonic_constraints values must be -1, 0, or 1")
+            result.append(integer)
+        return result
