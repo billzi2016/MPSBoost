@@ -25,7 +25,9 @@ from .diagnostics import (
     clear_cache,
     create_cache,
     is_available,
+    mps_setup_instructions,
     system_info,
+    warn_if_mps_unavailable,
 )
 from .device_policy import DeviceDecision, choose_device
 from .estimator import (
@@ -37,7 +39,10 @@ from .estimator import (
     ExtraTreeRegressor,
     ExtraTreesClassifier,
     ExtraTreesRegressor,
+    IsolationForest,
+    LearningToRankRegressor,
     MPSBoostClassifier,
+    MPSIsolationForest,
     MPSBoostRegressor,
     RandomForestClassifier,
     RandomForestRegressor,
@@ -84,7 +89,10 @@ __all__ = [
     "ExtraTreesRegressor",
     "GradientBoostingClassifier",
     "GradientBoostingRegressor",
+    "IsolationForest",
+    "LearningToRankRegressor",
     "MPSBoostClassifier",
+    "MPSIsolationForest",
     "MPSBoostRegressor",
     "MetricHistory",
     "MetricObservation",
@@ -102,6 +110,7 @@ __all__ = [
     "estimator_status",
     "is_available",
     "mps_training_families",
+    "mps_setup_instructions",
     "ordered_boosting_permutations",
     "planned_estimators",
     "random_threshold_candidates",
@@ -113,4 +122,7 @@ __all__ = [
     "tree_family_specs",
     "TreeFamilySpec",
     "validate_indices_cover_range",
+    "warn_if_mps_unavailable",
 ]
+
+warn_if_mps_unavailable()

@@ -6,6 +6,7 @@ re-exported by ``mpsboost.estimator`` and the package root.
 
 from .base import MPSBoostRegressor
 from .catboost_like import CatBoostClassifier, CatBoostRegressor
+from .anomaly import MPSIsolationForest
 from .errors import NotFittedError
 from .forest_public import (
     ExtraTreesClassifier,
@@ -20,6 +21,9 @@ from .single_tree import (
     ExtraTreeRegressor,
 )
 from .multiclass import MPSBoostClassifier
+from .ranking import LearningToRankRegressor
+
+IsolationForest = MPSIsolationForest
 
 __all__ = [
     "CatBoostClassifier",
@@ -30,7 +34,10 @@ __all__ = [
     "ExtraTreeRegressor",
     "ExtraTreesClassifier",
     "ExtraTreesRegressor",
+    "IsolationForest",
+    "LearningToRankRegressor",
     "MPSBoostClassifier",
+    "MPSIsolationForest",
     "MPSBoostRegressor",
     "NotFittedError",
     "RandomForestClassifier",

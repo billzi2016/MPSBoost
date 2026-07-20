@@ -112,8 +112,8 @@ libraries by changing the import and keeping familiar model names.
 | Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Available |
 | Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Available |
 | CatBoost-like ordered boosting | `CatBoostRegressor`, `CatBoostClassifier` | Available for numeric features |
-| Isolation forest | `IsolationForest` | Planned |
-| Ranking trees | `LearningToRankRegressor` | Planned |
+| Isolation forest | `IsolationForest`, `MPSIsolationForest` | Available; CPU is selected for this branch-heavy workload because it is expected to be faster than Apple GPU |
+| Ranking trees | `LearningToRankRegressor` | Available; CPU is selected for this latency-sensitive workflow because it is expected to be faster than Apple GPU |
 
 Objective variants such as quantile, Poisson, Tweedie, logistic, and ranking losses should be
 selected through estimator parameters when they share the same tree engine. Separate class names
@@ -130,9 +130,8 @@ mb.require_estimator_supported("CatBoostRegressor")
 ```
 
 The `0.3.0` milestone is reserved for the v2 arboretum foundation: one shared tree-family
-registry, unified semantics for boosting/bagging/random-split models, planned estimator names,
-and early-failure behavior for models that are not implemented yet. It should not be released as
-a pile of placeholder classes.
+registry, unified semantics for boosting/bagging/random-split models, honest backend policy,
+and no placeholder estimator classes.
 
 Random forest row sampling, feature subsampling, ExtraTrees random thresholds, and CatBoost-like
 ordered permutations share one deterministic randomization contract. Categorical features can be
@@ -190,7 +189,25 @@ import mpsboost as mb
 print(mb.__version__)
 print(mb.is_available())
 print(mb.system_info())
+print(mb.mps_setup_instructions())
 print(mb.cache_info())
+```
+
+If `device="mps"` is requested on a machine or session where Apple GPU acceleration is unavailable,
+MPSBoost reports copy-paste setup commands:
+
+```bash
+xcode-select --install
+xcodebuild -downloadComponent MetalToolchain
+python -m pip install --upgrade --force-reinstall mpsboost
+python -c "import mpsboost as mb; print(mb.system_info())"
+```
+
+CPU-only scripts, managed CI, and multiprocessing model-selection workers can skip import-time GPU
+environment checks without disabling CPU training:
+
+```bash
+MPSBOOST_SKIP_ENV_CHECK=1 python your_script.py
 ```
 
 `cache_info()` only reports paths and existence; it does not create directories. `create_cache()`
@@ -204,7 +221,8 @@ symlinks. Cache deletion never changes model results.
 - `device="mps"` as the stable user-facing Apple GPU backend name.
 - Custom Metal kernels for tree-specific irregular computation.
 - Prebuilt wheels and no heavyweight Python runtime dependency.
-- Explicit errors instead of silent CPU fallback.
+- Observable backend policy: invalid inputs fail clearly, while CPU-suitable MPS requests warn and
+  record the backend decision in the training summary.
 - End-to-end benchmarks, including preprocessing and synchronization.
 
 ## Status
@@ -216,14 +234,18 @@ deterministic randomization and monitoring helpers, cache diagnostics and manage
 `float32`/`float64`-compatible data, ordered categorical feature encoding, feature-level
 monotonic constraints, path-level interaction constraints, L1/L2/gamma regularization, leaf-value
 clipping, squared error regression, binary-logistic classification, multiclass one-vs-rest
-classification, deterministic quantization, depth-limited histogram trees, sklearn-compatible
-`score()`, model save/load for numeric non-categorical binary/native models,
-gain/split/permutation feature importance, random forest `n_jobs`, explicit `device="mps"`,
+classification, quantile, Poisson, Tweedie, isolation-forest anomaly scoring, pointwise ranking,
+deterministic quantization, depth-limited histogram trees, sklearn-compatible `score()`, model
+save/load for numeric non-categorical binary/native models, gain/split/permutation feature
+importance, approximate SHAP-like explanations, random forest `n_jobs`, explicit `device="mps"`,
 explicit `device="cpu"`, and initial `device="auto"` selection.
 
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 
-Sparse matrices, categorical model persistence, public GPU prediction, and full third-party API compatibility are not implemented in this milestone. Small datasets are expected to be slower on the GPU because fixed device setup and synchronization costs dominate; the checked-in benchmark report preserves this regression region alongside larger wins.
+Sparse matrices, categorical model persistence, public GPU prediction, and full third-party API
+compatibility are outside this milestone. Small datasets are expected to be slower on the GPU
+because fixed device setup and synchronization costs dominate; the checked-in benchmark report
+preserves this regression region alongside larger wins.
 
 ## Release audits
 

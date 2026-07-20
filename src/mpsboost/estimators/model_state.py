@@ -68,18 +68,36 @@ class SklearnAndPersistenceMixin:
             raise RuntimeError("模型训练或加载正在进行")
         try:
             candidate = _native._load_regression_model(str(path))
-            if candidate.objective != self._native_objective:
+            if candidate.objective != self._resolved_native_objective():
                 raise ValueError(
                     f"model objective '{candidate.objective}' is incompatible with "
                     f"{type(self).__name__}"
                 )
+            if candidate.objective == "quantile" and not np.isclose(
+                candidate.objective_alpha, float(self.quantile_alpha)
+            ):
+                raise ValueError("model quantile alpha is incompatible with estimator")
+            if candidate.objective == "tweedie" and not np.isclose(
+                candidate.tweedie_variance_power, float(self.tweedie_variance_power)
+            ):
+                raise ValueError("model tweedie variance power is incompatible with estimator")
             self._validate_loaded_model(candidate)
             self.model_ = candidate
             self.n_features_in_ = candidate.feature_count
             self.device_ = self.device if self.device != "auto" else "cpu"
             self.n_estimators_ = candidate.tree_count
+            self._resolved_objective_ = candidate.objective
             self._finalize_fitted_metadata()
-            self.training_summary_ = {"loaded": True, "device": self.device_}
+            self.training_summary_ = {
+                "loaded": True,
+                "device": self.device_,
+                "native_objective": candidate.objective,
+                "loss": getattr(self, "loss", "squared_error"),
+                "quantile_alpha": float(getattr(self, "quantile_alpha", 0.5)),
+                "tweedie_variance_power": float(
+                    getattr(self, "tweedie_variance_power", 1.5)
+                ),
+            }
             return self
         finally:
             self._fit_lock.release()
@@ -123,6 +141,7 @@ class SklearnAndPersistenceMixin:
             "categorical_metadata_",
             "estimators_",
             "_multiclass_strategy_",
+            "_resolved_objective_",
         ):
             self.__dict__.pop(name, None)
 
@@ -181,6 +200,35 @@ class SklearnAndPersistenceMixin:
             isinstance(self.random_state, bool) or not isinstance(self.random_state, int)
         ):
             raise TypeError("random_state 必须是整数或 None")
+        self._validate_objective_parameters()
+
+    def _resolved_native_objective(self) -> str:
+        """Return the native objective selected by this estimator configuration."""
+
+        if self._native_objective != "squared_error":
+            return self._native_objective
+        return self.loss
+
+    def _validate_objective_parameters(self) -> None:
+        """Validate advanced regression objective controls before native allocation."""
+
+        if self._native_objective == "squared_error":
+            if self.loss not in {"squared_error", "quantile", "poisson", "tweedie"}:
+                raise ValueError(
+                    "loss must be 'squared_error', 'quantile', 'poisson', or 'tweedie'"
+                )
+        elif getattr(self, "loss", "squared_error") != "squared_error":
+            raise ValueError("loss is only supported by regression estimators")
+        for name, lower, upper in (
+            ("quantile_alpha", 0.0, 1.0),
+            ("tweedie_variance_power", 1.0, 2.0),
+        ):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise TypeError(f"{name} must be numeric")
+            numeric = float(value)
+            if not np.isfinite(numeric) or not lower < numeric < upper:
+                raise ValueError(f"{name} must be in ({lower}, {upper})")
 
     def _normalized_monotonic_constraints(self, n_features: int) -> list[int]:
         """Return validated monotonic constraints for native split and leaf checks."""

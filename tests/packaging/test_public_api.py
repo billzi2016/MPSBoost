@@ -31,10 +31,14 @@ def test_completed_estimators_are_public():
         "ExtraTreesRegressor",
         "GradientBoostingClassifier",
         "GradientBoostingRegressor",
+        "IsolationForest",
+        "LearningToRankRegressor",
         "MPSBoostClassifier",
+        "MPSIsolationForest",
         "MPSBoostRegressor",
         "MetricHistory",
         "MetricObservation",
+        "mps_setup_instructions",
         "RandomForestClassifier",
         "RandomForestRegressor",
         "EarlyStoppingDecision",
@@ -63,11 +67,12 @@ def test_completed_estimators_are_public():
         "tree_family_spec",
         "tree_family_specs",
         "validate_indices_cover_range",
+        "warn_if_mps_unavailable",
     }
 
 
 def test_estimator_capability_registry_reports_available_and_planned_models():
-    """The registry should expose completed estimators and still fail early for planned names."""
+    """The registry should expose completed estimators and still fail early for unknown names."""
 
     assert mb.estimator_status("GradientBoostingRegressor") == "available"
     assert mb.estimator_capability("GradientBoostingRegressor").family.task == (
@@ -88,6 +93,9 @@ def test_estimator_capability_registry_reports_available_and_planned_models():
         "DecisionTreeClassifier",
         "CatBoostRegressor",
         "CatBoostClassifier",
+        "IsolationForest",
+        "MPSIsolationForest",
+        "LearningToRankRegressor",
     )
     assert mb.estimator_status("GradientBoostingClassifier") == "available"
     assert mb.estimator_status("DecisionTreeRegressor") == "available"
@@ -95,8 +103,12 @@ def test_estimator_capability_registry_reports_available_and_planned_models():
     assert mb.estimator_status("ExtraTreesClassifier") == "available"
     assert mb.estimator_status("CatBoostRegressor") == "available"
     assert mb.estimator_status("CatBoostClassifier") == "available"
+    assert mb.estimator_status("IsolationForest") == "available"
+    assert mb.estimator_status("MPSIsolationForest") == "available"
+    assert mb.estimator_status("LearningToRankRegressor") == "available"
     assert hasattr(mb, "CatBoostRegressor")
     assert hasattr(mb, "CatBoostClassifier")
+    assert mb.IsolationForest is mb.MPSIsolationForest
     mb.require_estimator_supported("CatBoostRegressor")
 
     try:

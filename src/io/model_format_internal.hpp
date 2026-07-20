@@ -21,7 +21,7 @@ namespace mpsboost::model_format_internal {
 inline constexpr std::array<std::uint8_t, 8> kMagic{
     'M', 'P', 'S', 'B', 'M', 'O', 'D', 0};
 inline constexpr std::uint16_t kFormatMajor = 1;
-inline constexpr std::uint16_t kFormatMinor = 3;
+inline constexpr std::uint16_t kFormatMinor = 4;
 inline constexpr std::uint32_t kRegressionModelKind = 0;
 inline constexpr std::uint32_t kMulticlassModelKind = 1;
 inline constexpr std::size_t kHeaderSize = 32;

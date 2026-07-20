@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <string>
+#include <utility>
 
 #include "mpsboost/backend.hpp"
 #include "mpsboost/objective.hpp"
@@ -26,6 +28,15 @@ void ValidateTrainingParameters(const TrainingParameters& parameters) {
   }
   if (parameters.max_bins < 2 || parameters.max_bins > 65536) {
     throw TrainingError("max_bins 必须位于 [2, 65536]");
+  }
+  if (!std::isfinite(parameters.objective_alpha) ||
+      parameters.objective_alpha <= 0.0 || parameters.objective_alpha >= 1.0) {
+    throw TrainingError("quantile alpha must be in (0, 1)");
+  }
+  if (!std::isfinite(parameters.tweedie_variance_power) ||
+      parameters.tweedie_variance_power <= 1.0 ||
+      parameters.tweedie_variance_power >= 2.0) {
+    throw TrainingError("tweedie variance power must be in (1, 2)");
   }
 }
 
@@ -97,14 +108,68 @@ double WeightedBinaryLogitBaseScore(const std::vector<double>& labels,
   return std::log(probability / (1.0 - probability));
 }
 
+double WeightedQuantileBaseScore(const std::vector<double>& labels,
+                                 const std::vector<double>& sample_weights,
+                                 double alpha) {
+  const double total_weight = ValidateWeightsAndTotal(labels, sample_weights);
+  std::vector<std::pair<double, double>> ordered;
+  ordered.reserve(labels.size());
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    const double label = labels[index];
+    if (!std::isfinite(label)) {
+      throw TrainingError("label must be finite");
+    }
+    ordered.push_back({label, sample_weights[index]});
+  }
+  std::sort(ordered.begin(), ordered.end(),
+            [](const auto& left, const auto& right) {
+              return left.first < right.first;
+            });
+  const double threshold = alpha * total_weight;
+  double cumulative = 0.0;
+  for (const auto& item : ordered) {
+    cumulative += item.second;
+    if (cumulative >= threshold) {
+      return item.first;
+    }
+  }
+  return ordered.back().first;
+}
+
+double WeightedLogMeanBaseScore(const std::vector<double>& labels,
+                                const std::vector<double>& sample_weights,
+                                const char* objective) {
+  const double total_weight = ValidateWeightsAndTotal(labels, sample_weights);
+  double weighted_sum = 0.0;
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    const double label = labels[index];
+    if (!std::isfinite(label) || label < 0.0) {
+      throw TrainingError(std::string(objective) + " labels must be non-negative");
+    }
+    weighted_sum += label * sample_weights[index];
+    if (!std::isfinite(weighted_sum)) {
+      throw TrainingError(std::string(objective) + " label sum overflowed");
+    }
+  }
+  constexpr double kEpsilon = 1e-15;
+  return std::log(std::max(kEpsilon, weighted_sum / total_weight));
+}
+
 double InitialBaseScore(const std::vector<double>& labels,
                         const std::vector<double>& sample_weights,
-                        TrainingParameters::Objective objective) {
-  switch (objective) {
+                        const TrainingParameters& parameters) {
+  switch (parameters.objective) {
     case TrainingParameters::Objective::kSquaredError:
       return WeightedMeanLabel(labels, sample_weights);
     case TrainingParameters::Objective::kBinaryLogistic:
       return WeightedBinaryLogitBaseScore(labels, sample_weights);
+    case TrainingParameters::Objective::kQuantile:
+      return WeightedQuantileBaseScore(labels, sample_weights,
+                                       parameters.objective_alpha);
+    case TrainingParameters::Objective::kPoisson:
+      return WeightedLogMeanBaseScore(labels, sample_weights, "poisson");
+    case TrainingParameters::Objective::kTweedie:
+      return WeightedLogMeanBaseScore(labels, sample_weights, "tweedie");
   }
   throw TrainingError("unknown training objective");
 }
@@ -113,12 +178,20 @@ std::vector<GradientPair> ComputeObjectiveGradients(
     const std::vector<double>& labels,
     const std::vector<double>& predictions,
     const GradientComputer& gradient_computer,
-    TrainingParameters::Objective objective) {
-  switch (objective) {
+    const TrainingParameters& parameters) {
+  switch (parameters.objective) {
     case TrainingParameters::Objective::kSquaredError:
       return gradient_computer.ComputeSquaredError(labels, predictions);
     case TrainingParameters::Objective::kBinaryLogistic:
       return ComputeBinaryLogisticGradients(labels, predictions);
+    case TrainingParameters::Objective::kQuantile:
+      return ComputeQuantileGradients(labels, predictions,
+                                      parameters.objective_alpha);
+    case TrainingParameters::Objective::kPoisson:
+      return ComputePoissonGradients(labels, predictions);
+    case TrainingParameters::Objective::kTweedie:
+      return ComputeTweedieGradients(labels, predictions,
+                                     parameters.tweedie_variance_power);
   }
   throw TrainingError("unknown training objective");
 }
@@ -164,16 +237,18 @@ RegressionModel TrainRegressionModel(
 
   RegressionModel model;
   model.schema_ = dataset.schema();
-  model.base_score_ = InitialBaseScore(labels, sample_weights, parameters.objective);
+  model.base_score_ = InitialBaseScore(labels, sample_weights, parameters);
   model.learning_rate_ = parameters.learning_rate;
   model.objective_ = parameters.objective;
+  model.objective_alpha_ = parameters.objective_alpha;
+  model.tweedie_variance_power_ = parameters.tweedie_variance_power;
   model.trees_.reserve(parameters.n_estimators);
   std::vector<double> predictions(labels.size(), model.base_score_);
 
   for (std::uint32_t round = 0; round < parameters.n_estimators; ++round) {
     const std::vector<GradientPair> gradients = ApplySampleWeights(
         ComputeObjectiveGradients(labels, predictions, gradient_computer,
-                                  parameters.objective),
+                                  parameters),
         sample_weights);
     RegressionTree tree = TrainSingleRegressionTree(
         dataset, gradients, parameters.tree, histogram_builder);
@@ -209,10 +284,20 @@ RegressionModel RegressionModel::Restore(QuantizationSchema schema,
                                          double base_score,
                                          double learning_rate,
                                          TrainingParameters::Objective objective,
+                                         double objective_alpha,
+                                         double tweedie_variance_power,
                                          std::vector<RegressionTree> trees) {
   if (!std::isfinite(base_score) || !std::isfinite(learning_rate) ||
       learning_rate <= 0.0 || learning_rate > 1.0 || trees.empty()) {
     throw TrainingError("模型 base score、learning rate 或树数量不合法");
+  }
+  if (!std::isfinite(objective_alpha) || objective_alpha <= 0.0 ||
+      objective_alpha >= 1.0) {
+    throw TrainingError("model quantile alpha is invalid");
+  }
+  if (!std::isfinite(tweedie_variance_power) ||
+      tweedie_variance_power <= 1.0 || tweedie_variance_power >= 2.0) {
+    throw TrainingError("model tweedie variance power is invalid");
   }
   for (const RegressionTree& tree : trees) {
     if (tree.feature_count() != schema.features()) {
@@ -234,6 +319,8 @@ RegressionModel RegressionModel::Restore(QuantizationSchema schema,
   model.base_score_ = base_score;
   model.learning_rate_ = learning_rate;
   model.objective_ = objective;
+  model.objective_alpha_ = objective_alpha;
+  model.tweedie_variance_power_ = tweedie_variance_power;
   model.trees_ = std::move(trees);
   return model;
 }

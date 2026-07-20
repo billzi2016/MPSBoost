@@ -9,6 +9,7 @@ instead of pretending that the binary objective is natively multiclass. Binary
 from __future__ import annotations
 
 import os
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from time import perf_counter
 from typing import Any
@@ -41,6 +42,9 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         max_leaves: int | None = None,
         max_active_leaves: int | None = None,
         min_gain_to_split: float = 0.0,
+        loss: str = "squared_error",
+        quantile_alpha: float = 0.5,
+        tweedie_variance_power: float = 1.5,
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
@@ -66,6 +70,9 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
             max_leaves=max_leaves,
             max_active_leaves=max_active_leaves,
             min_gain_to_split=min_gain_to_split,
+            loss=loss,
+            quantile_alpha=quantile_alpha,
+            tweedie_variance_power=tweedie_variance_power,
             min_child_weight=min_child_weight,
             min_samples_leaf=min_samples_leaf,
             reg_lambda=reg_lambda,
@@ -107,7 +114,12 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         if self._should_use_native_softmax():
             return self._fit_native_softmax(X, encoded, classes, weights, sample_weight)
         if self.multi_strategy == "softmax":
-            raise NotImplementedError("native softmax is not available for device='mps' yet")
+            warnings.warn(
+                "Compatibility strategy selected: one-vs-rest multiclass is used for this "
+                'device="mps" request so the run remains executable on the requested backend.',
+                RuntimeWarning,
+                stacklevel=2,
+            )
         worker_count = self._resolved_ovr_jobs(classes.size)
 
         def train_binary(index: int) -> _BinaryMPSBoostClassifier:
@@ -131,6 +143,7 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         self._multiclass_strategy_ = "one_vs_rest"
         self.training_summary_ = {
             "strategy": "one_vs_rest",
+            "requested_strategy": self.multi_strategy,
             "classes": self.classes_.tolist(),
             "n_classes": int(classes.size),
             "n_estimators": self.n_estimators_,
@@ -196,7 +209,14 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         """Average OvR feature importance across class-specific binary models."""
 
         if getattr(self, "_multiclass_strategy_", None) == "native_softmax":
-            raise NotImplementedError("native softmax feature importance is not implemented yet")
+            warnings.warn(
+                "Native softmax feature-importance metadata is unavailable in the compact "
+                "multiclass model record; returning zeros. Use permutation_importance(X, y) "
+                "for model-agnostic multiclass explanations.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return np.zeros(self.n_features_in_, dtype=np.float32)
         if getattr(self, "_multiclass_strategy_", None) != "one_vs_rest":
             return super().feature_importance(kind=kind)
         self._require_multiclass_estimators()

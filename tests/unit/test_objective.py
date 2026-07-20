@@ -37,6 +37,21 @@ def test_binary_logistic_gradients_match_hand_computation():
     assert actual[2] == pytest.approx((-0.8807970779778824, 0.1049935854035065))
 
 
+def test_advanced_regression_gradients_match_hand_computation():
+    """Advanced objectives should expose one native gradient/Hessian contract."""
+
+    assert _native._quantile_gradients([0.0, 2.0], [1.0, 1.0], 0.25) == [
+        (0.75, 1.0),
+        (-0.25, 1.0),
+    ]
+    poisson = _native._poisson_gradients([0.0, 2.0], [0.0, math.log(2.0)])
+    assert poisson[0] == pytest.approx((1.0, 1.0))
+    assert poisson[1] == pytest.approx((0.0, 2.0))
+    tweedie = _native._tweedie_gradients([0.0, 4.0], [0.0, math.log(4.0)], 1.5)
+    assert tweedie[0] == pytest.approx((1.0, 0.5))
+    assert tweedie[1] == pytest.approx((0.0, 2.0))
+
+
 def test_softmax_probabilities_and_gradients_match_native_contract():
     """Native softmax should normalize rows and expose diagonal class statistics."""
 
@@ -82,6 +97,9 @@ def test_binary_logistic_probability_is_stable_for_extreme_logits():
         (lambda: _native._binary_logistic_gradients([1.0], []), "长度不一致"),
         (lambda: _native._binary_logistic_gradients([0.5], [0.0]), "0 或 1"),
         (lambda: _native._binary_logistic_gradients([0.0], [math.inf]), "有限值"),
+        (lambda: _native._quantile_gradients([1.0], [1.0], 0.0), "quantile"),
+        (lambda: _native._poisson_gradients([-1.0], [0.0]), "non-negative"),
+        (lambda: _native._tweedie_gradients([1.0], [0.0], 2.0), "tweedie"),
         (lambda: _native._logistic_probability(math.nan), "有限值"),
     ],
 )

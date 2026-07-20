@@ -136,7 +136,8 @@ MPS native softmax 需要单独验收：
 
 当前阶段门槛：
 
-- `multi_strategy="softmax", device="mps"` 必须明确失败；
+- `multi_strategy="softmax", device="mps"` 必须明确提示并使用 OvR compatibility strategy，
+  不得静默伪装为 native MPS softmax；
 - `multi_strategy="auto", device="mps"` 可以使用 OvR compatibility fallback，但训练摘要必须
   显示 `strategy = "one_vs_rest"`；
 - CPU `auto` 与 CPU `softmax` 必须使用 native softmax；
@@ -149,7 +150,8 @@ MPS native softmax 需要单独验收：
 
 - objective helper 直接测试 softmax 概率、gradient、Hessian；
 - CPU native softmax estimator 不产生 `estimators_` OvR 子模型；
-- `multi_strategy="softmax", device="mps"` 明确失败，防止静默 CPU 伪装；
+- `multi_strategy="softmax", device="mps"` 明确提示并使用 OvR compatibility strategy，
+  防止静默 CPU softmax 伪装；
 - 保存/加载后 class mapping、raw margin、probability 和 predict 一致；
 - `predict_proba` 行归一；
 - `GridSearchCV` 可调参；

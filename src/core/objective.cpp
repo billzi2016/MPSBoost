@@ -53,6 +53,25 @@ double RequireBinaryLabel(double label) {
   throw TrainingError("二分类 logistic 标签必须是 0 或 1");
 }
 
+void RequireNonNegativeLabel(double label, const char* objective) {
+  RequireFinite(label, "label");
+  if (label < 0.0) {
+    throw TrainingError(std::string(objective) + " labels must be non-negative");
+  }
+}
+
+double SafeExp(double value, const char* field) {
+  RequireFinite(value, field);
+  if (value > 709.0) {
+    throw TrainingError(std::string(field) + " exponential overflowed");
+  }
+  const double result = std::exp(value);
+  if (!std::isfinite(result)) {
+    throw TrainingError(std::string(field) + " exponential overflowed");
+  }
+  return result;
+}
+
 double SoftThresholdGradient(double gradient_sum, double reg_alpha) {
   RequireFinite(gradient_sum, "Gradient 和");
   RequireFinite(reg_alpha, "reg_alpha");
@@ -146,6 +165,74 @@ std::vector<GradientPair> ComputeBinaryLogisticGradients(
     const double hessian = probability * (1.0 - probability);
     if (!std::isfinite(gradient) || !std::isfinite(hessian) || hessian < 0.0) {
       throw TrainingError("二分类 logistic gradient/Hessian 发生浮点溢出");
+    }
+    result.push_back(GradientPair{gradient, hessian});
+  }
+  return result;
+}
+
+std::vector<GradientPair> ComputeQuantileGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& predictions,
+    double alpha) {
+  RequireSameNonEmptyLength(labels, predictions);
+  RequireFinite(alpha, "quantile alpha");
+  if (alpha <= 0.0 || alpha >= 1.0) {
+    throw TrainingError("quantile alpha must be in (0, 1)");
+  }
+  std::vector<GradientPair> result;
+  result.reserve(labels.size());
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    RequireFinite(labels[index], "label");
+    RequireFinite(predictions[index], "prediction");
+    const double gradient = predictions[index] < labels[index] ? -alpha : 1.0 - alpha;
+    result.push_back(GradientPair{gradient, 1.0});
+  }
+  return result;
+}
+
+std::vector<GradientPair> ComputePoissonGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& log_means) {
+  RequireSameNonEmptyLength(labels, log_means);
+  std::vector<GradientPair> result;
+  result.reserve(labels.size());
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    RequireNonNegativeLabel(labels[index], "poisson");
+    const double mean = SafeExp(log_means[index], "poisson log mean");
+    const double gradient = mean - labels[index];
+    const double hessian = mean;
+    if (!std::isfinite(gradient) || !std::isfinite(hessian) || hessian <= 0.0) {
+      throw TrainingError("poisson gradient/Hessian overflowed");
+    }
+    result.push_back(GradientPair{gradient, hessian});
+  }
+  return result;
+}
+
+std::vector<GradientPair> ComputeTweedieGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& log_means,
+    double variance_power) {
+  RequireSameNonEmptyLength(labels, log_means);
+  RequireFinite(variance_power, "tweedie variance power");
+  if (variance_power <= 1.0 || variance_power >= 2.0) {
+    throw TrainingError("tweedie variance power must be in (1, 2)");
+  }
+  std::vector<GradientPair> result;
+  result.reserve(labels.size());
+  for (std::size_t index = 0; index < labels.size(); ++index) {
+    RequireNonNegativeLabel(labels[index], "tweedie");
+    const double first =
+        SafeExp((2.0 - variance_power) * log_means[index], "tweedie first term");
+    const double second =
+        SafeExp((1.0 - variance_power) * log_means[index], "tweedie second term");
+    const double gradient = first - labels[index] * second;
+    const double hessian =
+        (2.0 - variance_power) * first -
+        (1.0 - variance_power) * labels[index] * second;
+    if (!std::isfinite(gradient) || !std::isfinite(hessian) || hessian <= 0.0) {
+      throw TrainingError("tweedie gradient/Hessian overflowed");
     }
     result.push_back(GradientPair{gradient, hessian});
   }

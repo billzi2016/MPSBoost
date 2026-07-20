@@ -82,8 +82,8 @@ def test_explicit_ovr_multiclass_fallback_remains_available():
     assert model.training_summary_["strategy"] == "one_vs_rest"
 
 
-def test_mps_native_softmax_requires_future_backend_work():
-    """Explicit MPS softmax must fail instead of silently training on CPU."""
+def test_mps_native_softmax_request_uses_observable_ovr_compatibility():
+    """Explicit MPS softmax requests should stay executable through OvR compatibility."""
 
     X = np.asarray(
         [[0.0], [0.1], [0.2], [1.0], [1.1], [1.2], [2.0], [2.1], [2.2]],
@@ -91,14 +91,16 @@ def test_mps_native_softmax_requires_future_backend_work():
     )
     y = np.asarray([0, 0, 0, 1, 1, 1, 2, 2, 2], dtype=np.int64)
 
-    with pytest.raises(NotImplementedError, match="device='mps'"):
-        MPSBoostClassifier(
+    with pytest.warns(RuntimeWarning, match="Compatibility strategy selected"):
+        model = MPSBoostClassifier(
             n_estimators=1,
             max_depth=0,
             min_samples_leaf=1,
             multi_strategy="softmax",
             device="mps",
         ).fit(X, y)
+    assert model.training_summary_["strategy"] == "one_vs_rest"
+    assert model.training_summary_["requested_strategy"] == "softmax"
 
 
 def test_binary_classifier_preserves_non_zero_numeric_labels():

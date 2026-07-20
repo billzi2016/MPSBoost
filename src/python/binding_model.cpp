@@ -66,10 +66,24 @@ void RegisterModelBindings(py::module_& module) {
       .def_property_readonly("tree_count", &RegressionModel::tree_count)
       .def_property_readonly("trees", &ModelTrees)
       .def_property_readonly("objective", [](const RegressionModel& model) {
-        return model.objective() == TrainingParameters::Objective::kBinaryLogistic
-                   ? "binary_logistic"
-                   : "squared_error";
+        switch (model.objective()) {
+          case TrainingParameters::Objective::kSquaredError:
+            return "squared_error";
+          case TrainingParameters::Objective::kBinaryLogistic:
+            return "binary_logistic";
+          case TrainingParameters::Objective::kQuantile:
+            return "quantile";
+          case TrainingParameters::Objective::kPoisson:
+            return "poisson";
+          case TrainingParameters::Objective::kTweedie:
+            return "tweedie";
+        }
+        return "unknown";
       })
+      .def_property_readonly("objective_alpha",
+                             &RegressionModel::objective_alpha)
+      .def_property_readonly("tweedie_variance_power",
+                             &RegressionModel::tweedie_variance_power)
       .def("predict", [](const RegressionModel& model, const py::buffer& matrix) {
         const DenseMatrixView view = MakeDenseView(matrix);
         py::gil_scoped_release release;

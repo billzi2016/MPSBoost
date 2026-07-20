@@ -171,25 +171,26 @@
 
 > 排期：本阶段在 S18 真实世界数据集测试完成后推进。
 
-- [ ] S16.1 实现 quantile objective。
-- [ ] S16.2 实现 Poisson objective。
-- [ ] S16.3 实现 Tweedie objective。
+- [x] S16.1 实现 quantile objective。
+- [x] S16.2 实现 Poisson objective。
+- [x] S16.3 实现 Tweedie objective。
 - [x] S16.4 Complete feature importance: gain, split count, and permutation.
 - [x] S16.4a Implement gain and split-count feature importance from native fitted tree nodes.
 - [x] S16.4b Implement permutation importance without duplicating prediction or scoring logic.
-- [ ] S16.5 设计并实现 SHAP-like 近似解释的受控版本。
-- [ ] S16.6 验收 G15：高级目标与解释能力有真实测试、文档和性能边界。
+- [x] S16.5 设计并实现 SHAP-like 近似解释的受控版本。
+- [ ] S16.5a 设计官方 SHAP 集成路径：可选依赖 `mpsboost[shap]`、native tree adapter/export、TreeExplainer 语义验证和科研示例；不得把近似解释伪装成官方 SHAP。
+- [x] S16.6 验收 G15：高级目标与解释能力有真实测试、文档和性能边界。
 
 ## S17：异常检测与排序学习
 
 > 排期：本阶段在 S16 高级目标函数与解释完成后推进。
 
-- [ ] S17.1 实现 `MPSIsolationForest`。
-- [ ] S17.2 实现路径长度、异常分数和批量预测热路径。
-- [ ] S17.3 设计 ranking 输入契约：group/query、label 和指标。
-- [ ] S17.4 实现基础 ranking objective 与验证集监控。
-- [ ] S17.5 完成异常检测与排序的 CPU oracle、MPS 测试和 benchmark。
-- [ ] S17.6 验收 G16：异常检测与排序学习真实可用且限制清晰。
+- [x] S17.1 实现 `MPSIsolationForest`。
+- [x] S17.2 实现路径长度、异常分数和批量预测热路径。
+- [x] S17.3 设计 ranking 输入契约：group/query、label 和指标。
+- [x] S17.4 实现基础 ranking objective 与验证集监控。
+- [x] S17.5 完成异常检测与排序的 CPU oracle、MPS 测试和 benchmark。
+- [x] S17.6 验收 G16：异常检测与排序学习真实可用且限制清晰。
 
 ## S18：V3 Real World Tests 与 1.x 发布门
 
@@ -207,7 +208,7 @@
 - [x] S18.2d-4 实现 Covertype subset 大行数验收和真实 MPS parity smoke。
 - [ ] S18.2d-5 实现 Higgs subset 验收。
 - [x] S18.3 覆盖回归、分类、异常检测和排序中已实现的模型族。
-- [ ] S18.4 建立强 CPU 基线、项目 CPU oracle 和真实 MPS 对照报告。
+- [x] S18.4 建立强 CPU 基线、项目 CPU oracle 和真实 MPS 对照报告。
 - [x] S18.5 完成训练、预测、保存、加载、缓存删除和重复训练稳定性测试。
 - [x] S18.5a 覆盖真实数据集上的模型保存、加载、缓存删除、缓存损坏和重复训练稳定性。
 - [ ] S18.6 完成模型质量、端到端性能、内存峰值、wheel 体积和权限审计。

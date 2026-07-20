@@ -103,6 +103,39 @@ def test_permutation_importance_uses_estimator_score_for_regression():
     assert result["importances_mean"][0] > result["importances_mean"][1]
 
 
+def test_approximate_shap_values_explain_prediction_delta():
+    """SHAP-like approximation should decompose prediction minus baseline."""
+
+    X = np.array(
+        [
+            [0.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [1.0, 1.0],
+            [2.0, 0.0],
+            [2.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    y = np.array([0.0, 0.0, 5.0, 5.0, 10.0, 10.0], dtype=np.float32)
+    model = MPSBoostRegressor(
+        n_estimators=2,
+        learning_rate=0.5,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y)
+
+    result = model.approximate_shap_values(X, background=X[:2])
+    contributions = result["contributions"]
+    approximation = result["prediction_approximation"]
+
+    assert contributions.shape == X.shape
+    np.testing.assert_allclose(approximation, model.predict(X), atol=1e-5)
+    assert np.mean(np.abs(contributions[:, 0])) > np.mean(np.abs(contributions[:, 1]))
+
+
 def test_permutation_importance_validates_state_and_arguments():
     """Permutation importance should share fitted-state and input validation contracts."""
 
@@ -123,4 +156,9 @@ def test_permutation_importance_validates_state_and_arguments():
     with pytest.raises(ValueError, match="feature count"):
         fitted.permutation_importance(
             np.ones((2, 2), dtype=np.float32), np.array([1.0, 2.0])
+        )
+    with pytest.raises(ValueError, match="background feature count"):
+        fitted.approximate_shap_values(
+            np.ones((2, 1), dtype=np.float32),
+            background=np.ones((2, 2), dtype=np.float32),
         )

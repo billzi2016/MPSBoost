@@ -20,6 +20,9 @@ struct TrainingParameters final {
   enum class Objective : std::uint32_t {
     kSquaredError = 0,
     kBinaryLogistic = 1,
+    kQuantile = 2,
+    kPoisson = 3,
+    kTweedie = 4,
   };
 
   std::uint32_t n_estimators{100};
@@ -27,6 +30,8 @@ struct TrainingParameters final {
   std::uint32_t max_bins{256};
   Objective objective{Objective::kSquaredError};
   TreeTrainingParameters tree;
+  double objective_alpha{0.5};
+  double tweedie_variance_power{1.5};
 };
 
 class RegressionModel final {
@@ -38,6 +43,10 @@ class RegressionModel final {
   double base_score() const noexcept { return base_score_; }
   double learning_rate() const noexcept { return learning_rate_; }
   TrainingParameters::Objective objective() const noexcept { return objective_; }
+  double objective_alpha() const noexcept { return objective_alpha_; }
+  double tweedie_variance_power() const noexcept {
+    return tweedie_variance_power_;
+  }
   const QuantizationSchema& schema() const noexcept { return schema_; }
   const std::vector<RegressionTree>& trees() const noexcept { return trees_; }
 
@@ -50,6 +59,8 @@ class RegressionModel final {
                                  double base_score,
                                  double learning_rate,
                                  TrainingParameters::Objective objective,
+                                 double objective_alpha,
+                                 double tweedie_variance_power,
                                  std::vector<RegressionTree> trees);
 
  private:
@@ -65,6 +76,8 @@ class RegressionModel final {
   double base_score_{0.0};
   double learning_rate_{0.1};
   TrainingParameters::Objective objective_{TrainingParameters::Objective::kSquaredError};
+  double objective_alpha_{0.5};
+  double tweedie_variance_power_{1.5};
   std::vector<RegressionTree> trees_;
 };
 

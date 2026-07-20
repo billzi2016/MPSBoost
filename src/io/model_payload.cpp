@@ -148,10 +148,10 @@ std::vector<std::uint8_t> BuildPayload(const RegressionModel& model) {
   AppendFloat<double, std::uint64_t>(&payload, model.learning_rate());
   AppendUnsigned(
       &payload,
-      static_cast<std::uint32_t>(
-          model.objective() == TrainingParameters::Objective::kBinaryLogistic
-              ? 1
-              : 0));
+      static_cast<std::uint32_t>(model.objective()));
+  AppendFloat<double, std::uint64_t>(&payload, model.objective_alpha());
+  AppendFloat<double, std::uint64_t>(&payload,
+                                     model.tweedie_variance_power());
   AppendUnsigned(
       &payload,
       static_cast<std::uint64_t>(model.schema().boundaries().size()));
@@ -202,9 +202,23 @@ RegressionModel ParsePayload(const std::uint8_t* data,
       objective = TrainingParameters::Objective::kSquaredError;
     } else if (objective_code == 1) {
       objective = TrainingParameters::Objective::kBinaryLogistic;
+    } else if (objective_code == 2) {
+      objective = TrainingParameters::Objective::kQuantile;
+    } else if (objective_code == 3) {
+      objective = TrainingParameters::Objective::kPoisson;
+    } else if (objective_code == 4) {
+      objective = TrainingParameters::Objective::kTweedie;
     } else {
       throw TrainingError("model objective is unsupported");
     }
+  }
+  double objective_alpha = 0.5;
+  double tweedie_variance_power = 1.5;
+  if (format_minor >= 4) {
+    objective_alpha =
+        reader.ReadFloat<double, std::uint64_t>("objective_alpha");
+    tweedie_variance_power =
+        reader.ReadFloat<double, std::uint64_t>("tweedie_variance_power");
   }
   const std::uint64_t boundary_count = reader.ReadUnsigned<std::uint64_t>("boundary_count");
   if (boundary_count > size / sizeof(float)) {
@@ -237,7 +251,8 @@ RegressionModel ParsePayload(const std::uint8_t* data,
     throw TrainingError("模型包含未识别的尾部字节");
   }
   return RegressionModel::Restore(std::move(schema), base_score, learning_rate,
-                                  objective, std::move(trees));
+                                  objective, objective_alpha,
+                                  tweedie_variance_power, std::move(trees));
 }
 
 MulticlassModel ParseMulticlassPayload(const std::uint8_t* data,

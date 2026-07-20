@@ -40,6 +40,25 @@ std::vector<GradientPair> ComputeBinaryLogisticGradients(
     const std::vector<double>& labels,
     const std::vector<double>& logits);
 
+// Compute pinball-loss statistics with constant Hessian. ``alpha`` is the target quantile in
+// (0, 1). This is a controlled diagonal approximation so the shared Newton tree path can train
+// quantile models without introducing a second tree optimizer.
+std::vector<GradientPair> ComputeQuantileGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& predictions,
+    double alpha);
+
+// Compute Poisson log-link statistics for non-negative labels: raw predictions are log means.
+std::vector<GradientPair> ComputePoissonGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& log_means);
+
+// Compute Tweedie log-link statistics for variance power in (1, 2). Labels must be non-negative.
+std::vector<GradientPair> ComputeTweedieGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& log_means,
+    double variance_power);
+
 // Convert one raw binary-logistic margin to probability with overflow-stable sigmoid semantics.
 double LogisticProbability(double logit);
 

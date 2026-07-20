@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from importlib.resources import as_file, files
+import os
 from typing import Any, Iterator, Sequence
+import warnings
 
 from . import _native
 from ._cache import (
@@ -43,6 +45,34 @@ def system_info() -> dict[str, Any]:
         }
     )
     return info
+
+
+def mps_setup_instructions() -> str:
+    """Return copy-paste setup commands for users whose local MPS environment is unavailable."""
+
+    return (
+        "Apple GPU acceleration is unavailable in this environment. To enable MPSBoost GPU "
+        "training on an Apple Silicon Mac, run:\n"
+        "  xcode-select --install\n"
+        "  xcodebuild -downloadComponent MetalToolchain\n"
+        "Then reinstall or verify the package with:\n"
+        "  python -m pip install --upgrade --force-reinstall mpsboost\n"
+        "  python -c \"import mpsboost as mb; print(mb.system_info())\"\n"
+        "To skip this import-time environment check for CPU-only jobs, GridSearchCV workers, "
+        "or managed CI, run:\n"
+        "  MPSBOOST_SKIP_ENV_CHECK=1 python your_script.py\n"
+        'CPU training remains available with device="cpu" or device="auto".'
+    )
+
+
+def warn_if_mps_unavailable() -> None:
+    """Warn once at import when GPU acceleration is unavailable, without blocking CPU workloads."""
+
+    if os.environ.get("MPSBOOST_SKIP_ENV_CHECK") == "1":
+        return
+    if is_available():
+        return
+    warnings.warn(mps_setup_instructions(), RuntimeWarning, stacklevel=2)
 
 
 def cache_info() -> dict[str, Any]:

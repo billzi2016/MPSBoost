@@ -87,6 +87,34 @@ void RegisterObjectiveBindings(py::module_& module) {
   }, py::arg("labels"), py::arg("logits"),
      "Compute binary-logistic FP64 gradient/Hessian pairs for tests.");
 
+  module.def("_quantile_gradients",
+             [](const std::vector<double>& labels,
+                const std::vector<double>& predictions,
+                double alpha) {
+               return GradientsToPython(
+                   ComputeQuantileGradients(labels, predictions, alpha));
+             },
+             py::arg("labels"), py::arg("predictions"), py::arg("alpha"),
+             "Compute quantile-loss gradient/Hessian pairs for tests.");
+  module.def("_poisson_gradients",
+             [](const std::vector<double>& labels,
+                const std::vector<double>& log_means) {
+               return GradientsToPython(
+                   ComputePoissonGradients(labels, log_means));
+             },
+             py::arg("labels"), py::arg("log_means"),
+             "Compute Poisson log-link gradient/Hessian pairs for tests.");
+  module.def("_tweedie_gradients",
+             [](const std::vector<double>& labels,
+                const std::vector<double>& log_means,
+                double variance_power) {
+               return GradientsToPython(
+                   ComputeTweedieGradients(labels, log_means, variance_power));
+             },
+             py::arg("labels"), py::arg("log_means"),
+             py::arg("variance_power"),
+             "Compute Tweedie log-link gradient/Hessian pairs for tests.");
+
   module.def("_logistic_probability", &LogisticProbability, py::arg("logit"),
              "Convert a raw binary-logistic margin to probability.");
   module.def("_softmax_probabilities", &SoftmaxProbabilities,

@@ -53,6 +53,37 @@ def test_fixed_training_boundaries_are_used_for_new_data():
     assert prediction[0] < prediction[1]
 
 
+def test_advanced_regression_objectives_train_and_predict_on_native_path():
+    """Quantile, Poisson, and Tweedie losses should use the shared native trainer."""
+
+    X = np.asarray([[0.0], [0.1], [1.0], [1.1], [2.0], [2.1]], dtype=np.float32)
+    y = np.asarray([1.0, 1.0, 2.0, 2.0, 5.0, 5.0], dtype=np.float64)
+    common = dict(
+        n_estimators=3,
+        learning_rate=0.3,
+        max_depth=1,
+        max_bins=8,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        reg_lambda=1.0,
+        device="cpu",
+    )
+
+    quantile = MPSBoostRegressor(loss="quantile", quantile_alpha=0.75, **common).fit(X, y)
+    poisson = MPSBoostRegressor(loss="poisson", **common).fit(X, y)
+    tweedie = MPSBoostRegressor(loss="tweedie", tweedie_variance_power=1.5, **common).fit(X, y)
+
+    assert quantile.training_summary_["native_objective"] == "quantile"
+    assert poisson.training_summary_["native_objective"] == "poisson"
+    assert tweedie.training_summary_["native_objective"] == "tweedie"
+    for model in (quantile, poisson, tweedie):
+        predictions = model.predict(X)
+        assert predictions.shape == y.shape
+        assert np.all(np.isfinite(predictions))
+    assert np.all(poisson.predict(X) > 0.0)
+    assert np.all(tweedie.predict(X) > 0.0)
+
+
 @pytest.mark.parametrize(
     "name,value,message",
     [
@@ -61,6 +92,9 @@ def test_fixed_training_boundaries_are_used_for_new_data():
         ("max_depth", -1, "max_depth"),
         ("max_bins", 1, "max_bins"),
         ("min_samples_leaf", 0, "min_samples_leaf"),
+        ("loss", "bad", "loss"),
+        ("quantile_alpha", 1.0, "quantile_alpha"),
+        ("tweedie_variance_power", 2.0, "tweedie_variance_power"),
     ],
 )
 def test_invalid_training_parameters_fail_before_model(name, value, message):

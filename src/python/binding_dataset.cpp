@@ -40,13 +40,21 @@ TrainingParameters MakeTrainingParameters(std::uint32_t n_estimators,
                                           const std::vector<std::int8_t>&
                                               monotonic_constraints,
                                           const std::vector<std::vector<std::uint32_t>>&
-                                              interaction_constraints) {
+                                              interaction_constraints,
+                                          double objective_alpha,
+                                          double tweedie_variance_power) {
   TrainingParameters::Objective objective_kind =
       TrainingParameters::Objective::kSquaredError;
   if (objective == "squared_error") {
     objective_kind = TrainingParameters::Objective::kSquaredError;
   } else if (objective == "binary_logistic") {
     objective_kind = TrainingParameters::Objective::kBinaryLogistic;
+  } else if (objective == "quantile") {
+    objective_kind = TrainingParameters::Objective::kQuantile;
+  } else if (objective == "poisson") {
+    objective_kind = TrainingParameters::Objective::kPoisson;
+  } else if (objective == "tweedie") {
+    objective_kind = TrainingParameters::Objective::kTweedie;
   } else {
     throw std::invalid_argument("unknown training objective");
   }
@@ -89,7 +97,9 @@ TrainingParameters MakeTrainingParameters(std::uint32_t n_estimators,
                                                    growth_kind,
                                                    random_seed,
                                                    monotonic_constraints,
-                                                   interaction_constraints}};
+                                                   interaction_constraints},
+                            objective_alpha,
+                            tweedie_variance_power};
 }
 
 }  // namespace
@@ -137,6 +147,8 @@ void RegisterDatasetBindings(py::module_& module) {
            py::arg("monotonic_constraints") = std::vector<std::int8_t>{},
            py::arg("interaction_constraints") =
                std::vector<std::vector<std::uint32_t>>{},
+           py::arg("objective_alpha") = 0.5,
+           py::arg("tweedie_variance_power") = 1.5,
            "Create the internal named training-parameter value object.");
 }
 

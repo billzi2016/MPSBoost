@@ -17,6 +17,11 @@ Initial dataset targets:
 - Iris: small multiclass sanity test.
 - Breast Cancer Wisconsin: binary classification baseline.
 - Diabetes: small regression sanity test.
+- Diabetes advanced objectives: quantile, Poisson, and Tweedie run on positive real targets through
+  the shared native CPU trainer. These checks verify correctness and finite outputs, not objective
+  leaderboard quality.
+- Breast Cancer isolation forest: CPU-suitable anomaly scoring with finite path-length scores.
+- Diabetes pointwise ranking: query-group validation and finite full-list NDCG.
 - California Housing: medium regression baseline.
 - Digits: lightweight flattened-image multiclass test.
 - MNIST subset: opt-in flattened-image stress test.
@@ -32,6 +37,11 @@ Rules:
 - Prefer built-in sklearn datasets for default CI coverage.
 - External datasets must be versioned, hash-checked, cached, and reproducible offline.
 - Long-running tests must be opt-in and clearly marked.
+- Advanced objectives currently share the histogram tree path and use modest CPU acceptance
+  settings; performance claims require a separate end-to-end benchmark before release notes can
+  advertise speedups.
+- Isolation forest and pointwise ranking route MPS requests to CPU with a warning because these
+  branch-heavy or latency-sensitive workflows are expected to be faster on CPU than Apple GPU.
 - Blocked datasets must stay visible in the matrix instead of being silently replaced by
   synthetic or binary-subset stand-ins.
 

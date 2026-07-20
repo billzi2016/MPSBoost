@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 from .. import _native
 from ..categorical import fit_transform_categorical
 from ..device_policy import choose_device, decision_to_dict
-from ..diagnostics import _metallib_path, is_available
+from ..diagnostics import _metallib_path, is_available, mps_setup_instructions
 from ..matrix import as_labels, as_sample_weight
 from .importance import FeatureImportanceMixin
 from .model_state import SklearnAndPersistenceMixin
@@ -43,6 +43,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         "max_leaves",
         "max_active_leaves",
         "min_gain_to_split",
+        "loss",
+        "quantile_alpha",
+        "tweedie_variance_power",
         "min_child_weight",
         "min_samples_leaf",
         "reg_lambda",
@@ -67,6 +70,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         max_leaves: int | None = None,
         max_active_leaves: int | None = None,
         min_gain_to_split: float = 0.0,
+        loss: str = "squared_error",
+        quantile_alpha: float = 0.5,
+        tweedie_variance_power: float = 1.5,
         min_child_weight: float = 1.0,
         min_samples_leaf: int = 20,
         reg_lambda: float = 1.0,
@@ -90,6 +96,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
         self.max_leaves = max_leaves
         self.max_active_leaves = max_active_leaves
         self.min_gain_to_split = min_gain_to_split
+        self.loss = loss
+        self.quantile_alpha = quantile_alpha
+        self.tweedie_variance_power = tweedie_variance_power
         self.min_child_weight = min_child_weight
         self.min_samples_leaf = min_samples_leaf
         self.reg_lambda = reg_lambda
@@ -163,7 +172,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 reg_alpha=self.reg_alpha,
                 max_delta_step=self.max_delta_step,
                 min_gain_to_split=self.min_gain_to_split,
-                objective=self._native_objective,
+                objective=self._resolved_native_objective(),
                 split_strategy=self._split_strategy,
                 growth_strategy=self.growth_strategy,
                 max_leaves=0 if self.max_leaves is None else self.max_leaves,
@@ -177,6 +186,8 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 interaction_constraints=self._normalized_interaction_constraints(
                     matrix.shape[1]
                 ),
+                objective_alpha=self.quantile_alpha,
+                tweedie_variance_power=self.tweedie_variance_power,
             )
             mps_available = is_available()
             device_decision = choose_device(
@@ -190,9 +201,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
             started = perf_counter()
             if device_decision.selected == "mps":
                 if not mps_available:
-                    raise _native.BackendError(
-                        "MPS 后端不可用；请在受支持的 Apple Silicon Mac 上运行"
-                    )
+                    raise _native.BackendError(mps_setup_instructions())
                 with _metallib_path() as metallib_path:
                     candidate = _native._train_regressor_mps(
                         matrix, labels, weights, parameters, metallib_path
@@ -211,6 +220,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
             self.device_ = device_decision.selected
             self.device_decision_ = decision_to_dict(device_decision)
             self.n_estimators_ = candidate.tree_count
+            self._resolved_objective_ = self._resolved_native_objective()
             self._finalize_fitted_metadata()
             self.training_summary_ = {
                 "fit_seconds": elapsed,
@@ -218,6 +228,7 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 "device": device_decision.selected,
                 "device_decision": self.device_decision_,
                 "n_estimators": candidate.tree_count,
+                "native_objective": self._resolved_objective_,
                 "weighted": bool(sample_weight is not None),
                 "categorical_features": (
                     []
@@ -234,6 +245,9 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
                 "max_leaves": self.max_leaves,
                 "max_active_leaves": self.max_active_leaves,
                 "min_gain_to_split": float(self.min_gain_to_split),
+                "loss": self.loss,
+                "quantile_alpha": float(self.quantile_alpha),
+                "tweedie_variance_power": float(self.tweedie_variance_power),
                 "reg_alpha": float(self.reg_alpha),
                 "max_delta_step": float(self.max_delta_step),
             }
@@ -246,7 +260,13 @@ class MPSBoostRegressor(FeatureImportanceMixin, SklearnAndPersistenceMixin):
 
     def predict(self, X: Any) -> NDArray[np.float32]:
         """Return one-dimensional float32 predictions using the frozen training schema."""
-        return self._predict_raw(X)
+        raw = self._predict_raw(X)
+        if getattr(self, "_resolved_objective_", self._native_objective) in {
+            "poisson",
+            "tweedie",
+        }:
+            return np.exp(raw.astype(np.float64, copy=False)).astype(np.float32)
+        return raw
 
     def score(self, X: Any, y: Any, sample_weight: Any = None) -> float:
         """Return the default regression R² score for sklearn model-selection tools."""

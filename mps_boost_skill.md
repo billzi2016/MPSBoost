@@ -56,6 +56,7 @@ mb.DecisionTreeClassifier
 mb.CatBoostRegressor
 mb.CatBoostClassifier
 mb.IsolationForest
+mb.MPSIsolationForest
 mb.LearningToRankRegressor
 ```
 
@@ -74,6 +75,34 @@ MPSBoost has two first-class in-project backends:
 Do not treat CPU as a temporary fallback. CPU is the correctness oracle, the small-workload fast
 path, and the baseline for every MPS implementation. MPS is an acceleration backend, not a
 requirement.
+
+Isolation forest and pointwise ranking are CPU-suitable workflows in the current package. If a
+user requests `device="mps"` for those estimators, keep the run executable, emit a warning, and
+record that CPU was selected because the workload is expected to be faster on CPU than Apple GPU.
+
+## Environment guidance
+
+On `import mpsboost`, the package may run a lightweight MPS availability check. If Apple GPU
+acceleration is unavailable, do not block the user and do not prompt with `input()`. Emit a warning
+with copy-paste commands:
+
+```bash
+xcode-select --install
+xcodebuild -downloadComponent MetalToolchain
+python -m pip install --upgrade --force-reinstall mpsboost
+python -c "import mpsboost as mb; print(mb.system_info())"
+```
+
+For CPU-only workflows, CI, or multiprocessing tools such as `GridSearchCV`, provide the skip
+command directly:
+
+```bash
+MPSBOOST_SKIP_ENV_CHECK=1 python your_script.py
+```
+
+CPU training must remain usable when the user skips the environment check. If the user explicitly
+forces `device="mps"` and the environment still cannot run Apple GPU acceleration, raise a clear
+backend error containing the setup and skip commands above.
 
 Never call XGBoost, LightGBM, CatBoost, or scikit-learn as hidden training engines. They may be
 used only as external user baselines in benchmarks when explicitly requested.

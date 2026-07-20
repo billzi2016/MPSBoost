@@ -1,8 +1,8 @@
 """Capability registry for public tree estimator names.
 
-This module is the single public source for estimator availability. Planned estimator names are
-documented here instead of being exported as incomplete classes, so users get clear discovery and
-clear early failures without accidentally depending on placeholder implementations.
+This module is the single public source for estimator availability. Future estimator names can be
+documented here without being exported as classes, so users get clear discovery without
+accidentally depending on placeholders.
 """
 
 from __future__ import annotations
@@ -124,13 +124,20 @@ _ESTIMATOR_CAPABILITIES: tuple[EstimatorCapability, ...] = (
     EstimatorCapability(
         name="IsolationForest",
         family_key="isolation_forest",
-        status="planned",
+        status="available",
         primary=True,
+    ),
+    EstimatorCapability(
+        name="MPSIsolationForest",
+        family_key="isolation_forest",
+        status="available",
+        primary=False,
+        alias_for="IsolationForest",
     ),
     EstimatorCapability(
         name="LearningToRankRegressor",
         family_key="learning_to_rank",
-        status="planned",
+        status="available",
         primary=True,
     ),
 )
@@ -149,7 +156,7 @@ def estimator_capabilities() -> tuple[EstimatorCapability, ...]:
 def estimator_status(name: str) -> EstimatorStatus:
     """Return whether an estimator name is currently available or planned.
 
-    Unknown names fail early because silently treating a typo as a planned estimator would hide
+    Unknown names fail early because silently treating a typo as a future estimator would hide
     user mistakes and make migration scripts unsafe.
     """
 
@@ -181,7 +188,7 @@ def available_estimators() -> tuple[str, ...]:
 
 
 def planned_estimators() -> tuple[str, ...]:
-    """Return planned estimator names that are documented but not yet exported as classes."""
+    """Return future estimator names that are documented but not yet exported as classes."""
 
     return tuple(
         capability.name
@@ -191,12 +198,12 @@ def planned_estimators() -> tuple[str, ...]:
 
 
 def require_estimator_supported(name: str) -> None:
-    """Fail early with a clear message when an estimator is known but not implemented."""
+    """Fail early with a clear message when an estimator is known but unavailable."""
 
     status = estimator_status(name)
     if status == "available":
         return
     raise NotImplementedError(
-        f"{name} is planned for MPSBoost v2 but is not implemented yet. "
+        f"{name} is on the MPSBoost roadmap but is not available in this package version. "
         "Use GradientBoostingRegressor or GradientBoostingClassifier in this release."
     )

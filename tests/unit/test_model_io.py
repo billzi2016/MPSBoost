@@ -102,6 +102,33 @@ def test_classifier_model_round_trip_preserves_probabilities(tmp_path):
     assert restored.classes_.tolist() == [0, 1]
 
 
+def test_advanced_regression_objective_round_trip_preserves_predictions(tmp_path):
+    """Advanced objective metadata should persist with native model bytes."""
+
+    X = np.asarray([[0.0], [0.1], [1.0], [1.1], [2.0], [2.1]], dtype=np.float32)
+    y = np.asarray([1.0, 1.0, 2.0, 2.0, 5.0, 5.0], dtype=np.float64)
+    model = MPSBoostRegressor(
+        n_estimators=3,
+        learning_rate=0.3,
+        max_depth=1,
+        max_bins=8,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        reg_lambda=1.0,
+        loss="poisson",
+        device="cpu",
+    ).fit(X, y)
+    path = tmp_path / "poisson.mb"
+    model.save_model(path)
+
+    restored = MPSBoostRegressor(loss="poisson", device="cpu").load_model(path)
+
+    np.testing.assert_allclose(restored.predict(X), model.predict(X))
+    assert restored.training_summary_["native_objective"] == "poisson"
+    with pytest.raises(ValueError, match="incompatible"):
+        MPSBoostRegressor(device="cpu").load_model(path)
+
+
 def test_regressor_rejects_classifier_model_file(tmp_path):
     """A regressor must not load binary-logistic raw margins as regression values."""
 

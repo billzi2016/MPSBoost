@@ -1,8 +1,7 @@
 """Tree-family semantic registry tests.
 
 These tests protect the v2 foundation from drifting into fake estimator classes or duplicated
-per-model math. The registry may describe planned models, but only implemented estimators may be
-exported as classes.
+per-model math. Public estimators must have real fit/predict behavior and honest backend policy.
 """
 
 import mpsboost as mb
@@ -84,17 +83,16 @@ def test_available_extra_trees_have_random_split_family_contracts():
     assert single.alias_for == "ExtraTreesRegressor"
 
 
-def test_planned_tree_families_are_specs_not_fake_classes():
-    """Planned models must be queryable without appearing as importable estimators."""
+def test_anomaly_and_ranking_families_are_available_cpu_estimators():
+    """S17 families should be importable while documenting that MPS training is not native yet."""
 
-    planned = set(mb.planned_estimators())
-    assert {
-        "IsolationForest",
-        "LearningToRankRegressor",
-    } <= planned
+    assert "IsolationForest" in mb.available_estimators()
+    assert "MPSIsolationForest" in mb.available_estimators()
+    assert "LearningToRankRegressor" in mb.available_estimators()
+    assert mb.estimator_capability("MPSIsolationForest").alias_for == "IsolationForest"
 
-    for name in planned:
-        assert not hasattr(mb, name)
+    for name in ("IsolationForest", "MPSIsolationForest", "LearningToRankRegressor"):
+        assert hasattr(mb, name)
         capability = mb.estimator_capability(name)
         assert capability.family.supports_mps_training is False
 
