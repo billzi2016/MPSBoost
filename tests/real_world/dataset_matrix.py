@@ -60,8 +60,8 @@ DATASET_MATRIX: tuple[DatasetSpec, ...] = (
         task="regression",
         source="sklearn.datasets.fetch_california_housing",
         default_ci=False,
-        status="planned",
-        reason="Requires cached download handling before it can run in default acceptance.",
+        status="active_cached",
+        reason="Uses explicit download script and ignored local cache; tests never download implicitly.",
     ),
     DatasetSpec(
         name="MNIST subset",
@@ -92,8 +92,8 @@ DATASET_MATRIX: tuple[DatasetSpec, ...] = (
         task="multiclass_classification_large_rows",
         source="external opt-in cache",
         default_ci=False,
-        status="planned",
-        reason="Requires external cache policy and multiclass support.",
+        status="active_cached",
+        reason="Uses explicit sklearn fetcher download, ignored local cache, and fixed large-row subset.",
     ),
     DatasetSpec(
         name="Higgs subset",

@@ -34,3 +34,13 @@ Rules:
 - Long-running tests must be opt-in and clearly marked.
 - Blocked datasets must stay visible in the matrix instead of being silently replaced by
   synthetic or binary-subset stand-ins.
+
+Explicit downloads:
+
+```bash
+python tests/real_world/download_datasets.py california-housing
+python tests/real_world/download_datasets.py covertype-subset
+```
+
+The downloaded files live under ignored `tests/real_world/data/`, and generated manifests live
+under ignored `tests/real_world/cache/`.

@@ -199,8 +199,13 @@
 - [x] S18.2 建立合法、可复现的真实世界数据集矩阵。
 - [x] S18.2a 建立 `tests/real_world/` 目录和真实世界测试规则。
 - [x] S18.2b 实现内置数据集验收：Iris、Breast Cancer、Diabetes、Digits。
-- [ ] S18.2c 实现缓存下载数据集验收：California Housing。
+- [x] S18.2c 实现缓存下载数据集验收：California Housing。
 - [ ] S18.2d 实现 opt-in 外部数据集验收：MNIST subset、Titanic、Adult Income、Covertype subset、Higgs subset。
+- [ ] S18.2d-1 实现 MNIST subset 验收。
+- [ ] S18.2d-2 实现 Titanic 验收。
+- [ ] S18.2d-3 实现 Adult Income 验收。
+- [x] S18.2d-4 实现 Covertype subset 大行数验收和真实 MPS parity smoke。
+- [ ] S18.2d-5 实现 Higgs subset 验收。
 - [ ] S18.3 覆盖回归、分类、异常检测和排序中已实现的模型族。
 - [ ] S18.4 建立强 CPU 基线、项目 CPU oracle 和真实 MPS 对照报告。
 - [ ] S18.5 完成训练、预测、保存、加载、缓存删除和重复训练稳定性测试。
