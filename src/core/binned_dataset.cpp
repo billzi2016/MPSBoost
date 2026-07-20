@@ -47,9 +47,9 @@ void ValidateViewImpl(const DenseMatrixView& view, std::uint32_t max_bins) {
   internal::CheckedSize(value_count, "分箱元素数量");
 }
 
-float ReadFiniteFloat(const DenseMatrixView& view,
-                      std::uint64_t row,
-                      std::uint32_t feature) {
+float ReadFiniteOrMissingFloat(const DenseMatrixView& view,
+                               std::uint64_t row,
+                               std::uint32_t feature) {
   const std::uint64_t offset =
       row * view.row_stride_bytes +
       static_cast<std::uint64_t>(feature) * view.column_stride_bytes;
@@ -57,15 +57,21 @@ float ReadFiniteFloat(const DenseMatrixView& view,
   if (view.scalar_type == ScalarType::kFloat32) {
     float value = 0.0F;
     std::memcpy(&value, address, sizeof(value));
+    if (std::isnan(value)) {
+      return value;
+    }
     if (!std::isfinite(value)) {
-      throw DataError("输入矩阵包含 NaN 或 Inf");
+      throw DataError("输入矩阵包含 Inf");
     }
     return value;
   }
   double source = 0.0;
   std::memcpy(&source, address, sizeof(source));
+  if (std::isnan(source)) {
+    return std::numeric_limits<float>::quiet_NaN();
+  }
   if (!std::isfinite(source)) {
-    throw DataError("输入矩阵包含 NaN 或 Inf");
+    throw DataError("输入矩阵包含 Inf");
   }
   constexpr double kFloatMax = static_cast<double>(std::numeric_limits<float>::max());
   if (source > kFloatMax || source < -kFloatMax) {
@@ -88,6 +94,12 @@ std::uint64_t QuantileRank(std::uint64_t part,
 
 std::vector<float> BuildBoundaries(std::vector<float> values,
                                    std::uint32_t max_bins) {
+  values.erase(std::remove_if(values.begin(), values.end(),
+                              [](float value) { return std::isnan(value); }),
+               values.end());
+  if (values.empty()) {
+    return {};
+  }
   std::sort(values.begin(), values.end());
   const std::uint64_t desired_bins =
       std::min<std::uint64_t>(max_bins, values.size());
@@ -129,17 +141,23 @@ BinnedDataset QuantizeDense(const DenseMatrixView& view, std::uint32_t max_bins)
   } else {
     result.bins_ = std::vector<std::uint16_t>(value_count);
   }
+  result.missing_ = std::vector<std::uint8_t>(value_count, 0);
 
   std::vector<float> feature_values(internal::CheckedSize(view.rows, "单特征工作区"));
   for (std::uint32_t feature = 0; feature < view.features; ++feature) {
+    std::uint64_t missing_count = 0;
     for (std::uint64_t row = 0; row < view.rows; ++row) {
       feature_values[internal::CheckedSize(row, "行索引")] =
-          ReadFiniteFloat(view, row, feature);
+          ReadFiniteOrMissingFloat(view, row, feature);
+      if (std::isnan(feature_values[internal::CheckedSize(row, "行索引")])) {
+        ++missing_count;
+      }
     }
     const std::vector<float> feature_boundaries = BuildBoundaries(feature_values, max_bins);
     const FeatureBinMetadata metadata{result.schema_.boundaries_.size(),
                                       static_cast<std::uint32_t>(feature_boundaries.size()),
-                                      static_cast<std::uint32_t>(feature_boundaries.size() + 1)};
+                                      static_cast<std::uint32_t>(feature_boundaries.size() + 1),
+                                      missing_count};
     result.schema_.feature_metadata_.push_back(metadata);
     result.schema_.boundaries_.insert(result.schema_.boundaries_.end(),
                                       feature_boundaries.begin(),
@@ -147,12 +165,15 @@ BinnedDataset QuantizeDense(const DenseMatrixView& view, std::uint32_t max_bins)
 
     for (std::uint64_t row = 0; row < view.rows; ++row) {
       const float value = feature_values[internal::CheckedSize(row, "行索引")];
+      const bool missing = std::isnan(value);
       const auto iterator =
-          std::lower_bound(feature_boundaries.begin(), feature_boundaries.end(), value);
+          missing ? feature_boundaries.begin()
+                  : std::lower_bound(feature_boundaries.begin(), feature_boundaries.end(), value);
       const std::uint32_t bin =
           static_cast<std::uint32_t>(iterator - feature_boundaries.begin());
       const std::size_t output_index = internal::CheckedSize(
           static_cast<std::uint64_t>(feature) * view.rows + row, "分箱输出索引");
+      result.missing_[output_index] = missing ? 1U : 0U;
       if (result.storage() == BinStorage::kUInt8) {
         std::get<std::vector<std::uint8_t>>(result.bins_)[output_index] =
             static_cast<std::uint8_t>(bin);
@@ -187,6 +208,7 @@ BinnedDataset TransformDense(const DenseMatrixView& view,
   } else {
     result.bins_ = std::vector<std::uint16_t>(value_count);
   }
+  result.missing_ = std::vector<std::uint8_t>(value_count, 0);
 
   for (std::uint32_t feature = 0; feature < view.features; ++feature) {
     const FeatureBinMetadata& metadata = schema.feature_metadata()[feature];
@@ -194,12 +216,15 @@ BinnedDataset TransformDense(const DenseMatrixView& view,
                        static_cast<std::ptrdiff_t>(metadata.boundary_offset);
     const auto last = first + static_cast<std::ptrdiff_t>(metadata.boundary_count);
     for (std::uint64_t row = 0; row < view.rows; ++row) {
-      const float value = ReadFiniteFloat(view, row, feature);
+      const float value = ReadFiniteOrMissingFloat(view, row, feature);
+      const bool missing = std::isnan(value);
       const std::uint32_t bin =
-          static_cast<std::uint32_t>(std::lower_bound(first, last, value) - first);
+          missing ? 0U
+                  : static_cast<std::uint32_t>(std::lower_bound(first, last, value) - first);
       const std::size_t output_index = internal::CheckedSize(
           static_cast<std::uint64_t>(feature) * view.rows + row,
           "预测分箱输出索引");
+      result.missing_[output_index] = missing ? 1U : 0U;
       if (schema.storage() == BinStorage::kUInt8) {
         std::get<std::vector<std::uint8_t>>(result.bins_)[output_index] =
             static_cast<std::uint8_t>(bin);
@@ -238,6 +263,15 @@ std::uint32_t BinnedDataset::GetBin(std::uint64_t row,
     return std::get<std::vector<std::uint8_t>>(bins_)[index];
   }
   return std::get<std::vector<std::uint16_t>>(bins_)[index];
+}
+
+bool BinnedDataset::IsMissing(std::uint64_t row, std::uint32_t feature) const {
+  if (row >= rows_ || feature >= features()) {
+    throw DataError("missing mask index out of range");
+  }
+  const std::size_t index = internal::CheckedSize(
+      static_cast<std::uint64_t>(feature) * rows_ + row, "missing mask index");
+  return !missing_.empty() && missing_[index] != 0;
 }
 
 const void* BinnedDataset::bin_data() const noexcept {

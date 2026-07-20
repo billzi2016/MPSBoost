@@ -39,6 +39,7 @@ struct FeatureBinMetadata final {
   std::uint64_t boundary_offset{0};
   std::uint32_t boundary_count{0};
   std::uint32_t bin_count{0};
+  std::uint64_t missing_count{0};
 };
 
 class BinnedDataset;
@@ -99,6 +100,7 @@ class BinnedDataset final {
 
   // 读取 feature-major 紧凑存储中的一个 bin。索引错误明确失败，不能产生越界读取。
   std::uint32_t GetBin(std::uint64_t row, std::uint32_t feature) const;
+  bool IsMissing(std::uint64_t row, std::uint32_t feature) const;
 
   // 生成确定性的版本化字节表示，用于 round-trip 测试和后续缓存层复用。
   std::vector<std::uint8_t> Serialize() const;
@@ -113,6 +115,7 @@ class BinnedDataset final {
   bool source_contiguous_{false};
   QuantizationSchema schema_;
   std::variant<std::vector<std::uint8_t>, std::vector<std::uint16_t>> bins_;
+  std::vector<std::uint8_t> missing_;
 };
 
 // 把有限 float32/float64 矩阵量化为拥有自身内存的 feature-major 数据集。

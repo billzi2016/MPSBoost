@@ -96,6 +96,7 @@ std::vector<std::uint8_t> BinnedDataset::Serialize() const {
     AppendLittleEndian(&output, metadata.boundary_offset);
     AppendLittleEndian(&output, metadata.boundary_count);
     AppendLittleEndian(&output, metadata.bin_count);
+    AppendLittleEndian(&output, metadata.missing_count);
   }
   for (const float boundary : boundaries()) {
     AppendFloat(&output, boundary);
@@ -108,6 +109,7 @@ std::vector<std::uint8_t> BinnedDataset::Serialize() const {
       AppendLittleEndian(&output, value);
     }
   }
+  output.insert(output.end(), missing_.begin(), missing_.end());
   return output;
 }
 
@@ -151,6 +153,7 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
     metadata.boundary_offset = reader.ReadUnsigned<std::uint64_t>("boundary_offset");
     metadata.boundary_count = reader.ReadUnsigned<std::uint32_t>("feature boundary_count");
     metadata.bin_count = reader.ReadUnsigned<std::uint32_t>("feature bin_count");
+    metadata.missing_count = reader.ReadUnsigned<std::uint64_t>("feature missing_count");
     const std::uint64_t end = internal::CheckedAdd(metadata.boundary_offset,
                                                    metadata.boundary_count,
                                                    "特征边界区间");
@@ -180,6 +183,14 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
     }
     result.bins_ = std::move(values);
   }
+  result.missing_.reserve(internal::CheckedSize(value_count, "missing mask size"));
+  for (std::uint64_t index = 0; index < value_count; ++index) {
+    const std::uint8_t missing = reader.ReadUnsigned<std::uint8_t>("missing mask");
+    if (missing > 1) {
+      throw DataError("missing mask value must be 0 or 1");
+    }
+    result.missing_.push_back(missing);
+  }
 
   if (!reader.at_end()) {
     throw DataError("分箱序列化数据包含未识别的尾部字节");
@@ -187,10 +198,17 @@ BinnedDataset BinnedDataset::Deserialize(const std::vector<std::uint8_t>& bytes)
   internal::ValidateSchemaFields(result.schema_);
   for (std::uint32_t feature = 0; feature < result.features(); ++feature) {
     const FeatureBinMetadata& metadata = result.feature_metadata()[feature];
+    std::uint64_t missing_count = 0;
     for (std::uint64_t row = 0; row < result.rows_; ++row) {
       if (result.GetBin(row, feature) >= metadata.bin_count) {
         throw DataError("分箱序列化 bin 值超出特征范围");
       }
+      if (result.IsMissing(row, feature)) {
+        ++missing_count;
+      }
+    }
+    if (missing_count != metadata.missing_count) {
+      throw DataError("serialized missing count does not match missing mask");
     }
   }
   return result;

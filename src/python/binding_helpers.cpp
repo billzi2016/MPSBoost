@@ -82,6 +82,19 @@ py::list BinsByFeature(const BinnedDataset& dataset) {
   return result;
 }
 
+py::list MissingByFeature(const BinnedDataset& dataset) {
+  py::list result;
+  for (std::uint32_t feature_index = 0; feature_index < dataset.features();
+       ++feature_index) {
+    py::list feature;
+    for (std::uint64_t row = 0; row < dataset.rows(); ++row) {
+      feature.append(dataset.IsMissing(row, feature_index));
+    }
+    result.append(std::move(feature));
+  }
+  return result;
+}
+
 py::list TreeNodes(const RegressionTree& tree) {
   py::list result;
   for (const TreeNode& node : tree.nodes()) {

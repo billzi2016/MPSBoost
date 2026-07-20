@@ -98,6 +98,7 @@ void RegisterDatasetBindings(py::module_& module) {
                              &BinnedDataset::source_was_copied)
       .def_property_readonly("boundaries", &BoundariesByFeature)
       .def_property_readonly("bins", &BinsByFeature)
+      .def_property_readonly("missing", &MissingByFeature)
       .def("serialize", [](const BinnedDataset& dataset) {
         const std::vector<std::uint8_t> bytes = dataset.Serialize();
         return py::bytes(reinterpret_cast<const char*>(bytes.data()), bytes.size());

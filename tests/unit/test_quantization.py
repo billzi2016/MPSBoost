@@ -32,6 +32,26 @@ def test_constant_and_duplicate_values_do_not_create_empty_right_bin():
     assert dataset.boundaries[1] == [1.0]
 
 
+def test_nan_values_are_recorded_as_missing_without_changing_boundaries():
+    """NaN values should be tracked in a missing mask and excluded from quantiles."""
+
+    matrix = np.array(
+        [[1.0, np.nan], [2.0, 10.0], [np.nan, 20.0], [4.0, np.nan]],
+        dtype=np.float32,
+    )
+    dataset = _native._quantize_dense(matrix, max_bins=3)
+    assert dataset.boundaries[0] == [1.0, 2.0]
+    assert dataset.boundaries[1] == [10.0]
+    assert dataset.missing == [[False, False, True, False], [True, False, False, True]]
+    assert dataset.bins[0][2] == 0
+    assert dataset.bins[1][0] == 0
+
+    restored = _native._deserialize_binned(dataset.serialize())
+    assert restored.boundaries == dataset.boundaries
+    assert restored.bins == dataset.bins
+    assert restored.missing == dataset.missing
+
+
 def test_extreme_skew_is_deterministic():
     """热点重复值不会因排序实现或重复边界产生不稳定结果。"""
 
@@ -73,8 +93,7 @@ def test_non_contiguous_positive_stride_is_read_without_full_copy():
     "matrix, message",
     [
         (np.empty((0, 2), dtype=np.float32), "至少包含一行"),
-        (np.array([[np.nan]], dtype=np.float32), "NaN 或 Inf"),
-        (np.array([[np.inf]], dtype=np.float64), "NaN 或 Inf"),
+        (np.array([[np.inf]], dtype=np.float64), "Inf"),
         (np.array([[np.finfo(np.float64).max]], dtype=np.float64), "float32 表示范围"),
     ],
 )

@@ -20,6 +20,7 @@ namespace py = pybind11;
 DenseMatrixView MakeDenseView(const py::buffer& matrix);
 py::list BoundariesByFeature(const BinnedDataset& dataset);
 py::list BinsByFeature(const BinnedDataset& dataset);
+py::list MissingByFeature(const BinnedDataset& dataset);
 py::list TreeNodes(const RegressionTree& tree);
 py::list ModelTrees(const RegressionModel& model);
 py::list HistogramsToPython(const NodeHistograms& histograms);
