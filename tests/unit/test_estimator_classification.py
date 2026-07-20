@@ -91,12 +91,12 @@ def test_sample_weight_changes_classifier_score():
     ) == pytest.approx(3.0 / 13.0)
 
 
-def test_binary_classifier_rejects_non_binary_training_labels():
-    """Classifier fit should fail before native training when labels are outside strict 0/1."""
+def test_classifier_accepts_multiclass_training_labels():
+    """Public classifier should train multiclass labels through real OvR binary models."""
 
     model = MPSBoostClassifier(device="cpu")
     X = np.ones((3, 1), dtype=np.float32)
-    with pytest.raises(ValueError, match="exactly 0 and 1"):
-        model.fit(X, np.array([0, 1, 2]))
-    with pytest.raises(ValueError, match="requires both class"):
+    fitted = model.fit(X, np.array([0, 1, 2]))
+    assert fitted.classes_.tolist() == [0, 1, 2]
+    with pytest.raises(ValueError, match="at least two classes"):
         model.fit(X, np.array([1, 1, 1]))

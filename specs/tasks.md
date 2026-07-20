@@ -198,7 +198,7 @@
 - [x] S18.1 完成 `v3-real-world-tests/prd.md` 规格审查，确认 1.x 发布纪律。
 - [x] S18.2 建立合法、可复现的真实世界数据集矩阵。
 - [x] S18.2a 建立 `tests/real_world/` 目录和真实世界测试规则。
-- [ ] S18.2b 实现内置数据集验收：Iris、Breast Cancer、Diabetes、Digits。
+- [x] S18.2b 实现内置数据集验收：Iris、Breast Cancer、Diabetes、Digits。
 - [ ] S18.2c 实现缓存下载数据集验收：California Housing。
 - [ ] S18.2d 实现 opt-in 外部数据集验收：MNIST subset、Titanic、Adult Income、Covertype subset、Higgs subset。
 - [ ] S18.3 覆盖回归、分类、异常检测和排序中已实现的模型族。

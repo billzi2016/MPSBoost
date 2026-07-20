@@ -9,7 +9,8 @@ Dataset matrix:
 
 - `dataset_matrix.py` is the executable S18 dataset matrix.
 - Default no-network acceptance currently runs only active built-in datasets.
-- Multiclass datasets are registered but blocked until native multiclass support exists.
+- Multiclass datasets run through the public one-vs-rest classifier built from real native binary
+  models.
 
 Initial dataset targets:
 

@@ -87,9 +87,10 @@ search.fit(X_train, y_train)
 best_model = search.best_estimator_
 ```
 
-The same direction applies to `RandomizedSearchCV`, `cross_val_score`, and future classifier
-estimators. The current regressor exposes `get_params()`, `set_params()`, `fit()`, `predict()`,
-and the default regression `score()` method needed by standard sklearn search utilities.
+The same direction applies to `RandomizedSearchCV`, `cross_val_score`, and classifier estimators.
+Current regressors and classifiers expose `get_params()`, `set_params()`, `fit()`, `predict()`,
+`predict_proba()` where applicable, and default `score()` methods needed by standard sklearn
+search utilities. Real-world Iris acceptance includes a standard `GridSearchCV` multiclass run.
 
 Multiprocessing is supported through sklearn/joblib at the outer search level. CPU jobs can run
 in multiple processes. MPS jobs should be scheduled more conservatively: several Python workers
@@ -106,7 +107,7 @@ libraries by changing the import and keeping familiar model names.
 | Model family | Primary names | Status |
 | --- | --- | --- |
 | Histogram gradient boosting | `GradientBoostingRegressor` | Available |
-| Histogram gradient boosting classification | `GradientBoostingClassifier` | Available for strict binary 0/1 labels |
+| Histogram gradient boosting classification | `GradientBoostingClassifier` | Available for binary labels and multiclass one-vs-rest |
 | Random forest | `RandomForestRegressor`, `RandomForestClassifier` | Available |
 | Extra trees | `ExtraTreesRegressor`, `ExtraTreesClassifier` | Available |
 | Single decision tree | `DecisionTreeRegressor`, `DecisionTreeClassifier` | Available |
@@ -214,10 +215,11 @@ deterministic randomization and monitoring helpers, cache diagnostics and manage
 `is_available`, `system_info`, and `__version__`. Training supports dense finite
 `float32`/`float64`-compatible data, ordered categorical feature encoding, feature-level
 monotonic constraints, path-level interaction constraints, L1/L2/gamma regularization, leaf-value
-clipping, squared error regression, strict binary-logistic classification for labels `0` and `1`,
-deterministic quantization, depth-limited histogram trees, sklearn-compatible `score()`, model
-save/load for numeric models, gain/split/permutation feature importance, random forest `n_jobs`,
-explicit `device="mps"`, explicit `device="cpu"`, and initial `device="auto"` selection.
+clipping, squared error regression, binary-logistic classification, multiclass one-vs-rest
+classification, deterministic quantization, depth-limited histogram trees, sklearn-compatible
+`score()`, model save/load for numeric non-categorical binary/native models,
+gain/split/permutation feature importance, random forest `n_jobs`, explicit `device="mps"`,
+explicit `device="cpu"`, and initial `device="auto"` selection.
 
 The checked-in S6 benchmark records both regressions and wins. On the M2 Ultra validation machine, small end-to-end training remains slower on MPS, while the `gbdt-large-wide` scenario reached a 1.629x median speedup with maximum prediction difference around `5.4e-6` versus the CPU oracle.
 
