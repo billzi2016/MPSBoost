@@ -1,1 +1,1 @@
-../../../../../../specs/v1-mps-histogram-engine/modules/01-python-api.md
+../../../../../../specs/v1-mps-histogram-engine/modules/01-python-api.zh-Hans.md

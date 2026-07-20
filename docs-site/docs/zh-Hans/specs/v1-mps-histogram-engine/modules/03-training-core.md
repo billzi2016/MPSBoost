@@ -1,1 +1,1 @@
-../../../../../../specs/v1-mps-histogram-engine/modules/03-training-core.md
+../../../../../../specs/v1-mps-histogram-engine/modules/03-training-core.zh-Hans.md

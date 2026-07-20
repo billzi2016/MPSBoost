@@ -1,50 +1,5 @@
-# 模块设计：分层缓存
+# Translation Pending
 
-## 1. 原则
+English translation placeholder for `05-cache.zh-Hans.md`.
 
-缓存只能改善性能，不能成为正确性前提。删除、损坏或无法写入缓存时，系统必须安全重建或在不缓存模式运行，输出保持等价。
-
-## 2. L1 进程缓存
-
-内容：设备对象、pipeline、只读 shader library、buffer pool、形状 dispatch plan。
-
-- 生命周期不超过进程；
-- 线程安全；
-- 可变训练数据不跨 estimator 共享；
-- 有明确容量上限和释放策略；
-- 测试支持隔离实例，不能依赖隐藏全局状态。
-
-## 3. L2 用户缓存
-
-默认根目录遵循 macOS 用户 cache 约定，允许 `MPSBOOST_CACHE_DIR` 显式覆盖。包含：
-
-- `pipelines/`：可重建 binary archive；
-- `quantization/`：用户明确启用的数据分箱缓存；
-- `tuning/`：设备相关调优结果。
-
-key 至少包含缓存格式版本、包版本、设备 registry/family、系统版本、相关参数和必要数据 fingerprint。缓存文件使用临时文件写完、校验后原子替换。
-
-## 4. L3 构建缓存
-
-包含编译对象、CI wheel cache 和测试数据下载。只影响研发，不进入 runtime API 或 wheel。key 覆盖源码哈希、工具链、SDK、Python ABI 和目标架构。
-
-## 5. 权限与隐私
-
-- import、版本查询和路径查询不创建目录；
-- 首次真实写入时创建最小权限目录；
-- 不缓存标签、原始路径或凭据；
-- 不访问网络；
-- 清理只操作解析并验证为 MPSBoost 专用的目录，拒绝根目录、主目录和符号链接逃逸。
-
-## 6. 唯一接口
-
-路径规划、key、读、写、校验和清理由单一 cache service 提供。其他模块不得自行拼接路径或定义版本。训练模块只请求语义对象，不读取文件。
-
-## 7. 验收
-
-- cold、进程 warm、磁盘 warm 三种路径结果一致；
-- 截断、校验失败、旧版本和无权限均安全处理；
-- 并发写同一 key 不产生半文件；
-- 清理 API 不越出项目 cache root；
-- wheel 和公开仓库不包含任何缓存。
-
+Terra must translate this file in place without shortening, summarizing, deleting sections, merging bullets, or changing code blocks, commands, constraints, acceptance criteria, or meaning.

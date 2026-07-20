@@ -1,1 +1,1 @@
-../../../../specs/constitution.md
+../../../../specs/constitution.zh-Hans.md

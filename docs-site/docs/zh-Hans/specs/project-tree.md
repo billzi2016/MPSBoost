@@ -1,1 +1,1 @@
-../../../../specs/project-tree.md
+../../../../specs/project-tree.zh-Hans.md

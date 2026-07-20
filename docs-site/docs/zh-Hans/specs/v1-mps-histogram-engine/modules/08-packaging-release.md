@@ -1,1 +1,1 @@
-../../../../../../specs/v1-mps-histogram-engine/modules/08-packaging-release.md
+../../../../../../specs/v1-mps-histogram-engine/modules/08-packaging-release.zh-Hans.md

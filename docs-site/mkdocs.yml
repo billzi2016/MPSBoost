@@ -1,5 +1,5 @@
 site_name: MPSBoost
-site_description: MPSBoost 中文文档
+site_description: Bilingual documentation for MPSBoost
 site_url: https://billzi2016.github.io/MPSBoost/
 repo_url: https://github.com/billzi2016/MPSBoost
 repo_name: billzi2016/MPSBoost
@@ -9,16 +9,24 @@ use_directory_urls: true
 
 theme:
   name: material
-  language: zh
+  language: en
   features:
     - navigation.sections
     - navigation.top
     - content.code.copy
 
 plugins:
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: zh-Hans
+          name: 简体中文
+          build: true
+          default: true
+          theme:
+            language: zh
   - search:
       lang:
-        - zh
         - en
 
 markdown_extensions:
@@ -29,63 +37,64 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
 
+# Folder-mode i18n resolves these paths inside each language directory.
 nav:
-  - 首页: zh-Hans/index.md
-  - 快速开始:
-      - 安装与环境: zh-Hans/getting-started/install.md
-      - 最小示例: zh-Hans/getting-started/quick-start.md
-  - 用户指南:
-      - 后端策略: zh-Hans/user-guide/backend-policy.md
-      - Estimator API: zh-Hans/user-guide/estimators.md
-      - sklearn 兼容: zh-Hans/user-guide/sklearn-compat.md
-      - 目标函数: zh-Hans/user-guide/objectives.md
-      - 特征重要性与解释: zh-Hans/user-guide/explanations.md
-      - 模型保存与加载: zh-Hans/user-guide/model-io.md
-  - 模型族:
-      - Gradient Boosting: zh-Hans/model-families/gradient-boosting.md
-      - Forests 与单树: zh-Hans/model-families/forests.md
-      - CatBoost-like: zh-Hans/model-families/catboost-like.md
-      - 异常检测与排序: zh-Hans/model-families/anomaly-ranking.md
-  - 发布:
-      - 0.3.0: zh-Hans/release/0.3.0.md
-  - 项目:
-      - README: zh-Hans/project/README.md
-      - 贡献指南: zh-Hans/project/CONTRIBUTING.md
-      - Changelog: zh-Hans/project/CHANGELOG.md
-      - Release Audit: zh-Hans/project/RELEASE_AUDIT.md
-      - Agent Skill: zh-Hans/project/mps_boost_skill.md
-      - 图标资源说明: zh-Hans/assets/icons/README.md
-  - Benchmark:
-      - S4 M2 Ultra: zh-Hans/benchmarks/results/s4-m2-ultra-py313.md
-      - S6 M2 Ultra: zh-Hans/benchmarks/results/s6-m2-ultra-py313.md
-  - 测试:
-      - 真实世界测试: zh-Hans/tests/real_world/README.md
-  - 规格:
-      - 规格索引: zh-Hans/specs/README.md
-      - 任务清单: zh-Hans/specs/tasks.md
-      - 宪法: zh-Hans/specs/constitution.md
-      - 项目树: zh-Hans/specs/project-tree.md
-      - Agent 规则: zh-Hans/specs/AGENTS.md
-      - Legacy Issues: zh-Hans/specs/legacy-issues.md
-      - Legacy Issues zh-Hans: zh-Hans/specs/legacy-issues.zh-Hans.md
-      - V1 PRD: zh-Hans/specs/v1-mps-histogram-engine/prd.md
-      - V1 模块:
-          - Python API: zh-Hans/specs/v1-mps-histogram-engine/modules/01-python-api.md
-          - 数据与分箱: zh-Hans/specs/v1-mps-histogram-engine/modules/02-data-quantization.md
-          - 训练核心: zh-Hans/specs/v1-mps-histogram-engine/modules/03-training-core.md
-          - MPS 后端: zh-Hans/specs/v1-mps-histogram-engine/modules/04-mps-backend.md
-          - 缓存: zh-Hans/specs/v1-mps-histogram-engine/modules/05-cache.md
-          - 模型 IO: zh-Hans/specs/v1-mps-histogram-engine/modules/06-model-io.md
-          - 质量: zh-Hans/specs/v1-mps-histogram-engine/modules/07-quality.md
-          - 打包发布: zh-Hans/specs/v1-mps-histogram-engine/modules/08-packaging-release.md
-      - V2 Arboretum: zh-Hans/specs/v2-arboretum-implementation/prd.md
-      - V2 多分类 Softmax: zh-Hans/specs/v2-arboretum-implementation/native-multiclass-softmax.md
-      - V3 真实世界测试: zh-Hans/specs/v3-real-world-tests/prd.md
-  - 文档站点 PRD:
-      - MkDocs PRD: zh-Hans/prd/mkdocs_prd.zh-Hans.md
-      - GitHub Actions PRD: zh-Hans/prd/github_action_prd.zh-Hans.md
+  - Home: index.md
+  - Getting Started:
+      - Installation and Environment: getting-started/install.md
+      - Quick Start: getting-started/quick-start.md
+  - User Guide:
+      - Backend Policy: user-guide/backend-policy.md
+      - Estimator API: user-guide/estimators.md
+      - sklearn Compatibility: user-guide/sklearn-compat.md
+      - Objectives: user-guide/objectives.md
+      - Explanations: user-guide/explanations.md
+      - Model I/O: user-guide/model-io.md
+  - Model Families:
+      - Gradient Boosting: model-families/gradient-boosting.md
+      - Forests and Trees: model-families/forests.md
+      - CatBoost-like: model-families/catboost-like.md
+      - Anomaly Detection and Ranking: model-families/anomaly-ranking.md
+  - Release:
+      - 0.3.0: release/0.3.0.md
   - Roadmap:
-      - S22 跨平台后端: zh-Hans/roadmap/portable-backends.md
-      - S23 翻译与国际化: zh-Hans/roadmap/i18n-translation.md
-  - 开发维护:
-      - 文档站维护: zh-Hans/development/docs-site.md
+      - Portable Backends: roadmap/portable-backends.md
+      - Translation and Internationalization: roadmap/i18n-translation.md
+  - Development:
+      - Documentation Site: development/docs-site.md
+  - Project:
+      - README: project/README.md
+      - Contributing: project/CONTRIBUTING.md
+      - Changelog: project/CHANGELOG.md
+      - Release Audit: project/RELEASE_AUDIT.md
+      - Agent Skill: project/mps_boost_skill.md
+      - Icon Assets: assets/icons/README.md
+  - Benchmarks:
+      - S4 M2 Ultra: benchmarks/results/s4-m2-ultra-py313.md
+      - S6 M2 Ultra: benchmarks/results/s6-m2-ultra-py313.md
+  - Tests:
+      - Real-world Tests: tests/real_world/README.md
+  - Specs:
+      - Specs Index: specs/README.md
+      - Tasks: specs/tasks.md
+      - Constitution: specs/constitution.md
+      - Project Tree: specs/project-tree.md
+      - Agent Rules: specs/AGENTS.md
+      - Legacy Issues: specs/legacy-issues.zh-Hans.md
+      - V1 PRD: specs/v1-mps-histogram-engine/prd.md
+      - V1 Modules:
+          - Python API: specs/v1-mps-histogram-engine/modules/01-python-api.md
+          - Data and Quantization: specs/v1-mps-histogram-engine/modules/02-data-quantization.md
+          - Training Core: specs/v1-mps-histogram-engine/modules/03-training-core.md
+          - MPS Backend: specs/v1-mps-histogram-engine/modules/04-mps-backend.md
+          - Cache: specs/v1-mps-histogram-engine/modules/05-cache.md
+          - Model I/O: specs/v1-mps-histogram-engine/modules/06-model-io.md
+          - Quality: specs/v1-mps-histogram-engine/modules/07-quality.md
+          - Packaging Release: specs/v1-mps-histogram-engine/modules/08-packaging-release.md
+      - V2 Arboretum: specs/v2-arboretum-implementation/prd.md
+      - V2 Multiclass Softmax: specs/v2-arboretum-implementation/native-multiclass-softmax.md
+      - V3 Real-world Tests: specs/v3-real-world-tests/prd.md
+  - Documentation Site PRDs:
+      - Spec Index: prd/README.zh-Hans.md
+      - MkDocs PRD: prd/mkdocs_prd.zh-Hans.md
+      - GitHub Actions PRD: prd/github_action_prd.zh-Hans.md

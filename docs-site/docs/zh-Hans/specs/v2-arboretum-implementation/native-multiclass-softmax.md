@@ -1,1 +1,1 @@
-../../../../../specs/v2-arboretum-implementation/native-multiclass-softmax.md
+../../../../../specs/v2-arboretum-implementation/native-multiclass-softmax.zh-Hans.md

@@ -1,1 +1,1 @@
-../../../../../specs/v1-mps-histogram-engine/prd.md
+../../../../../specs/v1-mps-histogram-engine/prd.zh-Hans.md

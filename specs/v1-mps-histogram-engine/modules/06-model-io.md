@@ -1,44 +1,5 @@
-# 模块设计：模型格式
+# Translation Pending
 
-## 1. 目标
+English translation placeholder for `06-model-io.zh-Hans.md`.
 
-提供稳定、可验证、与训练会话解耦的模型格式，使保存前后预测一致，并允许 CPU 与 MPS 推理共享同一模型。
-
-## 2. 文件结构
-
-0.2.0 使用明确版本的二进制容器或 JSON 元数据 + 二进制数组，必须包含：
-
-- magic；
-- major/minor 格式版本；
-- endian 与标量类型；
-- objective、base score、learning rate 语义；
-- 特征数量、分箱边界；
-- 树数量和每棵树节点区间；
-- 扁平节点数组与叶值；
-- 各段长度、offset 和完整性校验。
-
-模型不得包含原始训练数据、标签、绝对路径、设备唯一标识或缓存内容。
-
-## 3. 兼容策略
-
-- 相同 major 版本允许有定义的向前兼容字段；
-- 未知 major 默认拒绝；
-- loader 不猜测缺失字段；
-- 运行时内部布局变化通过转换层处理，不能让文件依赖 GPU workspace 布局；
-- 发布后测试保留历史模型 fixture。
-
-## 4. 安全加载
-
-解析前检查总长度；所有计数、offset 和乘法检查溢出；节点 child index、特征 index 和边界区间逐项验证。加载失败不修改已有模型状态。
-
-## 5. 原子保存
-
-写入同目录临时文件，完成 flush、校验后原子替换目标。失败时保留原文件并清理项目临时文件。不得跨文件系统假设 rename 原子性。
-
-## 6. 验收
-
-- 保存/加载预测一致；
-- 截断、随机字节、超大长度和非法索引被拒绝；
-- 旧版本兼容 fixture 通过；
-- 文件不泄露训练数据；
-- CPU 与 MPS 读取同一模型。
+Terra must translate this file in place without shortening, summarizing, deleting sections, merging bullets, or changing code blocks, commands, constraints, acceptance criteria, or meaning.

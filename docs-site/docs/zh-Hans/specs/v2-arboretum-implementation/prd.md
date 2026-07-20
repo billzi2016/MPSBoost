@@ -1,1 +1,1 @@
-../../../../../specs/v2-arboretum-implementation/prd.md
+../../../../../specs/v2-arboretum-implementation/prd.zh-Hans.md

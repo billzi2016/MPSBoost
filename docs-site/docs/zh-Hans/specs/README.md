@@ -1,1 +1,1 @@
-../../../../specs/README.md
+../../../../specs/README.zh-Hans.md

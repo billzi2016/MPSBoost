@@ -1,1 +1,1 @@
-../../../../../../specs/v1-mps-histogram-engine/modules/07-quality.md
+../../../../../../specs/v1-mps-histogram-engine/modules/07-quality.zh-Hans.md

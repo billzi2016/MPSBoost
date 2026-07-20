@@ -1,1 +1,1 @@
-../../../../../specs/v3-real-world-tests/prd.md
+../../../../../specs/v3-real-world-tests/prd.zh-Hans.md

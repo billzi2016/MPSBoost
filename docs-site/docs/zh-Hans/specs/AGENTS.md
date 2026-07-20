@@ -1,1 +1,1 @@
-../../../../specs/AGENTS.md
+../../../../specs/AGENTS.zh-Hans.md
