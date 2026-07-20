@@ -12,5 +12,6 @@ Until the project has a reliable self-hosted MPS CI path and a stable review
 process, contributions are limited to maintainer-controlled development.
 
 Issues, benchmark reports, reproducible bugs, and design discussions are still
-useful. Code contributions will be opened later when the validation pipeline can
-protect the project quality bar.
+welcome. The maintainer will review them and make project changes when the report
+is actionable. Code contributions will be opened later when the validation
+pipeline can protect the project quality bar.
