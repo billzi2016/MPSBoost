@@ -19,10 +19,15 @@ plugins:
   - i18n:
       docs_structure: folder
       languages:
+        - locale: en
+          name: English
+          build: true
+          default: true
+          theme:
+            language: en
         - locale: zh-Hans
           name: 简体中文
           build: true
-          default: true
           theme:
             language: zh
   - search:
@@ -80,8 +85,7 @@ nav:
       - Constitution: specs/constitution.md
       - Project Tree: specs/project-tree.md
       - Agent Rules: specs/AGENTS.md
-      - Legacy Issues English Source: specs/legacy-issues.md
-      - Legacy Issues: specs/legacy-issues.zh-Hans.md
+      - Legacy Issues: specs/legacy-issues.md
       - V1 PRD: specs/v1-mps-histogram-engine/prd.md
       - V1 Modules:
           - Python API: specs/v1-mps-histogram-engine/modules/01-python-api.md
@@ -96,6 +100,6 @@ nav:
       - V2 Multiclass Softmax: specs/v2-arboretum-implementation/native-multiclass-softmax.md
       - V3 Real-world Tests: specs/v3-real-world-tests/prd.md
   - Docs Site PRDs:
-      - Spec Index: docs-site-prd/README.zh-Hans.md
-      - MkDocs PRD: docs-site-prd/mkdocs_prd.zh-Hans.md
-      - GitHub Actions PRD: docs-site-prd/github_action_prd.zh-Hans.md
+      - Spec Index: docs-site-prd/README.md
+      - MkDocs PRD: docs-site-prd/mkdocs_prd.md
+      - GitHub Actions PRD: docs-site-prd/github_action_prd.md

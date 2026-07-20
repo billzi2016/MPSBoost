@@ -1,1 +1,1 @@
-../../../../specs/legacy-issues.md
+../../../../specs/legacy-issues.zh-Hans.md
