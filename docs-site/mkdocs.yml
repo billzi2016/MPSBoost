@@ -95,7 +95,7 @@ nav:
       - V2 Arboretum: specs/v2-arboretum-implementation/prd.md
       - V2 Multiclass Softmax: specs/v2-arboretum-implementation/native-multiclass-softmax.md
       - V3 Real-world Tests: specs/v3-real-world-tests/prd.md
-  - Documentation Site PRDs:
-      - Spec Index: prd/README.zh-Hans.md
-      - MkDocs PRD: prd/mkdocs_prd.zh-Hans.md
-      - GitHub Actions PRD: prd/github_action_prd.zh-Hans.md
+  - Docs Site PRDs:
+      - Spec Index: docs-site-prd/README.zh-Hans.md
+      - MkDocs PRD: docs-site-prd/mkdocs_prd.zh-Hans.md
+      - GitHub Actions PRD: docs-site-prd/github_action_prd.zh-Hans.md

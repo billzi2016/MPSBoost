@@ -1,1 +1,1 @@
-../../../../CHANGELOG.md
+../../../../CHANGELOG.zh-Hans.md

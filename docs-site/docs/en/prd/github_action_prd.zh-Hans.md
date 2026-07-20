@@ -1,1 +1,0 @@
-../../../../specs/docs-site/github_action_prd.zh-Hans.md

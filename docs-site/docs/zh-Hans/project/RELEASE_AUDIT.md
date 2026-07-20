@@ -1,1 +1,1 @@
-../../../../RELEASE_AUDIT.md
+../../../../RELEASE_AUDIT.zh-Hans.md
