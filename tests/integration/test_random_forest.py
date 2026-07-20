@@ -35,6 +35,8 @@ def test_real_mps_random_forest_regressor_matches_cpu_model():
 
     np.testing.assert_allclose(mps.predict(X), cpu.predict(X), rtol=2e-4, atol=2e-4)
     assert mps.device_ == "mps"
+    assert mps.training_summary_["tree_devices"] == ["mps"] * parameters["n_estimators"]
+    assert mps.training_summary_["scheduling"] == "serial"
     assert mps.n_estimators_ == parameters["n_estimators"]
 
 
@@ -66,4 +68,6 @@ def test_real_mps_random_forest_classifier_matches_cpu_model():
     )
     np.testing.assert_array_equal(mps.predict(X), cpu.predict(X))
     assert mps.device_ == "mps"
+    assert mps.training_summary_["tree_devices"] == ["mps"] * parameters["n_estimators"]
+    assert mps.training_summary_["scheduling"] == "serial"
     assert mps.n_estimators_ == parameters["n_estimators"]

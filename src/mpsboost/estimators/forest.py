@@ -145,6 +145,7 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
             estimators, feature_subsets = zip(*fitted, strict=True)
             self.estimators_ = tuple(estimators)
             self.feature_subsets_ = tuple(feature_subsets)
+            tree_devices = tuple(getattr(tree, "device_", self.device) for tree in estimators)
             self.n_features_in_ = matrix.shape[1]
             self.categorical_metadata_ = categorical_metadata
             self.n_estimators_ = len(estimators)
@@ -155,6 +156,8 @@ class _ForestMixin(ForestPersistenceMixin, ForestSamplingMixin):
                 "sample_fraction": float(self.sample_fraction),
                 "max_features": float(self.max_features),
                 "n_jobs": self.n_jobs,
+                "scheduling": "serial" if self.n_jobs == 1 else "thread_pool",
+                "tree_devices": list(tree_devices),
                 "weighted": bool(sample_weight is not None),
                 "categorical_features": (
                     []

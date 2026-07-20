@@ -38,4 +38,7 @@ def test_real_mps_classifier_matches_cpu_model_on_stable_dataset():
     )
     np.testing.assert_array_equal(mps.predict(X), cpu.predict(X))
     assert mps.device_ == "mps"
+    assert mps.training_summary_["device"] == "mps"
+    assert mps.training_summary_["device_decision"]["selected"] == "mps"
+    assert mps.training_summary_["fit_seconds"] > 0.0
     assert mps.n_estimators_ == parameters["n_estimators"]

@@ -153,6 +153,8 @@ def test_random_forest_n_jobs_preserves_deterministic_results():
 
     np.testing.assert_allclose(serial.predict(X), parallel.predict(X))
     assert parallel.training_summary_["n_jobs"] == 2
+    assert parallel.training_summary_["scheduling"] == "thread_pool"
+    assert parallel.training_summary_["tree_devices"] == ["cpu"] * 4
     assert [item.tolist() for item in serial.feature_subsets_] == [
         item.tolist() for item in parallel.feature_subsets_
     ]

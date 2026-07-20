@@ -117,7 +117,7 @@
 - [x] S10.2 Implement `GradientBoostingClassifier` / `MPSBoostClassifier` fit, predict, and predict_proba for strict binary 0/1 labels.
 - [x] S10.3 实现 early stopping、验证集监控和训练诊断。
 - [x] S10.4 Complete CPU oracle, real MPS, model I/O, and integration tests.
-- [ ] S10.5 验收 G9：分类 GBDT 正确、稳定、真实 MPS 加速且无静默回退。
+- [x] S10.5 验收 G9：分类 GBDT 正确、稳定、真实 MPS 加速且无静默回退。
 
 ## S11：Random Forest
 
@@ -126,9 +126,9 @@
 - [x] S11.2 Implement `RandomForestRegressor.fit/predict` using independent native decision trees.
 - [x] S11.3 Implement `RandomForestClassifier.fit/predict/predict_proba` using independent native decision trees.
 - [x] S11.4a Implement deterministic `n_jobs` scheduling for independent random-forest trees.
-- [ ] S11.4 实现独立树批量训练调度和共享 MPS 热路径。
+- [x] S11.4 实现独立树批量训练调度和共享 MPS 热路径。
 - [x] S11.5 Complete regression averaging, classification probability aggregation, random seed, and model I/O tests.
-- [ ] S11.6 验收 G10：Random Forest 端到端真实可用，性能和退化区间有记录。
+- [x] S11.6 验收 G10：Random Forest 端到端真实可用，性能和退化区间有记录。
 
 ## S12：ExtraTrees
 
