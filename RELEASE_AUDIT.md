@@ -1,29 +1,34 @@
-# MPSBoost 0.2.0 Release Audit
+# MPSBoost 0.3.0 Release Audit
 
-This document records the release gate for the `0.2.0` MPS histogram engine
-milestone.
+This document records the release gate for the `0.3.0` v2 arboretum milestone.
 
 ## Scope
 
-`0.2.0` supports:
+`0.3.0` supports:
 
 - dense numeric regression;
+- binary and multiclass classification;
 - squared-error objective;
+- quantile, Poisson, and Tweedie regression objectives;
 - deterministic quantization;
 - depth-limited histogram trees;
+- decision trees, random forests, ExtraTrees, and CatBoost-like numeric estimators;
+- native CPU multiclass softmax with explicit OvR compatibility;
+- CPU-suitable isolation forest anomaly scoring;
+- pointwise learning-to-rank scoring with query-group validation;
 - real MPS gradient, histogram, split-scan, partition, and buffer-pool paths;
 - explicit CPU oracle mode;
 - model save/load;
+- feature importance, permutation importance, and controlled SHAP-like explanations;
+- import-time MPS environment guidance with copy-paste setup and skip commands;
 - cache diagnostics, explicit cache creation, and safe cache clearing.
 
 Not included:
 
-- classification;
 - sparse matrices;
-- missing values;
-- categorical features;
-- sampling;
-- early stopping;
+- native MPS multiclass softmax;
+- official third-party SHAP TreeExplainer integration;
+- categorical model persistence;
 - public GPU prediction;
 - full third-party API compatibility.
 
@@ -64,7 +69,7 @@ paths.
 
 ## Validation Matrix
 
-Required before publishing `0.2.0`:
+Required before publishing `0.3.0`:
 
 - local full test suite;
 - GitHub hosted CPU/package tests for Python 3.10 and 3.13;

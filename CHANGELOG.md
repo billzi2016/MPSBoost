@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.0 - 2026-07-20
+
+- Add sklearn-style binary and multiclass classifiers, including native CPU softmax and explicit
+  OvR compatibility.
+- Add decision tree, random forest, ExtraTrees, and CatBoost-like numeric estimator families on
+  the shared native tree engine.
+- Add quantile, Poisson, and Tweedie regression objectives with model-format round trips.
+- Add gain, split-count, permutation, and controlled SHAP-like explanation helpers.
+- Add CPU-suitable isolation forest and pointwise learning-to-rank estimators with observable
+  backend routing.
+- Add import-time MPS environment guidance with copy-paste setup commands and
+  `MPSBOOST_SKIP_ENV_CHECK=1` for CPU-only workers.
+- Expand real-world dataset smoke coverage and CPU baseline records for the 0.x release line.
+
 ## 0.2.0 - 2026-07-19
 
 - Replace preview mock APIs with a real compiled MPS/Metal backend foundation.

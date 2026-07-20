@@ -12,7 +12,7 @@ MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its curr
 
 中文：MPSBoost 是面向 Apple Silicon 的树模型加速项目，目标是在低依赖、低权限、易安装的前提下，为 GBDT、分类树、随机森林等模型提供统一的 CPU/MPS 后端。
 
-> **Development status:** `0.2.0` is the first stable 0.x MPS histogram engine release. It supports dense numeric regression with a real MPS training path, split-scan and partition kernels, histogram subtraction, buffer reuse, explicit cache management, and documented performance boundaries.
+> **Development status:** `0.3.0` is the v2 arboretum milestone. It extends the original MPS histogram engine with sklearn-style classifiers, native CPU multiclass softmax, random forests, ExtraTrees, decision trees, CatBoost-like numeric estimators, advanced regression objectives, feature explanations, CPU-suitable anomaly/ranking estimators, explicit environment guidance, and documented backend-selection boundaries.
 
 ## Project origin
 
@@ -129,9 +129,9 @@ print(mb.planned_estimators())
 mb.require_estimator_supported("CatBoostRegressor")
 ```
 
-The `0.3.0` milestone is reserved for the v2 arboretum foundation: one shared tree-family
-registry, unified semantics for boosting/bagging/random-split models, honest backend policy,
-and no placeholder estimator classes.
+The `0.3.0` milestone delivers the v2 arboretum foundation: one shared tree-family registry,
+unified semantics for boosting/bagging/random-split models, honest backend policy, and no
+placeholder estimator classes.
 
 Random forest row sampling, feature subsampling, ExtraTrees random thresholds, and CatBoost-like
 ordered permutations share one deterministic randomization contract. Categorical features can be
@@ -249,7 +249,7 @@ preserves this regression region alongside larger wins.
 
 ## Release audits
 
-The `0.2.0` release gate includes:
+The `0.3.0` release gate includes:
 
 - CPU, packaging, integration, and real Metal GPU tests on Python 3.10 and 3.13.
 - Wheel content checks excluding specs, tests, caches, and build artifacts.

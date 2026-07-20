@@ -248,4 +248,14 @@
 - [x] S21.7 实现 `predict_proba` 的 native softmax 输出，概率每行必须归一、有限，并与 `predict` 的 argmax class 一致。
 - [x] S21.8 增加 MPS native softmax 路径或明确分阶段门槛；在 MPS 未完成前不得把 CPU softmax 伪装成 MPS softmax。
 - [x] S21.9 覆盖 Iris、Digits、Covertype subset 等真实多分类数据集，并同时验证 CPU oracle、MPS 行为和 sklearn model-selection 兼容性。
-- [ ] S21.10 验收 G19：默认多分类实现达到 native softmax，OvR 仅保留为显式 fallback/兼容策略。
+- [x] S21.10 验收 G19：默认多分类实现达到 native softmax，OvR 仅保留为显式 fallback/兼容策略。
+
+## S22：跨平台兼容后端与统一入口
+
+- [ ] S22.1 设计 portable backend policy：MPSBoost native CPU/MPS 后端继续作为默认与 correctness oracle；Apple Silicon 优先 native，Linux CUDA 可选择 XGBoost GPU，通用 CPU 可选择 native CPU 或 sklearn/XGBoost CPU，并且必须在 summary 中暴露实际 backend。
+- [ ] S22.2 增加可选依赖 extras：`mpsboost[xgboost]`、`mpsboost[sklearn]`、`mpsboost[cuda]`，默认安装仍保持轻量，不强制拉取重型依赖。
+- [ ] S22.3 实现统一 estimator adapter：保持 `fit`、`predict`、`predict_proba`、`score`、`get_params`、`set_params` 和 model-selection 行为一致。
+- [ ] S22.4 实现环境诊断与安装提示：缺 CUDA/XGBoost/sklearn 时给出复制即用安装命令，不使用交互 `input()`，可通过环境变量跳过诊断。
+- [ ] S22.5 明确边界：外部后端必须是显式 portable mode 或 `device="auto"` 的可观测选择，不得替代 native CPU oracle，也不得伪装成 MPSBoost native。
+- [ ] S22.6 覆盖 macOS MPS、macOS CPU、Linux CPU、Linux CUDA 的 smoke 测试矩阵和 backend summary 断言。
+- [ ] S22.7 验收 G20：同一用户接口可在 Apple Silicon、普通 Linux、CUDA Linux 环境运行，且依赖、性能和实际后端对用户透明可查。
