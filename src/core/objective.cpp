@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <string>
 
 namespace mpsboost {
@@ -107,6 +108,30 @@ double LogisticProbability(double logit) {
   return exp_positive / (1.0 + exp_positive);
 }
 
+std::vector<double> SoftmaxProbabilities(const std::vector<double>& margins) {
+  if (margins.size() < 2) {
+    throw TrainingError("softmax requires at least two class margins");
+  }
+  double maximum = -std::numeric_limits<double>::infinity();
+  for (const double margin : margins) {
+    RequireFinite(margin, "softmax margin");
+    maximum = std::max(maximum, margin);
+  }
+  std::vector<double> probabilities(margins.size());
+  double normalizer = 0.0;
+  for (std::size_t index = 0; index < margins.size(); ++index) {
+    probabilities[index] = std::exp(margins[index] - maximum);
+    normalizer += probabilities[index];
+  }
+  if (!std::isfinite(normalizer) || normalizer <= 0.0) {
+    throw TrainingError("softmax normalizer must be finite and positive");
+  }
+  for (double& probability : probabilities) {
+    probability /= normalizer;
+  }
+  return probabilities;
+}
+
 std::vector<GradientPair> ComputeBinaryLogisticGradients(
     const std::vector<double>& labels,
     const std::vector<double>& logits) {
@@ -121,6 +146,53 @@ std::vector<GradientPair> ComputeBinaryLogisticGradients(
     const double hessian = probability * (1.0 - probability);
     if (!std::isfinite(gradient) || !std::isfinite(hessian) || hessian < 0.0) {
       throw TrainingError("二分类 logistic gradient/Hessian 发生浮点溢出");
+    }
+    result.push_back(GradientPair{gradient, hessian});
+  }
+  return result;
+}
+
+std::vector<GradientPair> ComputeMulticlassSoftmaxGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& margins,
+    std::uint32_t class_count,
+    std::uint32_t target_class) {
+  if (class_count < 2) {
+    throw TrainingError("softmax class_count must be at least two");
+  }
+  if (target_class >= class_count) {
+    throw TrainingError("softmax target_class out of range");
+  }
+  if (labels.empty()) {
+    throw TrainingError("labels must be non-empty");
+  }
+  if (margins.size() != labels.size() * static_cast<std::size_t>(class_count)) {
+    throw TrainingError("softmax margins must have rows * class_count values");
+  }
+  std::vector<GradientPair> result;
+  result.reserve(labels.size());
+  std::vector<double> row_margins(class_count);
+  for (std::size_t row = 0; row < labels.size(); ++row) {
+    const double label = labels[row];
+    RequireFinite(label, "softmax label");
+    const double rounded = std::floor(label);
+    if (rounded != label || label < 0.0 ||
+        label >= static_cast<double>(class_count)) {
+      throw TrainingError("softmax labels must be encoded class ids");
+    }
+    for (std::uint32_t class_index = 0; class_index < class_count;
+         ++class_index) {
+      row_margins[class_index] =
+          margins[row * static_cast<std::size_t>(class_count) + class_index];
+    }
+    const std::vector<double> probabilities = SoftmaxProbabilities(row_margins);
+    const double indicator =
+        static_cast<std::uint32_t>(label) == target_class ? 1.0 : 0.0;
+    const double probability = probabilities[target_class];
+    const double gradient = probability - indicator;
+    const double hessian = probability * (1.0 - probability);
+    if (!std::isfinite(gradient) || !std::isfinite(hessian) || hessian < 0.0) {
+      throw TrainingError("softmax gradient/Hessian overflowed");
     }
     result.push_back(GradientPair{gradient, hessian});
   }

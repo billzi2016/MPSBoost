@@ -118,6 +118,28 @@ def test_regressor_rejects_classifier_model_file(tmp_path):
         MPSBoostRegressor(device="cpu").load_model(path)
 
 
+def test_regressor_rejects_native_multiclass_model_file(tmp_path):
+    """Regression loaders must reject native softmax model files before parsing trees."""
+
+    X = np.asarray(
+        [[0.0], [0.1], [0.2], [1.0], [1.1], [1.2], [2.0], [2.1], [2.2]],
+        dtype=np.float32,
+    )
+    y = np.asarray([0, 0, 0, 1, 1, 1, 2, 2, 2], dtype=np.int64)
+    path = tmp_path / "native_softmax.mb"
+    MPSBoostClassifier(
+        n_estimators=2,
+        learning_rate=0.5,
+        max_depth=1,
+        min_samples_leaf=1,
+        min_child_weight=0.0,
+        device="cpu",
+    ).fit(X, y).save_model(path)
+
+    with pytest.raises(ValueError, match="incompatible"):
+        MPSBoostRegressor(device="cpu").load_model(path)
+
+
 def test_decision_tree_load_rejects_boosted_ensemble(tmp_path):
     """Decision tree estimators must not accept multi-tree boosted model files."""
 

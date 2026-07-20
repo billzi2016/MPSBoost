@@ -37,6 +37,26 @@ def test_binary_logistic_gradients_match_hand_computation():
     assert actual[2] == pytest.approx((-0.8807970779778824, 0.1049935854035065))
 
 
+def test_softmax_probabilities_and_gradients_match_native_contract():
+    """Native softmax should normalize rows and expose diagonal class statistics."""
+
+    probabilities = _native._softmax_probabilities([1.0, 2.0, 3.0])
+    assert sum(probabilities) == pytest.approx(1.0)
+    assert probabilities[2] > probabilities[1] > probabilities[0]
+
+    class_two = _native._multiclass_softmax_gradients(
+        [0.0, 2.0],
+        [2.0, 1.0, 0.0, 0.0, 1.0, 2.0],
+        3,
+        2,
+    )
+
+    assert class_two[0][0] > 0.0
+    assert class_two[1][0] < 0.0
+    assert class_two[0][1] > 0.0
+    assert class_two[1][1] > 0.0
+
+
 def test_binary_logistic_probability_is_stable_for_extreme_logits():
     """Extreme margins must not overflow or produce probabilities outside [0, 1]."""
 

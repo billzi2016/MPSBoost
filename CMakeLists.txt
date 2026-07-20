@@ -102,6 +102,7 @@ pybind11_add_module(
   src/core/tree_monotonic.cpp
   src/core/tree_split.cpp
   src/core/tree_structure.cpp
+  src/core/multiclass_trainer.cpp
   src/core/trainer.cpp
   src/cpu/reference_backend.cpp
   src/io/model_file_io.cpp

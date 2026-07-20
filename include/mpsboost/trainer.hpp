@@ -68,6 +68,52 @@ class RegressionModel final {
   std::vector<RegressionTree> trees_;
 };
 
+class MulticlassModel final {
+ public:
+  std::uint32_t feature_count() const noexcept { return schema_.features(); }
+  std::uint32_t class_count() const noexcept { return class_count_; }
+  std::uint32_t tree_count() const noexcept {
+    return static_cast<std::uint32_t>(trees_.size());
+  }
+  double learning_rate() const noexcept { return learning_rate_; }
+  const QuantizationSchema& schema() const noexcept { return schema_; }
+  const std::vector<RegressionTree>& trees() const noexcept { return trees_; }
+  const std::vector<double>& base_scores() const noexcept { return base_scores_; }
+  const std::vector<double>& class_labels() const noexcept { return class_labels_; }
+
+  // Return row-major raw class margins with shape rows × class_count.
+  std::vector<double> PredictMargins(const BinnedDataset& dataset) const;
+
+  // Attach the user-visible numeric class mapping owned by the model file.
+  // Labels must be finite, strictly increasing, and match class_count.
+  void SetClassLabels(std::vector<double> class_labels);
+
+  // Restore a validated native softmax model from versioned model bytes. Trees
+  // must be stored in round-major class order.
+  static MulticlassModel Restore(QuantizationSchema schema,
+                                 std::uint32_t class_count,
+                                 double learning_rate,
+                                 std::vector<double> base_scores,
+                                 std::vector<double> class_labels,
+                                 std::vector<RegressionTree> trees);
+
+ private:
+  friend MulticlassModel TrainMulticlassSoftmaxModel(
+      const BinnedDataset&,
+      const std::vector<double>&,
+      const std::vector<double>&,
+      const TrainingParameters&,
+      std::uint32_t,
+      const HistogramBuilder&);
+
+  QuantizationSchema schema_;
+  std::uint32_t class_count_{0};
+  double learning_rate_{0.1};
+  std::vector<double> base_scores_;
+  std::vector<double> class_labels_;
+  std::vector<RegressionTree> trees_;
+};
+
 RegressionModel TrainRegressionModel(
     const BinnedDataset& dataset,
     const std::vector<double>& labels,
@@ -76,11 +122,23 @@ RegressionModel TrainRegressionModel(
     const GradientComputer& gradient_computer,
     const HistogramBuilder& histogram_builder);
 
+MulticlassModel TrainMulticlassSoftmaxModel(
+    const BinnedDataset& dataset,
+    const std::vector<double>& labels,
+    const std::vector<double>& sample_weights,
+    const TrainingParameters& parameters,
+    std::uint32_t class_count,
+    const HistogramBuilder& histogram_builder);
+
 // 模型格式入口使用版本化二进制容器、完整性校验和同目录原子替换。文件中不包含训练
 // 数据、路径、设备标识或缓存；加载失败不影响调用方已有模型。
 std::vector<std::uint8_t> SerializeModel(const RegressionModel& model);
 RegressionModel DeserializeModel(const std::vector<std::uint8_t>& bytes);
+std::vector<std::uint8_t> SerializeModel(const MulticlassModel& model);
+MulticlassModel DeserializeMulticlassModel(const std::vector<std::uint8_t>& bytes);
 void SaveModelFile(const RegressionModel& model, const std::string& path);
 RegressionModel LoadModelFile(const std::string& path);
+void SaveModelFile(const MulticlassModel& model, const std::string& path);
+MulticlassModel LoadMulticlassModelFile(const std::string& path);
 
 }  // namespace mpsboost

@@ -7,14 +7,14 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <numeric>
 
 #include "mpsboost/backend.hpp"
 #include "mpsboost/objective.hpp"
+#include "trainer_internal.hpp"
 
 namespace mpsboost {
-namespace {
+namespace trainer_internal {
 
 void ValidateTrainingParameters(const TrainingParameters& parameters) {
   if (parameters.n_estimators == 0) {
@@ -141,7 +141,13 @@ std::vector<GradientPair> ApplySampleWeights(
   return gradients;
 }
 
-}  // namespace
+}  // namespace trainer_internal
+
+using trainer_internal::ApplySampleWeights;
+using trainer_internal::ComputeObjectiveGradients;
+using trainer_internal::InitialBaseScore;
+using trainer_internal::ValidateTrainingParameters;
+using trainer_internal::ValidateWeightsAndTotal;
 
 RegressionModel TrainRegressionModel(
     const BinnedDataset& dataset,

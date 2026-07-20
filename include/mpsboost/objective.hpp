@@ -6,6 +6,7 @@
 // generic formulas as production behavior.
 #pragma once
 
+#include <cstdint>
 #include <stdexcept>
 #include <vector>
 
@@ -41,6 +42,17 @@ std::vector<GradientPair> ComputeBinaryLogisticGradients(
 
 // Convert one raw binary-logistic margin to probability with overflow-stable sigmoid semantics.
 double LogisticProbability(double logit);
+
+// Convert one row of raw multiclass margins to overflow-stable softmax probabilities.
+std::vector<double> SoftmaxProbabilities(const std::vector<double>& margins);
+
+// Compute diagonal softmax statistics for one class. Labels must be integer class ids encoded in
+// [0, class_count). Margins are row-major with shape rows × class_count.
+std::vector<GradientPair> ComputeMulticlassSoftmaxGradients(
+    const std::vector<double>& labels,
+    const std::vector<double>& margins,
+    std::uint32_t class_count,
+    std::uint32_t target_class);
 
 // 计算节点分数 G²/(H+lambda)。H 和 lambda 必须非负，分母必须严格为正。
 double NodeScore(double gradient_sum,

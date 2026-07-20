@@ -89,6 +89,20 @@ void RegisterObjectiveBindings(py::module_& module) {
 
   module.def("_logistic_probability", &LogisticProbability, py::arg("logit"),
              "Convert a raw binary-logistic margin to probability.");
+  module.def("_softmax_probabilities", &SoftmaxProbabilities,
+             py::arg("margins"),
+             "Convert one row of raw multiclass margins to probabilities.");
+  module.def("_multiclass_softmax_gradients",
+             [](const std::vector<double>& labels,
+                const std::vector<double>& margins,
+                std::uint32_t class_count,
+                std::uint32_t target_class) {
+               return GradientsToPython(ComputeMulticlassSoftmaxGradients(
+                   labels, margins, class_count, target_class));
+             },
+             py::arg("labels"), py::arg("margins"),
+             py::arg("class_count"), py::arg("target_class"),
+             "Compute native multiclass softmax gradient/Hessian pairs.");
   module.def("_node_score", &NodeScore, py::arg("gradient_sum"),
              py::arg("hessian_sum"), py::arg("reg_lambda"),
              py::arg("reg_alpha") = 0.0,

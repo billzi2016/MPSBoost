@@ -21,7 +21,9 @@ namespace mpsboost::model_format_internal {
 inline constexpr std::array<std::uint8_t, 8> kMagic{
     'M', 'P', 'S', 'B', 'M', 'O', 'D', 0};
 inline constexpr std::uint16_t kFormatMajor = 1;
-inline constexpr std::uint16_t kFormatMinor = 2;
+inline constexpr std::uint16_t kFormatMinor = 3;
+inline constexpr std::uint32_t kRegressionModelKind = 0;
+inline constexpr std::uint32_t kMulticlassModelKind = 1;
 inline constexpr std::size_t kHeaderSize = 32;
 
 template <typename Integer>
@@ -85,9 +87,13 @@ class Reader final {
 std::uint64_t Checksum(const std::uint8_t* data, std::size_t size);
 
 std::vector<std::uint8_t> BuildPayload(const RegressionModel& model);
+std::vector<std::uint8_t> BuildPayload(const MulticlassModel& model);
 
 RegressionModel ParsePayload(const std::uint8_t* data,
                              std::size_t size,
                              std::uint16_t format_minor);
+MulticlassModel ParseMulticlassPayload(const std::uint8_t* data,
+                                       std::size_t size,
+                                       std::uint16_t format_minor);
 
 }  // namespace mpsboost::model_format_internal

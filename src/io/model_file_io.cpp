@@ -24,9 +24,8 @@ std::string ErrnoMessage(const char* stage) {
   return std::string(stage) + ": " + std::strerror(errno);
 }
 
-}  // namespace
-
-void SaveModelFile(const RegressionModel& model, const std::string& path) {
+void WriteModelBytes(const std::vector<std::uint8_t>& bytes,
+                     const std::string& path) {
   if (path.empty()) {
     throw TrainingError("模型保存路径不能为空");
   }
@@ -37,7 +36,6 @@ void SaveModelFile(const RegressionModel& model, const std::string& path) {
   if (!std::filesystem::is_directory(directory)) {
     throw TrainingError("模型保存目录不存在");
   }
-  const std::vector<std::uint8_t> bytes = SerializeModel(model);
   std::string temporary_pattern =
       (directory / ("." + target.filename().string() + ".mpsboost-XXXXXX"))
           .string();
@@ -72,7 +70,7 @@ void SaveModelFile(const RegressionModel& model, const std::string& path) {
   }
 }
 
-RegressionModel LoadModelFile(const std::string& path) {
+std::vector<std::uint8_t> ReadModelBytes(const std::string& path) {
   if (path.empty()) {
     throw TrainingError("模型加载路径不能为空");
   }
@@ -98,7 +96,25 @@ RegressionModel LoadModelFile(const std::string& path) {
     position += static_cast<std::size_t>(count);
   }
   ::close(descriptor);
-  return DeserializeModel(bytes);
+  return bytes;
+}
+
+}  // namespace
+
+void SaveModelFile(const RegressionModel& model, const std::string& path) {
+  WriteModelBytes(SerializeModel(model), path);
+}
+
+void SaveModelFile(const MulticlassModel& model, const std::string& path) {
+  WriteModelBytes(SerializeModel(model), path);
+}
+
+RegressionModel LoadModelFile(const std::string& path) {
+  return DeserializeModel(ReadModelBytes(path));
+}
+
+MulticlassModel LoadMulticlassModelFile(const std::string& path) {
+  return DeserializeMulticlassModel(ReadModelBytes(path));
 }
 
 }  // namespace mpsboost
