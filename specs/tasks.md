@@ -195,8 +195,8 @@
 
 > 排期：S15 工业表格语义完成后立即进入本阶段，用真实世界数据集优先验证已完成模型族。
 
-- [ ] S18.1 完成 `v3-real-world-tests/prd.md` 规格审查，确认 1.x 发布纪律。
-- [ ] S18.2 建立合法、可复现的真实世界数据集矩阵。
+- [x] S18.1 完成 `v3-real-world-tests/prd.md` 规格审查，确认 1.x 发布纪律。
+- [x] S18.2 建立合法、可复现的真实世界数据集矩阵。
 - [x] S18.2a 建立 `tests/real_world/` 目录和真实世界测试规则。
 - [ ] S18.2b 实现内置数据集验收：Iris、Breast Cancer、Diabetes、Digits。
 - [ ] S18.2c 实现缓存下载数据集验收：California Housing。
