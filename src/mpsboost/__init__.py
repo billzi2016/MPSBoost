@@ -59,6 +59,13 @@ from .monitoring import (
     MetricHistory,
     MetricObservation,
 )
+from .portable_backend import (
+    PortableEstimatorAdapter,
+    PortableBackendDecision,
+    choose_portable_backend,
+    optional_dependency_status,
+    portable_setup_instructions,
+)
 from .randomization import (
     bootstrap_sample_indices,
     ordered_boosting_permutations,
@@ -66,6 +73,12 @@ from .randomization import (
     sample_without_replacement_indices,
     subsample_feature_indices,
     validate_indices_cover_range,
+)
+from .shap import (
+    export_native_trees_for_shap,
+    is_shap_available,
+    official_shap_tree_explainer,
+    shap_setup_instructions,
 )
 
 # Keep one implementation and expose a shorter sklearn-style public name. This is an alias,
@@ -96,6 +109,8 @@ __all__ = [
     "MPSBoostRegressor",
     "MetricHistory",
     "MetricObservation",
+    "PortableBackendDecision",
+    "PortableEstimatorAdapter",
     "RandomForestClassifier",
     "RandomForestRegressor",
     "__version__",
@@ -104,15 +119,21 @@ __all__ = [
     "cache_info",
     "clear_cache",
     "choose_device",
+    "choose_portable_backend",
     "create_cache",
     "estimator_capability",
     "estimator_capabilities",
     "estimator_status",
+    "export_native_trees_for_shap",
     "is_available",
+    "is_shap_available",
     "mps_training_families",
     "mps_setup_instructions",
+    "official_shap_tree_explainer",
+    "optional_dependency_status",
     "ordered_boosting_permutations",
     "planned_estimators",
+    "portable_setup_instructions",
     "random_threshold_candidates",
     "require_estimator_supported",
     "sample_without_replacement_indices",
@@ -123,6 +144,7 @@ __all__ = [
     "TreeFamilySpec",
     "validate_indices_cover_range",
     "warn_if_mps_unavailable",
+    "shap_setup_instructions",
 ]
 
 warn_if_mps_unavailable()

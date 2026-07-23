@@ -178,7 +178,7 @@
 - [x] S16.4a Implement gain and split-count feature importance from native fitted tree nodes.
 - [x] S16.4b Implement permutation importance without duplicating prediction or scoring logic.
 - [x] S16.5 设计并实现 SHAP-like 近似解释的受控版本。
-- [ ] S16.5a 设计官方 SHAP 集成路径：可选依赖 `mpsboost[shap]`、native tree adapter/export、TreeExplainer 语义验证和科研示例；不得把近似解释声明为官方 SHAP。
+- [x] S16.5a 设计官方 SHAP 集成路径：可选依赖 `mpsboost[shap]`、native tree adapter/export、TreeExplainer 语义验证和科研示例；不得把近似解释声明为官方 SHAP。
 - [x] S16.6 验收 G15：高级目标与解释能力有真实测试、文档和性能边界。
 
 ## S17：异常检测与排序学习
@@ -252,11 +252,11 @@
 
 ## S22：跨平台兼容后端与统一入口
 
-- [ ] S22.1 设计 portable backend policy：MPSBoost native CPU/MPS 后端继续作为默认与 correctness oracle；Apple Silicon 优先 native，Linux CUDA 可选择 XGBoost GPU，通用 CPU 可选择 native CPU 或 sklearn/XGBoost CPU，并且必须在 summary 中暴露实际 backend。
-- [ ] S22.2 增加可选依赖 extras：`mpsboost[xgboost]`、`mpsboost[sklearn]`、`mpsboost[cuda]`，默认安装仍保持轻量，不强制拉取重型依赖。
-- [ ] S22.3 实现统一 estimator adapter：保持 `fit`、`predict`、`predict_proba`、`score`、`get_params`、`set_params` 和 model-selection 行为一致。
-- [ ] S22.4 实现环境诊断与安装提示：缺 CUDA/XGBoost/sklearn 时给出复制即用安装命令，不使用交互 `input()`，可通过环境变量跳过诊断。
-- [ ] S22.5 明确边界：外部后端必须是显式 portable mode 或 `device="auto"` 的可观测选择，不替代 native CPU oracle；summary 必须报告实际 backend 和策略。
+- [x] S22.1 设计 portable backend policy：MPSBoost native CPU/MPS 后端继续作为默认与 correctness oracle；Apple Silicon 优先 native，Linux CUDA 可选择 XGBoost GPU，通用 CPU 可选择 native CPU 或 sklearn/XGBoost CPU，并且必须在 summary 中暴露实际 backend。
+- [x] S22.2 增加可选依赖 extras：`mpsboost[xgboost]`、`mpsboost[sklearn]`、`mpsboost[cuda]`，默认安装仍保持轻量，不强制拉取重型依赖。
+- [x] S22.3 实现统一 estimator adapter：保持 `fit`、`predict`、`predict_proba`、`score`、`get_params`、`set_params` 和 model-selection 行为一致。
+- [x] S22.4 实现环境诊断与安装提示：缺 CUDA/XGBoost/sklearn 时给出复制即用安装命令，不使用交互 `input()`，可通过环境变量跳过诊断。
+- [x] S22.5 明确边界：外部后端必须是显式 portable mode 或 `device="auto"` 的可观测选择，不替代 native CPU oracle；summary 必须报告实际 backend 和策略。
 - [ ] S22.6 覆盖 macOS MPS、macOS CPU、Linux CPU、Linux CUDA 的 smoke 测试矩阵和 backend summary 断言。
 - [ ] S22.7 验收 G20：同一用户接口可在 Apple Silicon、普通 Linux、CUDA Linux 环境运行，且依赖、性能和实际后端对用户透明可查。
 

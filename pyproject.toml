@@ -45,10 +45,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cuda = [
+  "xgboost>=2",
+]
+shap = [
+  "shap>=0.45",
+]
+sklearn = [
+  "scikit-learn>=1.4",
+]
 test = [
   "numpy>=1.24",
   "pytest>=8",
   "scikit-learn>=1.4",
+]
+xgboost = [
+  "xgboost>=2",
 ]
 
 [project.urls]

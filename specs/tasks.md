@@ -178,7 +178,7 @@
 - [x] S16.4a Implement gain and split-count feature importance from native fitted tree nodes.
 - [x] S16.4b Implement permutation importance without duplicating prediction or scoring logic.
 - [x] S16.5 Design and implement a controlled SHAP-like approximate explanation.
-- [ ] S16.5a Design the official SHAP integration path: optional dependency `mpsboost[shap]`, native tree adapter/export, TreeExplainer semantic validation, and research examples; do not claim approximate explanations are official SHAP.
+- [x] S16.5a Design the official SHAP integration path: optional dependency `mpsboost[shap]`, native tree adapter/export, TreeExplainer semantic validation, and research examples; do not claim approximate explanations are official SHAP.
 - [x] S16.6 Accept G15: advanced objectives and explanations have real tests, documentation, and performance boundaries.
 
 ## S17: Anomaly Detection and Ranking
@@ -252,11 +252,11 @@
 
 ## S22: Cross-Platform Portable Backend and Unified Entry
 
-- [ ] S22.1 Design portable backend policy: MPSBoost native CPU/MPS backends remain the default and correctness oracle; Apple Silicon prioritizes native, Linux CUDA may choose XGBoost GPU, general CPU may choose native CPU or sklearn/XGBoost CPU, and summaries must expose the actual backend.
-- [ ] S22.2 Add optional dependency extras: `mpsboost[xgboost]`, `mpsboost[sklearn]`, `mpsboost[cuda]`; default installs remain lightweight and do not force heavy dependencies.
-- [ ] S22.3 Implement the unified estimator adapter while preserving `fit`, `predict`, `predict_proba`, `score`, `get_params`, `set_params`, and model-selection behavior.
-- [ ] S22.4 Implement environment diagnostics and installation guidance: missing CUDA/XGBoost/sklearn cases must provide copy-paste installation commands, avoid interactive `input()`, and support an environment variable to skip diagnostics.
-- [ ] S22.5 Define the boundary: external backends must be explicit portable mode or an observable `device="auto"` selection, must not replace the native CPU oracle, and summaries must report the actual backend and strategy.
+- [x] S22.1 Design portable backend policy: MPSBoost native CPU/MPS backends remain the default and correctness oracle; Apple Silicon prioritizes native, Linux CUDA may choose XGBoost GPU, general CPU may choose native CPU or sklearn/XGBoost CPU, and summaries must expose the actual backend.
+- [x] S22.2 Add optional dependency extras: `mpsboost[xgboost]`, `mpsboost[sklearn]`, `mpsboost[cuda]`; default installs remain lightweight and do not force heavy dependencies.
+- [x] S22.3 Implement the unified estimator adapter while preserving `fit`, `predict`, `predict_proba`, `score`, `get_params`, `set_params`, and model-selection behavior.
+- [x] S22.4 Implement environment diagnostics and installation guidance: missing CUDA/XGBoost/sklearn cases must provide copy-paste installation commands, avoid interactive `input()`, and support an environment variable to skip diagnostics.
+- [x] S22.5 Define the boundary: external backends must be explicit portable mode or an observable `device="auto"` selection, must not replace the native CPU oracle, and summaries must report the actual backend and strategy.
 - [ ] S22.6 Cover macOS MPS, macOS CPU, Linux CPU, and Linux CUDA smoke matrices plus backend-summary assertions.
 - [ ] S22.7 Accept G20: the same user interface runs on Apple Silicon, ordinary Linux, and CUDA Linux, with dependencies, performance, and actual backend transparent to users.
 

@@ -35,3 +35,12 @@ External backends use optional extras:
 - `mpsboost[cuda]`
 
 Default installs remain lightweight.
+
+## Current foundation
+
+`optional_dependency_status()` reports optional extras without importing heavy dependencies.
+`portable_setup_instructions()` returns copy-paste installation commands without interactive input.
+`choose_portable_backend(...)` records the selected policy and actual backend. The
+`PortableEstimatorAdapter` preserves `fit`, `predict`, `predict_proba`, `score`, `get_params`, and
+`set_params` for the native path, while external adapters stop until their backend mappings are
+validated.

@@ -167,6 +167,19 @@ MPSBOOST_SKIP_ENV_CHECK=1 python your_script.py
 
 `cache_info()` 只报告路径和存在性，不创建目录。`create_cache()` 显式创建 L2 cache 目录，`clear_cache()` 在拒绝危险目标如文件系统根目录、用户 home 目录或 symlink 后安全删除 MPSBoost cache root。删除 cache 永远不改变模型结果。
 
+可选科研和 portable-backend 依赖默认不安装：
+
+```bash
+python -m pip install 'mpsboost[shap]'
+python -m pip install 'mpsboost[xgboost]'
+python -m pip install 'mpsboost[sklearn]'
+python -m pip install 'mpsboost[cuda]'
+```
+
+`mpsboost[shap]` 保留给官方 SHAP 集成路径。当前 `approximate_shap_values(...)` 输出是受控近似解释，不得引用为官方 SHAP TreeExplainer 输出。公共 helper `export_native_trees_for_shap(...)` 会导出 native tree structure 用于 adapter validation，并且不包含训练数据、telemetry、credential 或 device identifier。
+
+Portable backend policy 是显式且可观测的。Native CPU/MPS 继续作为 MPSBoost 默认实现和 correctness oracle。后续 sklearn/XGBoost/CUDA adapter 必须通过 portable policy 选择，并在 summary 中报告实际 backend；它们不会隐藏在 native MPSBoost backend 名称后面。
+
 ## 项目原则
 
 - 熟悉的 XGBoost/scikit-learn 风格 Python 入口。

@@ -215,6 +215,26 @@ explicitly creates the L2 cache directories, and `clear_cache()` safely removes 
 root after rejecting dangerous targets such as the filesystem root, the user home directory, or
 symlinks. Cache deletion never changes model results.
 
+Optional research and portable-backend dependencies are not installed by default:
+
+```bash
+python -m pip install 'mpsboost[shap]'
+python -m pip install 'mpsboost[xgboost]'
+python -m pip install 'mpsboost[sklearn]'
+python -m pip install 'mpsboost[cuda]'
+```
+
+`mpsboost[shap]` is reserved for the official SHAP integration path. Current
+`approximate_shap_values(...)` output is a controlled approximation and must not be cited as
+official SHAP TreeExplainer output. The public helper `export_native_trees_for_shap(...)` exposes
+native tree structure for adapter validation without training data, telemetry, credentials, or
+device identifiers.
+
+Portable backend policy is explicit and observable. Native CPU/MPS remains the default MPSBoost
+implementation and correctness oracle. Future sklearn/XGBoost/CUDA adapters must be selected
+through portable policy and report their actual backend in summaries; they are not hidden behind
+the native MPSBoost backend name.
+
 ## Project principles
 
 - Familiar XGBoost/scikit-learn-style Python entry points.

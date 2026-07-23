@@ -11,10 +11,10 @@ is the project constitution, `specs/prd.md` is the source of product facts, modu
 designs define implementation boundaries, and `specs/tasks.zh-Hans.md` defines
 execution order. Code, tests, builds, and releases must not violate specifications.
 
-`specs/tasks.zh-Hans.md` is the sole task-list source and authority for completion
-status. Do not update, translate, or synchronize `specs/tasks.md`; that English
-file retains only the `DO NOT WRITE HERE` notice and contains neither task content
-nor checkbox status.
+`specs/tasks.zh-Hans.md` is the authoritative source for completion status. The
+English `specs/tasks.md` must remain a faithful in-place translation for the
+documentation site; when task text or checkbox status changes, update both files
+in the same patch so the bilingual matrix stays consistent.
 
 Priority from highest to lowest is: the user's current explicit instruction, the
 project constitution, approved PRDs, module designs, the task list, and code

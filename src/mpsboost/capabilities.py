@@ -204,6 +204,6 @@ def require_estimator_supported(name: str) -> None:
     if status == "available":
         return
     raise NotImplementedError(
-        f"{name} is on the MPSBoost roadmap but is not available in this package version. "
+        f"{name} requires capability support that is unavailable in this package version. "
         "Use GradientBoostingRegressor or GradientBoostingClassifier in this release."
     )

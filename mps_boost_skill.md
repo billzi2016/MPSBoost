@@ -107,6 +107,34 @@ backend error containing the setup and skip commands above.
 Never call XGBoost, LightGBM, CatBoost, or scikit-learn as hidden training engines. They may be
 used only as external user baselines in benchmarks when explicitly requested.
 
+## Official SHAP and portable backends
+
+Approximate SHAP-like explanations are available through
+`estimator.approximate_shap_values(...)`, but they are not official SHAP. For research workflows
+that require official SHAP semantics, use the explicit optional path:
+
+```bash
+python -m pip install 'mpsboost[shap]'
+```
+
+Use `mb.export_native_trees_for_shap(estimator)` for adapter validation payloads. It exports native
+tree structure and objective metadata without training data, credentials, telemetry, or device
+identifiers. `mb.official_shap_tree_explainer(...)` must stop clearly until TreeExplainer semantic
+validation is enabled; do not claim approximate explanations are official SHAP.
+
+Portable backends are explicit S22 policy tools, not hidden native replacements. Default install
+keeps native CPU/MPS lightweight. Optional commands:
+
+```bash
+python -m pip install 'mpsboost[xgboost]'
+python -m pip install 'mpsboost[sklearn]'
+python -m pip install 'mpsboost[cuda]'
+```
+
+Use `mb.optional_dependency_status()`, `mb.portable_setup_instructions()`, and
+`mb.choose_portable_backend(...)` for copy-paste diagnostics and observable backend summaries.
+External adapters must report the actual backend and must not replace the native CPU oracle.
+
 ## sklearn model selection
 
 Use the standard sklearn model-selection stack. Do not invent a separate search API for normal

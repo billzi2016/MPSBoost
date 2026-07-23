@@ -19,6 +19,7 @@ from numpy.typing import NDArray
 
 from .. import _native
 from ..categorical import fit_transform_categorical, transform_categorical
+from ..diagnostics import is_available
 from ..matrix import as_labels, as_sample_weight
 from .classification import MPSBoostClassifier as _BinaryMPSBoostClassifier
 from .errors import NotFittedError
@@ -121,11 +122,13 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
                 stacklevel=2,
             )
         worker_count = self._resolved_ovr_jobs(classes.size)
+        ovr_device = self._resolved_ovr_device()
 
         def train_binary(index: int) -> _BinaryMPSBoostClassifier:
             """Train one class-vs-rest native binary model with deterministic seeding."""
 
             estimator = self._make_binary_estimator(index)
+            estimator.device = ovr_device
             binary_labels = (encoded == index).astype(np.float64)
             estimator.fit(X, binary_labels, sample_weight=weights)
             return estimator
@@ -144,12 +147,16 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
         self.training_summary_ = {
             "strategy": "one_vs_rest",
             "requested_strategy": self.multi_strategy,
+            "requested_device": self.device,
+            "device": ovr_device,
             "classes": self.classes_.tolist(),
             "n_classes": int(classes.size),
             "n_estimators": self.n_estimators_,
             "n_jobs": worker_count,
             "weighted": bool(sample_weight is not None),
         }
+        if self.device == "mps" and ovr_device == "cpu":
+            self.training_summary_["device_reason"] = "mps unavailable; CPU compatibility path used"
         return self
 
     def predict_proba(self, X: Any) -> NDArray[np.float32]:
@@ -237,7 +244,9 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
             self._require_model().save(str(path))
             return
         if getattr(self, "_multiclass_strategy_", None) == "one_vs_rest":
-            raise NotImplementedError("multiclass model persistence requires container support")
+            raise NotImplementedError(
+                "one-vs-rest multiclass model persistence requires native container-format support"
+            )
         super().save_model(path)
 
     def load_model(self, path: Any) -> "MPSBoostClassifier":
@@ -385,3 +394,19 @@ class MPSBoostClassifier(_BinaryMPSBoostClassifier):
             None if self.random_state is None else int(self.random_state) + class_index
         )
         return estimator
+
+    def _resolved_ovr_device(self) -> str:
+        """Choose the executable device for staged OvR compatibility models."""
+
+        if self.device != "mps":
+            return self.device
+        if is_available():
+            return "mps"
+        warnings.warn(
+            "MPS multiclass compatibility is using CPU because Apple GPU acceleration is "
+            "unavailable in this environment. Install the Metal toolchain for local MPS runs, "
+            'or use device="auto" for automatic selection.',
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return "cpu"

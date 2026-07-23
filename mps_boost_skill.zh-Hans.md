@@ -89,6 +89,26 @@ MPSBOOST_SKIP_ENV_CHECK=1 python your_script.py
 
 绝不要调用 XGBoost、LightGBM、CatBoost 或 scikit-learn 作为隐藏训练引擎。只有在用户明确要求 benchmark baseline 时，才可把它们作为外部用户 baseline。
 
+## 官方 SHAP 与 portable backend
+
+`estimator.approximate_shap_values(...)` 提供 SHAP-like 近似解释，但它不是官方 SHAP。科研工作流需要官方 SHAP 语义时，使用显式可选路径：
+
+```bash
+python -m pip install 'mpsboost[shap]'
+```
+
+使用 `mb.export_native_trees_for_shap(estimator)` 生成 adapter validation payload。它导出 native tree structure 和 objective metadata，不包含 training data、credential、telemetry 或 device identifier。`mb.official_shap_tree_explainer(...)` 在 TreeExplainer 语义验证启用前必须清晰停止；不要把近似解释声明为官方 SHAP。
+
+Portable backend 是显式 S22 policy tool，不是隐藏 native replacement。默认安装保持 native CPU/MPS 轻量。可选命令：
+
+```bash
+python -m pip install 'mpsboost[xgboost]'
+python -m pip install 'mpsboost[sklearn]'
+python -m pip install 'mpsboost[cuda]'
+```
+
+使用 `mb.optional_dependency_status()`、`mb.portable_setup_instructions()` 和 `mb.choose_portable_backend(...)` 提供可复制诊断和可观测 backend summary。外部 adapter 必须报告实际 backend，不得替代 native CPU oracle。
+
 ## sklearn model selection
 
 使用标准 sklearn model-selection 栈。不要为普通超参数调优发明单独搜索 API。

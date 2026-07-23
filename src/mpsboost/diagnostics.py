@@ -20,6 +20,7 @@ from ._cache import (
     clear_cache as _clear_cache,
     ensure_cache_directories as _ensure_cache_directories,
 )
+from .portable_backend import optional_dependency_status, portable_setup_instructions
 
 
 def is_available() -> bool:
@@ -45,6 +46,7 @@ def system_info() -> dict[str, Any]:
         {
             "backend": "mps",
             "package_version": _native.__version__,
+            "optional_dependencies": optional_dependency_status(),
         }
     )
     return info
@@ -65,6 +67,8 @@ def mps_setup_instructions() -> str:
         "or managed CI, run:\n"
         "  MPSBOOST_SKIP_ENV_CHECK=1 python your_script.py\n"
         'CPU training remains available with device="cpu" or device="auto".'
+        "\n"
+        + portable_setup_instructions()
     )
 
 
