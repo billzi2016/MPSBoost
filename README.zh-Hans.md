@@ -20,7 +20,7 @@ MPSBoost 由一名 Purdue CS 博士生发起，工作方向横跨算法、系统
 
 项目采用 SDD 工作流。工作被拆成清晰阶段：先验证真实 MPS/Metal kernel 和运行时行为，再锁定规格和产品需求，然后确定技术栈，最后按任务清单执行。规格被视为项目契约，而不是事后补写的说明。
 
-对 AI agent 和自动化而言，[mps_boost_skill.md](mps_boost_skill.md) 是规范用法入口。它描述完整目标用法、导入风格、estimator 名称、后端策略、sklearn model selection、模型持久化、诊断和实现约束。
+对 AI agent 和自动化而言，[mps_boost_skill.md](https://github.com/billzi2016/MPSBoost/blob/main/ai-skills/mps_boost_skill.md) 是规范用法入口。它描述完整目标用法、导入风格、estimator 名称、后端策略、sklearn model selection、模型持久化、诊断和实现约束。
 
 ## 安装
 

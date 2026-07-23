@@ -2,7 +2,7 @@
 
 This file is located in `specs/` and is a project development-rule asset, not a
 general user entry point. For user and AI entry points, see the root `README.md`
-and `mps_boost_skill.md`.
+and `ai-skills/mps_boost_skill.md`.
 
 ## 1. Highest Priority
 

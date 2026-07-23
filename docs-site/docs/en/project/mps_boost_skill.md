@@ -1,1 +1,1 @@
-../../../../mps_boost_skill.md
+../../../../ai-skills/mps_boost_skill.md

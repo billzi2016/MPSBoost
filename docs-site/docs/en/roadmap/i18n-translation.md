@@ -10,7 +10,7 @@ connected through symlinks.
 ## Follow-up goals
 
 - Create a parallel `en/` directory.
-- Translate README, CHANGELOG, RELEASE_AUDIT, mps_boost_skill, and core specs.
+- Translate README, `docs/`, `ai-skills/`, and core specs.
 - Add MkDocs i18n configuration.
 - Keep terminology, version numbers, installation commands, and backend policy consistent.
 

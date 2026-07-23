@@ -1,1 +1,1 @@
-../../../../CHANGELOG.md
+../../../../docs/CHANGELOG.md

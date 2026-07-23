@@ -21,7 +21,7 @@
 
 - `docs-site/` 下 MkDocs 站点构建。
 - GitHub Pages 静态部署。
-- README、CHANGELOG、RELEASE_AUDIT、根目录 `specs/` 等文档源文件变化后的站点更新。
+- README、`docs/`、`ai-skills/`、根目录 `specs/` 等文档源文件变化后的站点更新。
 - 由 symlink 接入的既有文档源文件。
 
 不适用于：
@@ -54,9 +54,9 @@
 - `.github/workflows/docs.yml`
 - `docs-site/**`
 - `README.md`
-- `CHANGELOG.md`
-- `RELEASE_AUDIT.md`
-- `mps_boost_skill.md`
+- `docs/CHANGELOG.md`
+- `docs/RELEASE_AUDIT_*.md`
+- `ai-skills/mps_boost_skill.md`
 - `specs/**`
 
 不应因为普通源码、测试或 benchmark 改动触发文档部署，除非这些改动同时修改了上述文档入口。
@@ -111,7 +111,7 @@ MPSBoost 已有公开文档和规格文件必须通过 symlink 接入 `docs-site
 
 原因：
 
-- README、CHANGELOG、RELEASE_AUDIT、`specs/` 是单一事实源。
+- README、`docs/`、`ai-skills/`、`specs/` 是单一事实源。
 - 复制会导致 PyPI README、GitHub README、文档站点内容漂移。
 - 后续 agent 修改源文件后，站点应自动使用最新内容。
 

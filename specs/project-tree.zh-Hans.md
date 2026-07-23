@@ -8,7 +8,8 @@ MPSBoost/
 │   └── workflows/
 │       ├── ci.yml
 │       └── release.yml
-├── mps_boost_skill.md           # AI/Agent 完全体使用技能入口
+├── ai-skills/
+│   └── mps_boost_skill.md       # AI/Agent 完全体使用技能入口
 ├── specs/                       # SDD 规格与项目开发规则
 │   ├── AGENTS.md                # 项目 Agent 开发规则；非普通用户入口
 │   ├── README.md                # 共享规格索引
@@ -80,7 +81,9 @@ MPSBoost/
 ├── CMakeLists.txt
 ├── pyproject.toml
 ├── README.md
-├── CHANGELOG.md
+├── docs/
+│   ├── CHANGELOG.md
+│   └── RELEASE_AUDIT_*.md
 ├── LICENSE
 └── .gitignore
 ```

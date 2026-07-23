@@ -2,7 +2,7 @@
 
 ## 1. 文档目的
 
-本 PRD 定义 MPSBoost 文档站点的结构、内容来源、MkDocs 配置和维护约束。目标是建设一个以简体中文为主的项目文档站点，准确展示当前 `0.3.0` 能力，并与根目录 README、规格、任务清单和发布审计保持一致。
+本 PRD 定义 MPSBoost 文档站点的结构、内容来源、MkDocs 配置和维护约束。目标是建设一个双语项目文档站点，准确展示当前 `0.4.0` 能力，并与根目录 README、规格、任务清单和版本化发布审计保持一致。
 
 本阶段不做中英双语站点。所有 PRD、导航和初始页面均使用 `zh-Hans` 后缀或目录语义，避免后续语言扩展时命名混乱。
 
@@ -13,7 +13,7 @@
 - PRD 文件命名使用 `.zh-Hans.md` 后缀。
 - 已有仓库文档必须通过 symlink 接入，不复制。
 - 导航覆盖 MPSBoost 当前公开能力、快速开始、后端策略、发布审计和规格文档。
-- 站点内容必须符合当前 `0.3.0` 项目状态。
+- 站点内容必须符合当前 `0.4.0` 项目状态，并保持 append-only release history。
 - 为后续英文或其他语言扩展保留结构，但本阶段不生成英文占位内容。
 
 ## 3. 技术选型
@@ -57,9 +57,9 @@ docs-site/
 以下已有文件接入文档站点时必须使用 symlink：
 
 - `README.md`
-- `CHANGELOG.md`
-- `RELEASE_AUDIT.md`
-- `mps_boost_skill.md`
+- `docs/CHANGELOG.md`
+- `docs/RELEASE_AUDIT_*.md`
+- `ai-skills/mps_boost_skill.md`
 - `specs/tasks.md`
 - `specs/constitution.md`
 - `specs/project-tree.md`
@@ -94,7 +94,7 @@ docs-site/
 - 安装与环境诊断
 - 后端选择策略
 - Estimator API
-- 0.3.0 发布审计
+- Release overview 和带版本发布审计
 - Changelog
 - 项目规格
 - 文档站点 PRD
@@ -103,16 +103,16 @@ docs-site/
 
 ## 7. 当前项目状态要求
 
-文档必须反映 `0.3.0` 状态：
+文档必须反映 `0.4.0` 状态：
 
-- 已发布 `mpsboost==0.3.0`。
+- `mpsboost==0.4.0` 是当前发布目标。
 - Apple Silicon wheel 支持 `cp313` / `macosx_13_0_arm64`。
 - MPSBoost native CPU/MPS 后端继续是核心实现。
 - CPU backend 是 correctness oracle，不因 S22 portable backend 规划被替代。
 - 已有模型族包括 GBDT 回归/分类、多分类 native CPU softmax、DecisionTree、RandomForest、ExtraTrees、CatBoost-like numeric、IsolationForest、LearningToRankRegressor。
 - isolation/ranking 是 CPU-suitable workflow；请求 `device="mps"` 时应提示 CPU 更适合并继续运行。
 - 环境缺失时给出复制即用安装命令和 `MPSBOOST_SKIP_ENV_CHECK=1` 跳过方式。
-- S22 是后续跨平台 portable backend 规划，不属于 0.3.0 已交付能力。
+- S22 portable-backend 诊断和策略作为显式可选 adapter guidance 交付，不作为隐藏 native replacement。
 
 ## 8. MkDocs 配置要求
 

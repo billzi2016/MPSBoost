@@ -1,7 +1,7 @@
 # MPSBoost Agent 工作规则
 
 本文件位于 `specs/`，属于项目开发规则资产，不是普通用户入口。普通用户与 AI 使用入口
-请看根目录 `README.md` 和 `mps_boost_skill.md`。
+请看根目录 `README.md` 和 `ai-skills/mps_boost_skill.md`。
 
 ## 1. 最高优先级
 

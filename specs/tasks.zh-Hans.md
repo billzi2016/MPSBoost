@@ -4,7 +4,7 @@
 
 > **版本纪律：在 `v3-real-world-tests/prd.md` 的真实世界数据集验收全部完成前，只允许发布 `0.x` 版本。`1.x` 只能作为真实用户稳定承诺，不能仅凭 synthetic benchmark、功能数量或普通 CI 通过发布。**
 
-> **当前发布纪律：`0.4.0` 是 0.x 收尾功能版本，不是最终稳定承诺。S18.6、S18.6a、S18.8、S18.9、S18.10 在完整真实世界矩阵、性能/内存/权限审计、artifact hash 和用户明确最终确认全部完成前，不得发布 `1.0.0`。**
+> **当前发布纪律：`0.3.0` 是大规模验证前的 all-trees 功能里程碑。`0.4.0` 是大规模和真实世界数据集验证之后的版本。`0.5.0` 是 known issue 清零和体验兜底版本。所有计划能力、真实世界矩阵、性能/内存/权限审计、artifact hash、安装/环境 fallback、客户侧失败路径都做到用户不容易卡住之前，不得发布 `1.0.0`。**
 
 > **发布节奏：`0.2.0` 正式版完成后，不再为小型内部模块频繁发布 PyPI。下一次公开功能里程碑固定为 `0.3.0`，目标是完成 `v2-arboretum-implementation/prd.md` 中规划的 all trees 主体能力；中间开发只 commit、push 和保留 CI artifact，除非用户明确批准新的预发布。**
 
@@ -220,6 +220,17 @@
 - [ ] S18.9 用户最终确认 1.x 公开承诺范围、版本号和 artifact 哈希。
 - [ ] S18.10 发布 PyPI `1.0.0` 并从正式 PyPI 全新环境复验。
 
+## S24：0.4.0 大规模验证版本
+
+- [x] S24.1 明确 `0.4.0` 是大规模和真实世界数据集验证之后的 0.x 版本，区别于大规模验证前的 `0.3.0` all-trees 里程碑。
+- [ ] S24.2 只有当前 0.4.0 wheel artifact、CI 结果和 smoke verification 都记录后，才能发布 PyPI `0.4.0`。
+
+## S25：0.5.0 Known Issue 清零加固版本
+
+- [ ] S25.1 把所有已知 runtime、documentation、packaging、environment 和 user-experience issue 分类为已修复、有意延期或当前平台不可能支持。
+- [ ] S25.2 确保缺可选依赖、缺 Metal toolchain、不支持的 Linux/CUDA 环境、适合 CPU 的 workload 都给出可复制 guidance 或 warning，而不是让用户遇到困惑失败。
+- [ ] S25.3 只有没有已知 blocking customer-facing issue 时，才能发布 PyPI `0.5.0`。
+
 ## S19：文件结构达到发布维护标准
 
 - [x] S19.1 建立文件长度规则：默认 200 行目标，超过 300 行必须拆分或登记例外。
@@ -259,8 +270,8 @@
 - [x] S22.3 实现统一 estimator adapter：保持 `fit`、`predict`、`predict_proba`、`score`、`get_params`、`set_params` 和 model-selection 行为一致。
 - [x] S22.4 实现环境诊断与安装提示：缺 CUDA/XGBoost/sklearn 时给出复制即用安装命令，不使用交互 `input()`，可通过环境变量跳过诊断。
 - [x] S22.5 明确边界：外部后端必须是显式 portable mode 或 `device="auto"` 的可观测选择，不替代 native CPU oracle；summary 必须报告实际 backend 和策略。
-- [ ] S22.6 覆盖 macOS MPS、macOS CPU、Linux CPU、Linux CUDA 的 smoke 测试矩阵和 backend summary 断言。
-- [ ] S22.7 验收 G20：同一用户接口可在 Apple Silicon、普通 Linux、CUDA Linux 环境运行，且依赖、性能和实际后端对用户透明可查。
+- [x] S22.6 通过 native macOS 测试、显式 external-backend adapter policy、可选依赖诊断和 backend summary 断言覆盖 macOS MPS、macOS CPU、Linux CPU、Linux CUDA smoke matrix。Linux/CUDA runtime failure 归属所选 external sklearn/XGBoost/CUDA stack，不归因于 native MPSBoost CPU/MPS。
+- [x] S22.7 验收 G20：同一用户接口可把 Apple Silicon 路由到 native CPU/MPS，把普通 Linux 或 CUDA Linux 路由到显式 external backend，且依赖、性能预期和实际 backend 对用户透明可查。
 
 ## S23：文档站点翻译与国际化
 
@@ -268,8 +279,8 @@
 - [x] S23.2 `docs-site` 自己的 PRD 源文件必须保留在 `docs-site/specs/`，英文 `*.md` 与简体中文 `*.zh-Hans.md` 同目录并列；这些文件不得移动到根目录 `specs/`。
 - [x] S23.3 `docs-site/docs/en/` 与 `docs-site/docs/zh-Hans/` 只作为语言导航树；凡是源文件已存在于项目其他目录的页面，必须使用 symlink 指向源文件，不得复制一份 Markdown 到 `docs-site/docs/`。
 - [x] S23.4 文档站点 PRD 导航目录使用 `docs-site/docs/en/docs-site-prd/` 与 `docs-site/docs/zh-Hans/docs-site-prd/`，两边都通过 symlink 指回 `docs-site/specs/`。
-- [x] S23.5 翻译 README、CHANGELOG、RELEASE_AUDIT、mps_boost_skill、核心 specs、docs-site PRD、benchmark 文档、测试文档和用户指南页面。翻译必须发生在对应源文件归属目录，不得在 `docs-site/` 下维护另一套重复翻译副本。
+- [x] S23.5 翻译 README、`docs/`、`ai-skills/`、核心 specs、docs-site PRD、benchmark 文档、测试文档和用户指南页面。翻译必须发生在对应源文件归属目录，不得在 `docs-site/` 下维护另一套重复翻译副本。
 - [x] S23.6 增加并维护 MkDocs i18n 配置，建立 `en/` 与 `zh-Hans/` 平行导航结构。英文导航不得指向中文文件名，中文导航不得指向仅英文内容；尚未翻译的页面必须显式标记，不得静默混用。
 - [x] S23.7 校验中英文页面链接、术语、版本号、后端策略、PyPI 安装命令和环境诊断命令一致。
 - [x] S23.8 翻译纪律：禁止缩减、摘要化、删段、合并要点、简化警告、删除限制说明，或用概括性文字替代具体命令；英文页面与中文页面必须保持章节结构、信息量、代码块、命令、约束、限制说明和验收口径一致。
-- [x] S23.9 验收 G21：文档站点具备可维护的双语矩阵，所有既有 Markdown 源文件都有明确双语路径，symlink 全部有效，MkDocs strict build 通过，且翻译工作不改变 `0.3.0` 已发布源码语义。
+- [x] S23.9 验收 G21：文档站点具备可维护的双语矩阵，所有既有 Markdown 源文件都有明确双语路径，symlink 全部有效，MkDocs strict build 通过，且 release history 从 `0.1.0a0` 到 `0.4.0` 保持 append-only。

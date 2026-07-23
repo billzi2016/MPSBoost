@@ -11,6 +11,7 @@ MPSBoost 是面向 Apple Silicon 的树模型学习库。当前公开版本为 `
 - [后端策略](user-guide/backend-policy.md)
 - [Estimator API](user-guide/estimators.md)
 - [模型族](model-families/gradient-boosting.md)
+- [发布总览](release/index.md)
 - [0.4.0 发布](release/0.4.0.md)
-- [0.4.0 发布审计](project/RELEASE_AUDIT.md)
+- [0.4.0 发布审计](project/RELEASE_AUDIT_0.4.0.md)
 - [任务清单](specs/tasks.md)

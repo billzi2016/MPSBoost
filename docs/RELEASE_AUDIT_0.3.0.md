@@ -1,10 +1,10 @@
-# MPSBoost 0.4.0 Release Audit
+# MPSBoost 0.3.0 Release Audit
 
-This document records the release gate for the `0.4.0` 0.x finishing feature milestone.
+This document records the release gate for the `0.3.0` v2 arboretum milestone.
 
 ## Scope
 
-`0.4.0` supports:
+`0.3.0` supports:
 
 - dense numeric regression;
 - binary and multiclass classification;
@@ -21,22 +21,16 @@ This document records the release gate for the `0.4.0` 0.x finishing feature mil
 - model save/load;
 - feature importance, permutation importance, and controlled SHAP-like explanations;
 - import-time MPS environment guidance with copy-paste setup and skip commands;
-- cache diagnostics, explicit cache creation, and safe cache clearing;
-- optional official-SHAP integration diagnostics with native tree export payloads;
-- explicit portable-backend diagnostics and optional extras for XGBoost, sklearn, and CUDA;
-- project-local opt-in real-world dataset caches for MNIST, Titanic, Adult Income, Covertype, and HIGGS;
-- the S18 real-world acceptance report with open 1.0 release gates.
+- cache diagnostics, explicit cache creation, and safe cache clearing.
 
 Not included:
 
 - sparse matrices;
 - native MPS multiclass softmax;
-- validated official third-party SHAP TreeExplainer execution;
+- official third-party SHAP TreeExplainer integration;
 - categorical model persistence;
 - public GPU prediction;
-- full third-party API compatibility;
-- full Linux CPU/CUDA smoke matrix;
-- `1.0.0` stable-release commitment.
+- full third-party API compatibility.
 
 ## License
 
@@ -75,17 +69,13 @@ paths.
 
 ## Validation Matrix
 
-Required before publishing `0.4.0`:
+Required before publishing `0.3.0`:
 
 - local full test suite;
 - GitHub hosted CPU/package tests for Python 3.10 and 3.13;
 - self-hosted real Metal GPU tests for Python 3.10 and 3.13;
 - `twine check` for the exact uploaded wheels;
 - fresh PyPI install and real MPS smoke test.
-
-`1.0.0` remains blocked until the complete S18 real-world matrix, model-quality audit,
-end-to-end performance audit, peak-memory audit, wheel/model-size audit, permission audit,
-artifact hashes, and explicit user confirmation are complete.
 
 ## Benchmark Evidence
 

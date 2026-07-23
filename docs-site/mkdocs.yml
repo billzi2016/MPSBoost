@@ -61,8 +61,14 @@ nav:
       - CatBoost-like: model-families/catboost-like.md
       - Anomaly Detection and Ranking: model-families/anomaly-ranking.md
   - Release:
+      - Overview: release/index.md
       - 0.4.0: release/0.4.0.md
       - 0.3.0: release/0.3.0.md
+      - 0.2.0: release/0.2.0.md
+      - 0.2.0rc0: release/0.2.0rc0.md
+      - 0.2.0b0: release/0.2.0b0.md
+      - 0.2.0a0: release/0.2.0a0.md
+      - 0.1.0a0: release/0.1.0a0.md
   - Roadmap:
       - Portable Backends: roadmap/portable-backends.md
       - Translation and Internationalization: roadmap/i18n-translation.md
@@ -72,7 +78,14 @@ nav:
       - README: project/README.md
       - Contributing: project/CONTRIBUTING.md
       - Changelog: project/CHANGELOG.md
-      - Release Audit: project/RELEASE_AUDIT.md
+      - Release Audits:
+          - 0.4.0: project/RELEASE_AUDIT_0.4.0.md
+          - 0.3.0: project/RELEASE_AUDIT_0.3.0.md
+          - 0.2.0: project/RELEASE_AUDIT_0.2.0.md
+          - 0.2.0rc0: project/RELEASE_AUDIT_0.2.0rc0.md
+          - 0.2.0b0: project/RELEASE_AUDIT_0.2.0b0.md
+          - 0.2.0a0: project/RELEASE_AUDIT_0.2.0a0.md
+          - 0.1.0a0: project/RELEASE_AUDIT_0.1.0a0.md
       - Agent Skill: project/mps_boost_skill.md
       - Icon Assets: assets/icons/README.md
   - Benchmarks:

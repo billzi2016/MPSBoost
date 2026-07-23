@@ -4,7 +4,7 @@
 
 > **Version discipline: before all real-world dataset acceptance in `v3-real-world-tests/prd.md` is complete, only `0.x` versions may be released. `1.x` is a stable user commitment and must not be released based only on synthetic benchmarks, feature count, or ordinary CI success.**
 
-> **Current release discipline: `0.4.0` is a 0.x finishing feature release, not the final stable commitment. Do not publish `1.0.0` until S18.6, S18.6a, S18.8, S18.9, and S18.10 are genuinely complete with the full real-world matrix, performance/memory/permission audit, artifact hashes, and explicit user confirmation.**
+> **Current release discipline: `0.3.0` is the all-trees feature milestone before large-scale validation. `0.4.0` is the release after large-scale and real-world dataset validation. `0.5.0` is the zero-known-issue hardening release. Do not publish `1.0.0` until every planned feature, real-world matrix, performance/memory/permission audit, artifact hash, installation/environment fallback, and customer-facing failure path is complete enough that users should not get stuck.**
 
 > **Release cadence: after the formal `0.2.0` release, do not publish PyPI for small internal modules. The next public feature milestone is fixed as `0.3.0`, targeting the all-trees capability planned in `v2-arboretum-implementation/prd.md`; intermediate development should commit, push, and preserve CI artifacts unless the user explicitly approves another prerelease.**
 
@@ -220,6 +220,17 @@
 - [ ] S18.9 Obtain final user confirmation for 1.x public commitment scope, version, and artifact hashes.
 - [ ] S18.10 Publish PyPI `1.0.0` and reverify from a fresh formal PyPI environment.
 
+## S24: 0.4.0 Large-Scale Validation Release
+
+- [x] S24.1 Define `0.4.0` as the 0.x release after large-scale and real-world dataset validation, distinct from the pre-large-scale `0.3.0` all-trees milestone.
+- [ ] S24.2 Publish PyPI `0.4.0` only after the current 0.4.0 wheel artifacts, CI results, and smoke verification are recorded.
+
+## S25: 0.5.0 Zero-Known-Issue Hardening Release
+
+- [ ] S25.1 Triage every known runtime, documentation, packaging, environment, and user-experience issue into fixed, intentionally deferred, or impossible-under-current-platform categories.
+- [ ] S25.2 Ensure missing optional dependencies, missing Metal toolchain, unsupported Linux/CUDA environments, and CPU-suitable workloads produce copy-paste guidance or warnings instead of confusing failures.
+- [ ] S25.3 Publish PyPI `0.5.0` only when there are no known blocking customer-facing issues.
+
 ## S19: File Structure Reaches Release Maintenance Standard
 
 - [x] S19.1 Create the file length rule: 200 lines is the default target, and files above 300 lines must be split or registered as exceptions.
@@ -259,8 +270,8 @@
 - [x] S22.3 Implement the unified estimator adapter while preserving `fit`, `predict`, `predict_proba`, `score`, `get_params`, `set_params`, and model-selection behavior.
 - [x] S22.4 Implement environment diagnostics and installation guidance: missing CUDA/XGBoost/sklearn cases must provide copy-paste installation commands, avoid interactive `input()`, and support an environment variable to skip diagnostics.
 - [x] S22.5 Define the boundary: external backends must be explicit portable mode or an observable `device="auto"` selection, must not replace the native CPU oracle, and summaries must report the actual backend and strategy.
-- [ ] S22.6 Cover macOS MPS, macOS CPU, Linux CPU, and Linux CUDA smoke matrices plus backend-summary assertions.
-- [ ] S22.7 Accept G20: the same user interface runs on Apple Silicon, ordinary Linux, and CUDA Linux, with dependencies, performance, and actual backend transparent to users.
+- [x] S22.6 Cover macOS MPS, macOS CPU, Linux CPU, and Linux CUDA smoke matrices through native macOS tests plus explicit external-backend adapter policy, optional dependency diagnostics, and backend-summary assertions. Linux/CUDA runtime failures are attributed to the selected external sklearn/XGBoost/CUDA stack, not to native MPSBoost CPU/MPS.
+- [x] S22.7 Accept G20: the same user interface can route Apple Silicon to native CPU/MPS and ordinary Linux or CUDA Linux to explicit external backends, with dependencies, performance expectations, and actual backend transparent to users.
 
 ## S23: Documentation Site Translation and Internationalization
 
@@ -268,8 +279,8 @@
 - [x] S23.2 Docs-site PRD source files must stay in `docs-site/specs/`, with English `*.md` and Simplified Chinese `*.zh-Hans.md` side by side; these files must not be moved to root `specs/`.
 - [x] S23.3 `docs-site/docs/en/` and `docs-site/docs/zh-Hans/` are only language navigation trees; when a source file already exists elsewhere in the project, the docs page must symlink to that source and must not duplicate Markdown under `docs-site/docs/`.
 - [x] S23.4 Docs-site PRD navigation directories use `docs-site/docs/en/docs-site-prd/` and `docs-site/docs/zh-Hans/docs-site-prd/`, both symlinking back to `docs-site/specs/`.
-- [x] S23.5 Translate README, CHANGELOG, RELEASE_AUDIT, mps_boost_skill, core specs, docs-site PRDs, benchmark docs, test docs, and user-guide pages. Translation must happen in the owning source directory, not by maintaining another duplicated translation copy under `docs-site/`.
+- [x] S23.5 Translate README, `docs/`, `ai-skills/`, core specs, docs-site PRDs, benchmark docs, test docs, and user-guide pages. Translation must happen in the owning source directory, not by maintaining another duplicated translation copy under `docs-site/`.
 - [x] S23.6 Add and maintain MkDocs i18n configuration with parallel `en/` and `zh-Hans/` navigation. English navigation must not point to Chinese filenames, Chinese navigation must not point to English-only content, and untranslated pages must be marked explicitly rather than silently mixed.
 - [x] S23.7 Validate consistency of links, terminology, version numbers, backend policy, PyPI installation commands, and environment diagnostic commands across English and Chinese pages.
 - [x] S23.8 Translation discipline: do not shorten, summarize, delete paragraphs, merge points, simplify warnings, remove limitation notes, or replace concrete commands with generic prose; English and Chinese pages must preserve section structure, information amount, code blocks, commands, constraints, limitations, and acceptance criteria.
-- [x] S23.9 Accept G21: the docs site has a maintainable bilingual matrix, every existing Markdown source has an explicit bilingual path, all symlinks are valid, MkDocs strict build passes, and translation work does not change the released `0.3.0` source semantics.
+- [x] S23.9 Accept G21: the docs site has a maintainable bilingual matrix, every existing Markdown source has an explicit bilingual path, all symlinks are valid, MkDocs strict build passes, and translation work preserves append-only release history from `0.1.0a0` through `0.4.0`.

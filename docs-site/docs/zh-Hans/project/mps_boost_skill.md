@@ -1,1 +1,1 @@
-../../../../mps_boost_skill.zh-Hans.md
+../../../../ai-skills/mps_boost_skill.zh-Hans.md

@@ -26,7 +26,7 @@ Applies to:
 
 - MkDocs site builds under `docs-site/`.
 - GitHub Pages static deployment.
-- Site updates after changes to README, CHANGELOG, RELEASE_AUDIT, root `specs/`,
+- Site updates after changes to README, docs, AI skills, root `specs/`,
   and other documentation sources.
 - Existing documentation sources included through symlinks.
 
@@ -61,9 +61,9 @@ Push must use a `paths` filter containing at least:
 - `.github/workflows/docs.yml`
 - `docs-site/**`
 - `README.md`
-- `CHANGELOG.md`
-- `RELEASE_AUDIT.md`
-- `mps_boost_skill.md`
+- `docs/CHANGELOG.md`
+- `docs/RELEASE_AUDIT_*.md`
+- `ai-skills/mps_boost_skill.md`
 - `specs/**`
 
 Ordinary source, test, or benchmark changes must not deploy documents unless they
@@ -123,7 +123,7 @@ Existing MPSBoost public documentation and specifications must enter
 
 Reasons:
 
-- README, CHANGELOG, RELEASE_AUDIT, and `specs/` are single sources of truth.
+- README, `docs/`, `ai-skills/`, and `specs/` are single sources of truth.
 - Copies cause drift between PyPI README, GitHub README, and documentation-site content.
 - When future agents modify source files, the site automatically uses current content.
 

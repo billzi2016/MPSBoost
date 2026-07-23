@@ -9,7 +9,7 @@ S23 用于把当前 zh-Hans 文档站扩展为可维护的双语站点。
 ## 后续目标
 
 - 建立 `en/` 平行目录。
-- 翻译 README、CHANGELOG、RELEASE_AUDIT、mps_boost_skill 和核心 specs。
+- 翻译 README、`docs/`、`ai-skills/` 和核心 specs。
 - 增加 MkDocs i18n 配置。
 - 保持术语、版本号、安装命令和 backend policy 一致。
 

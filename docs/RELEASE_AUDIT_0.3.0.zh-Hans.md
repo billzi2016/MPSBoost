@@ -1,10 +1,10 @@
-# MPSBoost 0.4.0 发布审计
+# MPSBoost 0.3.0 发布审计
 
-本文件记录 `0.4.0` 这个 0.x 收尾功能里程碑的发布门。
+本文件记录 `0.3.0` v2 arboretum 里程碑的发布门。
 
 ## 范围
 
-`0.4.0` 支持：
+`0.3.0` 支持：
 
 - dense numeric regression；
 - 二分类和多分类 classification；
@@ -21,22 +21,16 @@
 - model save/load；
 - feature importance、permutation importance 和受控 SHAP-like explanation；
 - 导入期 MPS 环境提示，并给出可复制 setup 和 skip 命令；
-- cache diagnostics、显式 cache creation 和安全 cache clearing；
-- 可选官方 SHAP 集成诊断和 native tree export payload；
-- 显式 portable-backend 诊断，以及 XGBoost、sklearn、CUDA 可选 extras；
-- MNIST、Titanic、Adult Income、Covertype、HIGGS 的项目内 opt-in 真实世界数据 cache；
-- S18 真实世界验收报告，并记录尚未关闭的 1.0 发布门。
+- cache diagnostics、显式 cache creation 和安全 cache clearing。
 
 不包含：
 
 - sparse matrix；
 - native MPS 多分类 softmax；
-- 经过验证的官方 third-party SHAP TreeExplainer 执行；
+- 官方 third-party SHAP TreeExplainer integration；
 - categorical model persistence；
 - public GPU prediction；
-- 完整 third-party API compatibility；
-- 完整 Linux CPU/CUDA smoke matrix；
-- `1.0.0` 稳定版本承诺。
+- 完整 third-party API compatibility。
 
 ## License
 
@@ -71,15 +65,13 @@ Native extension 可以链接 Python、C++、Objective-C runtime、Foundation、
 
 ## Validation Matrix
 
-发布 `0.4.0` 前必须完成：
+发布 `0.3.0` 前必须完成：
 
 - 本地 full test suite；
 - Python 3.10 和 3.13 上的 GitHub hosted CPU/package test；
 - Python 3.10 和 3.13 上的 self-hosted real Metal GPU test；
 - exact uploaded wheels 的 `twine check`；
 - fresh PyPI install 和 real MPS smoke test。
-
-`1.0.0` 仍然被阻塞，直到完整 S18 真实世界矩阵、模型质量审计、端到端性能审计、内存峰值审计、wheel/model 体积审计、权限审计、artifact hash 和用户明确最终确认全部完成。
 
 ## Benchmark Evidence
 

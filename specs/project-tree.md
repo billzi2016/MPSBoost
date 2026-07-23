@@ -9,7 +9,8 @@ MPSBoost/
 │   └── workflows/
 │       ├── ci.yml
 │       └── release.yml
-├── mps_boost_skill.md           # Complete skill entry point for AI/Agents
+├── ai-skills/
+│   └── mps_boost_skill.md       # Complete skill entry point for AI/Agents
 ├── specs/                       # SDD specifications and project development rules
 │   ├── AGENTS.md                # Project Agent development rules; not a general user entry point
 │   ├── README.md                # Shared specification index
@@ -81,7 +82,9 @@ MPSBoost/
 ├── CMakeLists.txt
 ├── pyproject.toml
 ├── README.md
-├── CHANGELOG.md
+├── docs/
+│   ├── CHANGELOG.md
+│   └── RELEASE_AUDIT_*.md
 ├── LICENSE
 └── .gitignore
 ```

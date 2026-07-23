@@ -8,10 +8,9 @@ on:
     paths:
       - ".github/workflows/docs.yml"
       - "docs-site/**"
+      - "docs/**"
+      - "ai-skills/**"
       - "README.md"
-      - "CHANGELOG.md"
-      - "RELEASE_AUDIT.md"
-      - "mps_boost_skill.md"
       - "specs/**"
 
 permissions:

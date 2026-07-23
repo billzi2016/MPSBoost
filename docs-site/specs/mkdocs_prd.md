@@ -4,7 +4,7 @@
 
 This PRD defines the MPSBoost documentation site's structure, content sources,
 MkDocs configuration, and maintenance constraints. The goal is a Simplified Chinese
-project documentation site that accurately presents current `0.3.0` capabilities
+project documentation site that accurately presents current `0.4.0` capabilities
 and remains consistent with the root README, specifications, task list, and release audit.
 
 This stage does not build a bilingual Chinese/English site. Every PRD, navigation
@@ -19,7 +19,7 @@ naming confusion during later language expansion.
 - Bring existing repository documentation in through symlinks, never copies.
 - Cover current public MPSBoost capability, quick start, backend policy, release
   audit, and specification documents in navigation.
-- Keep site content consistent with current `0.3.0` project state.
+- Keep site content consistent with current `0.4.0` project state and append-only release history.
 - Reserve structure for future English/other languages without generating English placeholders now.
 
 ## 3. Technical Choices
@@ -66,9 +66,9 @@ uses symlinks to existing root `specs/` project specifications.
 Use symlinks when bringing these existing files into the documentation site:
 
 - `README.md`
-- `CHANGELOG.md`
-- `RELEASE_AUDIT.md`
-- `mps_boost_skill.md`
+- `docs/CHANGELOG.md`
+- `docs/RELEASE_AUDIT_*.md`
+- `ai-skills/mps_boost_skill.md`
 - `specs/tasks.md`
 - `specs/constitution.md`
 - `specs/project-tree.md`
@@ -104,7 +104,7 @@ Navigation follows current project capability and contains at least:
 - Installation and Environment Diagnostics
 - Backend Selection Policy
 - Estimator API
-- 0.3.0 Release Audit
+- Release overview and versioned Release Audits
 - Changelog
 - Project Specifications
 - Documentation Site PRD
@@ -113,9 +113,9 @@ Navigation references existing files through their symlink paths.
 
 ## 7. Current Project-State Requirements
 
-Documentation must reflect `0.3.0`:
+Documentation must reflect `0.4.0`:
 
-- `mpsboost==0.3.0` is published.
+- `mpsboost==0.4.0` is the current release target.
 - Apple Silicon wheels support `cp313` / `macosx_13_0_arm64`.
 - MPSBoost native CPU/MPS backends remain the core implementation.
 - The CPU backend is the correctness oracle and is not replaced by S22 portable-backend planning.
@@ -126,7 +126,7 @@ Documentation must reflect `0.3.0`:
   more suitable and continue running.
 - Missing environments provide copy-ready installation commands and the
   `MPSBOOST_SKIP_ENV_CHECK=1` bypass.
-- S22 is future cross-platform portable-backend planning, not a delivered `0.3.0` capability.
+- S22 portable-backend diagnostics and policy are delivered as explicit optional adapter guidance, not hidden native replacement.
 
 ## 8. MkDocs Configuration Requirements
 

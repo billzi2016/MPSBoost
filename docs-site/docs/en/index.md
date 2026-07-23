@@ -13,6 +13,7 @@ real-world acceptance reporting.
 - [Backend policy](user-guide/backend-policy.md)
 - [Estimator API](user-guide/estimators.md)
 - [Model families](model-families/gradient-boosting.md)
+- [Release overview](release/index.md)
 - [0.4.0 release](release/0.4.0.md)
 
 The Chinese source documentation remains available through the language selector.

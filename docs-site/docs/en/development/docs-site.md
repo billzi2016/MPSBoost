@@ -12,7 +12,7 @@ mkdocs build --config-file docs-site/mkdocs.yml --strict
 ## File Principles
 
 - Existing project Markdown is connected with symlinks.
-- Do not copy README, CHANGELOG, RELEASE_AUDIT, `mps_boost_skill`, root `specs/`,
+- Do not copy README, `docs/`, `ai-skills/`, root `specs/`,
   benchmark reports, or test README files.
 - New pages provide site entry points, navigation, and user guides.
 - `docs-site/site/` is ignored build output.
