@@ -1,6 +1,6 @@
 # 异常检测与排序学习
 
-MPSBoost `0.3.0` 包含 CPU-suitable 的异常检测和排序学习入口。
+MPSBoost `0.4.0` 包含 CPU-suitable 的异常检测和排序学习入口。
 
 ## Isolation Forest
 

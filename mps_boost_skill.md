@@ -135,6 +135,11 @@ Use `mb.optional_dependency_status()`, `mb.portable_setup_instructions()`, and
 `mb.choose_portable_backend(...)` for copy-paste diagnostics and observable backend summaries.
 External adapters must report the actual backend and must not replace the native CPU oracle.
 
+`0.4.0` is a 0.x finishing feature release, not a `1.0.0` stability commitment. Do not present
+MPSBoost as fully stable across every real-world dataset, Linux CPU host, or CUDA host until the
+full S18 matrix, performance/memory/permission audit, artifact hashes, and explicit user
+confirmation are complete.
+
 ## sklearn model selection
 
 Use the standard sklearn model-selection stack. Do not invent a separate search API for normal
@@ -199,6 +204,10 @@ print(mb.cache_info())
 `cache_info()` must be read-only and must not create directories. Use `create_cache()` only when
 cache directories should be created explicitly. Use `clear_cache()` only for MPSBoost-owned cache
 paths; cache deletion must never change model predictions.
+
+Real-world opt-in dataset downloads must stay inside the project-local ignored directories
+`tests/real_world/data/` and `tests/real_world/cache/`. Removing those directories must remove the
+downloaded artifacts; do not use user-global dataset cache locations for release acceptance data.
 
 ## Randomization and monitoring
 

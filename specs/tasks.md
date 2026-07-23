@@ -4,6 +4,8 @@
 
 > **Version discipline: before all real-world dataset acceptance in `v3-real-world-tests/prd.md` is complete, only `0.x` versions may be released. `1.x` is a stable user commitment and must not be released based only on synthetic benchmarks, feature count, or ordinary CI success.**
 
+> **Current release discipline: `0.4.0` is a 0.x finishing feature release, not the final stable commitment. Do not publish `1.0.0` until S18.6, S18.6a, S18.8, S18.9, and S18.10 are genuinely complete with the full real-world matrix, performance/memory/permission audit, artifact hashes, and explicit user confirmation.**
+
 > **Release cadence: after the formal `0.2.0` release, do not publish PyPI for small internal modules. The next public feature milestone is fixed as `0.3.0`, targeting the all-trees capability planned in `v2-arboretum-implementation/prd.md`; intermediate development should commit, push, and preserve CI artifacts unless the user explicitly approves another prerelease.**
 
 > **Current execution order: after S15, prioritize S18 real-world dataset tests and reports, then S16 advanced objectives and explanations, then S17 anomaly detection and ranking. Unless the user explicitly changes the order, do not jump directly from S15 to S16 or S17 by numeric order.**
@@ -201,19 +203,19 @@
 - [x] S18.2a Create the `tests/real_world/` directory and real-world test rules.
 - [x] S18.2b Implement built-in dataset acceptance: Iris, Breast Cancer, Diabetes, Digits.
 - [x] S18.2c Implement cached-download dataset acceptance: California Housing.
-- [ ] S18.2d Implement opt-in external dataset acceptance: MNIST subset, Titanic, Adult Income, Covertype subset, Higgs subset.
-- [ ] S18.2d-1 Implement MNIST subset acceptance.
-- [ ] S18.2d-2 Implement Titanic acceptance.
-- [ ] S18.2d-3 Implement Adult Income acceptance.
+- [x] S18.2d Implement opt-in external dataset acceptance: MNIST subset, Titanic, Adult Income, Covertype subset, Higgs subset.
+- [x] S18.2d-1 Implement MNIST subset acceptance.
+- [x] S18.2d-2 Implement Titanic acceptance.
+- [x] S18.2d-3 Implement Adult Income acceptance.
 - [x] S18.2d-4 Implement Covertype subset large-row acceptance and real MPS parity smoke.
-- [ ] S18.2d-5 Implement Higgs subset acceptance.
+- [x] S18.2d-5 Implement Higgs subset acceptance.
 - [x] S18.3 Cover implemented model families across regression, classification, anomaly detection, and ranking.
 - [x] S18.4 Create strong CPU baseline, project CPU oracle, and real MPS comparison reports.
 - [x] S18.5 Complete training, prediction, save/load, cache deletion, and repeated-training stability tests.
 - [x] S18.5a Cover model save/load, cache deletion, cache corruption, and repeated-training stability on real datasets.
 - [ ] S18.6 Complete model quality, end-to-end performance, peak memory, wheel size, and permission audit.
 - [ ] S18.6a Record real-dataset train time, predict time, peak memory, model size, wheel size, and permission scope.
-- [ ] S18.7 Publish the real-world dataset report with honest success, degradation, and unsupported scenarios.
+- [x] S18.7 Publish the real-world dataset report with honest success, degradation, and unsupported scenarios.
 - [ ] S18.8 Accept G17: every real-world test matrix item passes before planning `1.0.0`.
 - [ ] S18.9 Obtain final user confirmation for 1.x public commitment scope, version, and artifact hashes.
 - [ ] S18.10 Publish PyPI `1.0.0` and reverify from a fresh formal PyPI environment.

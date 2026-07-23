@@ -4,6 +4,8 @@
 
 > **版本纪律：在 `v3-real-world-tests/prd.md` 的真实世界数据集验收全部完成前，只允许发布 `0.x` 版本。`1.x` 只能作为真实用户稳定承诺，不能仅凭 synthetic benchmark、功能数量或普通 CI 通过发布。**
 
+> **当前发布纪律：`0.4.0` 是 0.x 收尾功能版本，不是最终稳定承诺。S18.6、S18.6a、S18.8、S18.9、S18.10 在完整真实世界矩阵、性能/内存/权限审计、artifact hash 和用户明确最终确认全部完成前，不得发布 `1.0.0`。**
+
 > **发布节奏：`0.2.0` 正式版完成后，不再为小型内部模块频繁发布 PyPI。下一次公开功能里程碑固定为 `0.3.0`，目标是完成 `v2-arboretum-implementation/prd.md` 中规划的 all trees 主体能力；中间开发只 commit、push 和保留 CI artifact，除非用户明确批准新的预发布。**
 
 > **当前执行顺序：S15 完成后必须优先推进 S18 真实世界数据集测试与报告，然后推进 S16 高级目标函数与解释，最后推进 S17 异常检测与排序学习。除非用户明确调整顺序，否则不得按编号顺序直接从 S15 跳到 S16 或 S17。**
@@ -201,19 +203,19 @@
 - [x] S18.2a 建立 `tests/real_world/` 目录和真实世界测试规则。
 - [x] S18.2b 实现内置数据集验收：Iris、Breast Cancer、Diabetes、Digits。
 - [x] S18.2c 实现缓存下载数据集验收：California Housing。
-- [ ] S18.2d 实现 opt-in 外部数据集验收：MNIST subset、Titanic、Adult Income、Covertype subset、Higgs subset。
-- [ ] S18.2d-1 实现 MNIST subset 验收。
-- [ ] S18.2d-2 实现 Titanic 验收。
-- [ ] S18.2d-3 实现 Adult Income 验收。
+- [x] S18.2d 实现 opt-in 外部数据集验收：MNIST subset、Titanic、Adult Income、Covertype subset、Higgs subset。
+- [x] S18.2d-1 实现 MNIST subset 验收。
+- [x] S18.2d-2 实现 Titanic 验收。
+- [x] S18.2d-3 实现 Adult Income 验收。
 - [x] S18.2d-4 实现 Covertype subset 大行数验收和真实 MPS parity smoke。
-- [ ] S18.2d-5 实现 Higgs subset 验收。
+- [x] S18.2d-5 实现 Higgs subset 验收。
 - [x] S18.3 覆盖回归、分类、异常检测和排序中已实现的模型族。
 - [x] S18.4 建立强 CPU 基线、项目 CPU oracle 和真实 MPS 对照报告。
 - [x] S18.5 完成训练、预测、保存、加载、缓存删除和重复训练稳定性测试。
 - [x] S18.5a 覆盖真实数据集上的模型保存、加载、缓存删除、缓存损坏和重复训练稳定性。
 - [ ] S18.6 完成模型质量、端到端性能、内存峰值、wheel 体积和权限审计。
 - [ ] S18.6a 记录真实数据集训练时间、预测时间、内存峰值、模型大小、wheel 体积和权限范围。
-- [ ] S18.7 公开真实数据集报告，诚实记录成功、退化和不支持场景。
+- [x] S18.7 公开真实数据集报告，诚实记录成功、退化和不支持场景。
 - [ ] S18.8 验收 G17：真实世界测试矩阵全部通过，才允许规划 `1.0.0`。
 - [ ] S18.9 用户最终确认 1.x 公开承诺范围、版本号和 artifact 哈希。
 - [ ] S18.10 发布 PyPI `1.0.0` 并从正式 PyPI 全新环境复验。

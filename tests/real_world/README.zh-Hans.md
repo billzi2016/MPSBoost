@@ -7,6 +7,7 @@
 Dataset matrix：
 
 - `dataset_matrix.py` 是可执行 S18 dataset matrix。
+- `REPORT.zh-Hans.md` 记录当前 S18 验收证据和仍未关闭的发布门。
 - 默认 no-network acceptance 目前只运行 active built-in datasets。
 - Multiclass dataset 默认使用 native CPU softmax。MPS multiclass 当前使用显式 staged OvR compatibility path，直到 native MPS softmax kernel 实现。
 
@@ -42,6 +43,12 @@ Dataset matrix：
 ```bash
 python tests/real_world/download_datasets.py california-housing
 python tests/real_world/download_datasets.py covertype-subset
+python tests/real_world/download_datasets.py mnist-subset
+python tests/real_world/download_datasets.py titanic
+python tests/real_world/download_datasets.py adult-income
 ```
 
-下载文件位于已 ignore 的 `tests/real_world/data/` 下，生成的 manifest 位于已 ignore 的 `tests/real_world/cache/` 下。
+下载文件位于已 ignore 的 `tests/real_world/data/` 下，生成的 manifest 位于已 ignore 的 `tests/real_world/cache/` 下。删除这两个目录即可删除本地数据集产物；下载器不使用用户全局 sklearn cache path。
+
+HIGGS 作为显式本地文件数据集处理。运行 opt-in HIGGS subset 测试前，将 `HIGGS.csv.gz`
+放到 `tests/real_world/data/higgs/`。

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.0 - 2026-07-23
+
+- Add explicit portable-backend diagnostics, optional `xgboost`, `sklearn`, and `cuda` extras, and observable backend selection summaries.
+- Add the official SHAP integration boundary with `mpsboost[shap]`, native tree export payloads, and a clear semantic-validation gate for TreeExplainer.
+- Add opt-in real-world acceptance tests for MNIST, Titanic, Adult Income, and HIGGS using project-local ignored caches instead of user-global cache paths.
+- Add the S18 real-world acceptance report and documentation-site navigation for the report.
+- Keep native CPU/MPS as the default implementation and correctness oracle; external backends remain explicit, observable, and optional.
+
 ## 0.3.0 - 2026-07-20
 
 - Add sklearn-style binary and multiclass classifiers, including native CPU softmax and explicit

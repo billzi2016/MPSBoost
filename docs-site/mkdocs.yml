@@ -61,6 +61,7 @@ nav:
       - CatBoost-like: model-families/catboost-like.md
       - Anomaly Detection and Ranking: model-families/anomaly-ranking.md
   - Release:
+      - 0.4.0: release/0.4.0.md
       - 0.3.0: release/0.3.0.md
   - Roadmap:
       - Portable Backends: roadmap/portable-backends.md
@@ -79,6 +80,7 @@ nav:
       - S6 M2 Ultra: benchmarks/results/s6-m2-ultra-py313.md
   - Tests:
       - Real-world Tests: tests/real_world/README.md
+      - Real-world Report: tests/real_world/REPORT.md
   - Specs:
       - Specs Index: specs/README.md
       - Tasks: specs/tasks.md

@@ -2,6 +2,14 @@
 
 本项目所有值得记录的变更都会写入本文件。
 
+## 0.4.0 - 2026-07-23
+
+- 增加显式 portable-backend 诊断、可选 `xgboost`、`sklearn`、`cuda` extras，以及可观测的 backend selection summary。
+- 增加官方 SHAP 集成边界：`mpsboost[shap]`、native tree export payload，以及 TreeExplainer 语义验证门槛。
+- 增加 MNIST、Titanic、Adult Income 和 HIGGS 的 opt-in 真实世界验收测试，下载产物只写入项目内已忽略 cache，不写入用户全局 cache。
+- 增加 S18 真实世界验收报告，并加入文档站点导航。
+- 保持 native CPU/MPS 作为默认实现和 correctness oracle；外部 backend 仍然显式、可观测、可选。
+
 ## 0.3.0 - 2026-07-20
 
 - 增加 sklearn 风格二分类和多分类 classifier，包括 native CPU softmax 和显式 OvR compatibility。

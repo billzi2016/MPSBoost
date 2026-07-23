@@ -8,6 +8,7 @@ release. It is separate from unit tests, integration tests, and synthetic benchm
 Dataset matrix:
 
 - `dataset_matrix.py` is the executable S18 dataset matrix.
+- `REPORT.md` records the current S18 acceptance evidence and open release gates.
 - Default no-network acceptance currently runs only active built-in datasets.
 - Multiclass datasets default to native CPU softmax. MPS multiclass currently uses the explicit
   staged OvR compatibility path until native MPS softmax kernels are implemented.
@@ -50,7 +51,14 @@ Explicit downloads:
 ```bash
 python tests/real_world/download_datasets.py california-housing
 python tests/real_world/download_datasets.py covertype-subset
+python tests/real_world/download_datasets.py mnist-subset
+python tests/real_world/download_datasets.py titanic
+python tests/real_world/download_datasets.py adult-income
 ```
 
 The downloaded files live under ignored `tests/real_world/data/`, and generated manifests live
-under ignored `tests/real_world/cache/`.
+under ignored `tests/real_world/cache/`. Removing those two directories removes the local dataset
+artifacts; the downloader does not use a user-global sklearn cache path.
+
+HIGGS is treated as an explicit local-file dataset. Place `HIGGS.csv.gz` under
+`tests/real_world/data/higgs/` before running the opt-in HIGGS subset test.

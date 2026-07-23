@@ -58,6 +58,7 @@ def download_california_housing() -> Path:
         "dataset": "California Housing",
         "source": "sklearn.datasets.fetch_california_housing",
         "data_home": str(data_home.relative_to(PROJECT_ROOT)),
+        "cache_policy": "project-local ignored cache; deleting tests/real_world/data removes artifacts",
         "rows": int(dataset.data.shape[0]),
         "features": int(dataset.data.shape[1]),
         "target_rows": int(dataset.target.shape[0]),
@@ -81,6 +82,7 @@ def download_covertype_subset() -> Path:
         "dataset": "Covertype",
         "source": "sklearn.datasets.fetch_covtype",
         "data_home": str(data_home.relative_to(PROJECT_ROOT)),
+        "cache_policy": "project-local ignored cache; deleting tests/real_world/data removes artifacts",
         "rows": int(dataset.data.shape[0]),
         "features": int(dataset.data.shape[1]),
         "target_rows": int(dataset.target.shape[0]),
@@ -92,13 +94,68 @@ def download_covertype_subset() -> Path:
     return manifest_path
 
 
+def _download_openml_dataset(name: str, *, version: int | str = "active") -> Path:
+    """Download one OpenML dataset through scikit-learn's explicit fetcher."""
+
+    from sklearn.datasets import fetch_openml
+
+    data_home = DATA_ROOT / "openml"
+    data_home.mkdir(parents=True, exist_ok=True)
+    MANIFEST_ROOT.mkdir(parents=True, exist_ok=True)
+    dataset = fetch_openml(
+        name=name,
+        version=version,
+        data_home=data_home,
+        as_frame=True,
+        parser="auto",
+    )
+    manifest = {
+        "dataset": name,
+        "source": "sklearn.datasets.fetch_openml",
+        "version": version,
+        "data_home": str(data_home.relative_to(PROJECT_ROOT)),
+        "cache_policy": "project-local ignored cache; deleting tests/real_world/data removes artifacts",
+        "rows": int(dataset.data.shape[0]),
+        "features": int(dataset.data.shape[1]),
+        "target_rows": int(dataset.target.shape[0]),
+        "files": _relative_files(data_home),
+    }
+    manifest_path = MANIFEST_ROOT / f"{name.lower().replace('-', '_')}_manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    return manifest_path
+
+
+def download_mnist_subset() -> Path:
+    """Download MNIST through OpenML for the opt-in flattened-image subset test."""
+
+    return _download_openml_dataset("mnist_784", version=1)
+
+
+def download_titanic() -> Path:
+    """Download Titanic through OpenML for missing-value categorical workflow tests."""
+
+    return _download_openml_dataset("titanic", version=1)
+
+
+def download_adult_income() -> Path:
+    """Download Adult Income through OpenML for high-cardinality categorical tests."""
+
+    return _download_openml_dataset("adult", version=2)
+
+
 def main() -> int:
     """Parse the dataset selection and run the explicit download."""
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "dataset",
-        choices=("california-housing", "covertype-subset"),
+        choices=(
+            "adult-income",
+            "california-housing",
+            "covertype-subset",
+            "mnist-subset",
+            "titanic",
+        ),
         help="Dataset to download into ignored tests/real_world cache directories.",
     )
     arguments = parser.parse_args()
@@ -108,6 +165,18 @@ def main() -> int:
         return 0
     if arguments.dataset == "covertype-subset":
         manifest_path = download_covertype_subset()
+        print(f"Wrote manifest: {manifest_path}")
+        return 0
+    if arguments.dataset == "mnist-subset":
+        manifest_path = download_mnist_subset()
+        print(f"Wrote manifest: {manifest_path}")
+        return 0
+    if arguments.dataset == "titanic":
+        manifest_path = download_titanic()
+        print(f"Wrote manifest: {manifest_path}")
+        return 0
+    if arguments.dataset == "adult-income":
+        manifest_path = download_adult_income()
         print(f"Wrote manifest: {manifest_path}")
         return 0
     raise AssertionError("unreachable dataset selection")

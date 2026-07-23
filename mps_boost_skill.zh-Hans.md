@@ -109,6 +109,8 @@ python -m pip install 'mpsboost[cuda]'
 
 使用 `mb.optional_dependency_status()`、`mb.portable_setup_instructions()` 和 `mb.choose_portable_backend(...)` 提供可复制诊断和可观测 backend summary。外部 adapter 必须报告实际 backend，不得替代 native CPU oracle。
 
+`0.4.0` 是 0.x 收尾功能版本，不是 `1.0.0` 稳定承诺。在完整 S18 矩阵、性能/内存/权限审计、artifact hash 和用户明确最终确认完成前，不要把 MPSBoost 描述成已在所有真实世界数据集、Linux CPU 主机或 CUDA 主机上完成稳定承诺。
+
 ## sklearn model selection
 
 使用标准 sklearn model-selection 栈。不要为普通超参数调优发明单独搜索 API。
@@ -164,6 +166,8 @@ print(mb.cache_info())
 ```
 
 `cache_info()` 必须是只读的，不得创建目录。只有需要显式创建 cache 目录时才使用 `create_cache()`。`clear_cache()` 只能用于 MPSBoost 拥有的 cache path；删除 cache 绝不能改变模型预测。
+
+真实世界 opt-in 数据集下载必须保留在项目内已忽略目录 `tests/real_world/data/` 和 `tests/real_world/cache/`。删除这些目录必须能删除下载产物；发布验收数据不得使用用户全局 dataset cache 位置。
 
 ## 随机化和监控
 
