@@ -38,6 +38,8 @@ pre-v2/v3 baselines and are not presented as final current-HEAD speed claims.
 - GitHub Docs: `29981349586`, success
 - `twine check`: passed
 - Fresh wheel smoke: version `0.5.0`, import, CPU training, and diagnostics passed
+- PyPI URL: https://pypi.org/project/mpsboost/0.5.0/
+- Fresh PyPI install smoke: version `0.5.0`, import, CPU training, `system_info()`, and optional dependency diagnostics passed
 
 ## 1.0 Boundary
 

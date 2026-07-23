@@ -229,7 +229,7 @@
 
 - [x] S25.1 把所有已知 runtime、documentation、packaging、environment 和 user-experience issue 分类为已修复、有意延期或当前平台不可能支持。
 - [x] S25.2 确保缺可选依赖、缺 Metal toolchain、不支持的 Linux/CUDA 环境、适合 CPU 的 workload 都给出可复制 guidance 或 warning，而不是让用户遇到困惑失败。
-- [ ] S25.3 只有没有已知 blocking customer-facing issue 时，才能发布 PyPI `0.5.0`。
+- [x] S25.3 只有没有已知 blocking customer-facing issue 时，才能发布 PyPI `0.5.0`。
 
 ## S26：1.0.0 最终客户承诺门
 

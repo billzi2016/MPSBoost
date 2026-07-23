@@ -33,6 +33,8 @@
 - GitHub Docs：`29981349586`，success
 - `twine check`：passed
 - Fresh wheel smoke：version `0.5.0`、import、CPU training 和 diagnostics passed
+- PyPI URL：https://pypi.org/project/mpsboost/0.5.0/
+- Fresh PyPI install smoke：version `0.5.0`、import、CPU training、`system_info()` 和 optional dependency diagnostics passed
 
 ## 1.0 边界
 
