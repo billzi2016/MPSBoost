@@ -24,6 +24,16 @@
 
 性能边界见 `docs/PERFORMANCE_0.5.0.zh-Hans.md`。历史 S4/S6 结果保留为 v2/v3 前 baseline，不作为 current-HEAD 最终 speed claim。
 
+## Artifact Candidate
+
+- Wheel：`dist/mpsboost-0.5.0-cp313-cp313-macosx_26_0_arm64.whl`
+- Size：284K
+- SHA-256：`6eaef0e1f5620b930036ba8e44dbe8bd70e5dc149ece91dea474e961e671b008`
+- GitHub CI：`29981349617`，success
+- GitHub Docs：`29981349586`，success
+- `twine check`：passed
+- Fresh wheel smoke：version `0.5.0`、import、CPU training 和 diagnostics passed
+
 ## 1.0 边界
 
 `1.0.0` 仍然被阻塞，直到所有计划中的客户侧失败路径、完整真实世界矩阵门槛、性能/内存/权限审计、artifact hash 和用户明确最终确认全部完成。

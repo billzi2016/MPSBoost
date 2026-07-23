@@ -29,6 +29,16 @@ known-issue audit before any future `1.0.0` commitment.
 See `docs/PERFORMANCE_0.5.0.md` for performance boundaries. Historical S4/S6 results remain
 pre-v2/v3 baselines and are not presented as final current-HEAD speed claims.
 
+## Artifact Candidate
+
+- Wheel: `dist/mpsboost-0.5.0-cp313-cp313-macosx_26_0_arm64.whl`
+- Size: 284K
+- SHA-256: `6eaef0e1f5620b930036ba8e44dbe8bd70e5dc149ece91dea474e961e671b008`
+- GitHub CI: `29981349617`, success
+- GitHub Docs: `29981349586`, success
+- `twine check`: passed
+- Fresh wheel smoke: version `0.5.0`, import, CPU training, and diagnostics passed
+
 ## 1.0 Boundary
 
 `1.0.0` remains blocked until all planned customer-facing failure paths, full real-world matrix

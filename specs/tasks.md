@@ -227,8 +227,8 @@
 
 ## S25: 0.5.0 Zero-Known-Issue Hardening Release
 
-- [ ] S25.1 Triage every known runtime, documentation, packaging, environment, and user-experience issue into fixed, intentionally deferred, or impossible-under-current-platform categories.
-- [ ] S25.2 Ensure missing optional dependencies, missing Metal toolchain, unsupported Linux/CUDA environments, and CPU-suitable workloads produce copy-paste guidance or warnings instead of confusing failures.
+- [x] S25.1 Triage every known runtime, documentation, packaging, environment, and user-experience issue into fixed, intentionally deferred, or impossible-under-current-platform categories.
+- [x] S25.2 Ensure missing optional dependencies, missing Metal toolchain, unsupported Linux/CUDA environments, and CPU-suitable workloads produce copy-paste guidance or warnings instead of confusing failures.
 - [ ] S25.3 Publish PyPI `0.5.0` only when there are no known blocking customer-facing issues.
 
 ## S26: 1.0.0 Final Customer-Commitment Gate
