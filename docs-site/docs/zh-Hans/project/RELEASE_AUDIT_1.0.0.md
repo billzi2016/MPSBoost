@@ -1,0 +1,1 @@
+../../../../docs/RELEASE_AUDIT_1.0.0.zh-Hans.md

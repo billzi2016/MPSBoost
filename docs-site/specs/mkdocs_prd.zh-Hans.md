@@ -2,7 +2,7 @@
 
 ## 1. 文档目的
 
-本 PRD 定义 MPSBoost 文档站点的结构、内容来源、MkDocs 配置和维护约束。目标是建设一个双语项目文档站点，准确展示当前 `0.5.0` 能力，并与根目录 README、规格、任务清单和版本化发布审计保持一致。
+本 PRD 定义 MPSBoost 文档站点的结构、内容来源、MkDocs 配置和维护约束。目标是建设一个双语项目文档站点，准确展示当前 `1.0.0` 能力，并与根目录 README、规格、任务清单和版本化发布审计保持一致。
 
 本阶段不做中英双语站点。所有 PRD、导航和初始页面均使用 `zh-Hans` 后缀或目录语义，避免后续语言扩展时命名混乱。
 
@@ -13,7 +13,7 @@
 - PRD 文件命名使用 `.zh-Hans.md` 后缀。
 - 已有仓库文档必须通过 symlink 接入，不复制。
 - 导航覆盖 MPSBoost 当前公开能力、快速开始、后端策略、发布审计和规格文档。
-- 站点内容必须符合当前 `0.5.0` 项目状态，并保持 append-only release history。
+- 站点内容必须符合当前 `1.0.0` 项目状态，并保持 append-only release history。
 - 为后续英文或其他语言扩展保留结构，但本阶段不生成英文占位内容。
 
 ## 3. 技术选型
@@ -103,9 +103,9 @@ docs-site/
 
 ## 7. 当前项目状态要求
 
-文档必须反映 `0.5.0` 状态：
+文档必须反映 `1.0.0` 状态：
 
-- `mpsboost==0.5.0` 是当前发布目标。
+- `mpsboost==1.0.0` 是当前发布目标。
 - Apple Silicon wheel 支持 `cp313` / `macosx_13_0_arm64`。
 - MPSBoost native CPU/MPS 后端继续是核心实现。
 - CPU backend 是 correctness oracle，不因 S22 portable backend 规划被替代。

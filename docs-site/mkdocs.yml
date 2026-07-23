@@ -30,6 +30,68 @@ plugins:
           build: true
           theme:
             language: zh
+          nav_translations:
+            Home: 首页
+            Getting Started: 入门
+            Installation and Environment: 安装与环境
+            Quick Start: 快速开始
+            User Guide: 用户指南
+            Backend Policy: 后端策略
+            Estimator API: Estimator API
+            sklearn Compatibility: sklearn 兼容性
+            Objectives: 目标函数
+            Explanations: 解释工具
+            Model I/O: 模型 I/O
+            Model Families: 模型家族
+            Gradient Boosting: 梯度提升
+            Forests and Trees: 森林与树
+            CatBoost-like: 类 CatBoost
+            Anomaly Detection and Ranking: 异常检测与排序
+            Release: 发布
+            Overview: 概览
+            Roadmap: 路线图
+            Portable Backends: 可移植后端
+            Translation and Internationalization: 翻译与国际化
+            Development: 开发
+            Documentation Site: 文档站
+            Project: 项目
+            README: README
+            Contributing: 贡献指南
+            Changelog: 更新日志
+            Release Audits: 发布审计
+            Known Issues: 已知问题
+            Performance: 性能
+            Agent Skill: Agent Skill
+            Icon Assets: 图标资产
+            Benchmarks: 基准测试
+            S4 M2 Ultra: S4 M2 Ultra
+            S6 M2 Ultra: S6 M2 Ultra
+            Tests: 测试
+            Real-world Tests: 真实世界测试
+            Real-world Report: 真实世界报告
+            Specs: 规格
+            Specs Index: 规格索引
+            Tasks: 任务清单
+            Constitution: 项目宪章
+            Project Tree: 项目树
+            Agent Rules: Agent 规则
+            Legacy Issues: 历史问题
+            V1 PRD: V1 PRD
+            V1 Modules: V1 模块
+            Python API: Python API
+            Data and Quantization: 数据与量化
+            Training Core: 训练核心
+            MPS Backend: MPS 后端
+            Cache: 缓存
+            Quality: 质量
+            Packaging Release: 打包发布
+            V2 Arboretum: V2 Arboretum
+            V2 Multiclass Softmax: V2 多分类 Softmax
+            V3 Real-world Tests: V3 真实世界测试
+            Docs Site PRDs: 文档站 PRD
+            Spec Index: 规格索引
+            MkDocs PRD: MkDocs PRD
+            GitHub Actions PRD: GitHub Actions PRD
   - search:
       lang:
         - en
@@ -62,6 +124,7 @@ nav:
       - Anomaly Detection and Ranking: model-families/anomaly-ranking.md
   - Release:
       - Overview: release/index.md
+      - 1.0.0: release/1.0.0.md
       - 0.5.0: release/0.5.0.md
       - 0.4.0: release/0.4.0.md
       - 0.3.0: release/0.3.0.md
@@ -80,6 +143,7 @@ nav:
       - Contributing: project/CONTRIBUTING.md
       - Changelog: project/CHANGELOG.md
       - Release Audits:
+          - 1.0.0: project/RELEASE_AUDIT_1.0.0.md
           - 0.5.0: project/RELEASE_AUDIT_0.5.0.md
           - 0.4.0: project/RELEASE_AUDIT_0.4.0.md
           - 0.3.0: project/RELEASE_AUDIT_0.3.0.md
@@ -89,8 +153,10 @@ nav:
           - 0.2.0a0: project/RELEASE_AUDIT_0.2.0a0.md
           - 0.1.0a0: project/RELEASE_AUDIT_0.1.0a0.md
       - Known Issues:
+          - 1.0.0: project/KNOWN_ISSUES_1.0.0.md
           - 0.5.0: project/KNOWN_ISSUES_0.5.0.md
       - Performance:
+          - 1.0.0: project/PERFORMANCE_1.0.0.md
           - 0.5.0: project/PERFORMANCE_0.5.0.md
       - Agent Skill: project/mps_boost_skill.md
       - Icon Assets: assets/icons/README.md

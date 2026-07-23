@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.0 - 2026-07-23
+
+- Publish the stable customer-commitment release after the 0.x feature, validation, and hardening
+  line.
+- Freeze the public scope around native CPU/MPS tree estimators, explicit optional backend
+  diagnostics, project-local real-world dataset caches, and customer-facing environment guidance.
+- Add final release, known-issue, and performance reports that distinguish current HEAD evidence
+  from historical pre-v2/v3 benchmark baselines.
+- Keep HIGGS as an explicit large local-file performance-boundary dataset rather than packaging or
+  automatically downloading multi-gigabyte raw data into user environments.
+- Require fresh PyPI install verification and versioned artifact hashes before closing the release
+  audit.
+
 ## 0.5.0 - 2026-07-23
 
 - Harden portable backend behavior so explicit external backend policies warn and continue through

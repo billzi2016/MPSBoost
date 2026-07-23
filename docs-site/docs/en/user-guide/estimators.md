@@ -1,6 +1,6 @@
 # Estimator API
 
-Public `0.5.0` estimators cover gradient boosting, single decision trees, random forests,
+Public `1.0.0` estimators cover gradient boosting, single decision trees, random forests,
 ExtraTrees, CatBoost-like numeric estimators, IsolationForest, and learning-to-rank entries. They
 follow the sklearn-style protocol, so normal training, prediction, scoring, and parameter search
 can use one method set.

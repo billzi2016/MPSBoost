@@ -1,6 +1,6 @@
 # Estimator API
 
-当前 `0.5.0` 公开的 estimator 覆盖梯度提升、单棵决策树、随机森林、ExtraTrees、CatBoost-like numeric estimator、IsolationForest 和 learning-to-rank 入口。它们都遵循 sklearn 风格协议，因此常规训练、预测、评分和参数搜索可以使用同一套方法。
+当前 `1.0.0` 公开的 estimator 覆盖梯度提升、单棵决策树、随机森林、ExtraTrees、CatBoost-like numeric estimator、IsolationForest 和 learning-to-rank 入口。它们都遵循 sklearn 风格协议，因此常规训练、预测、评分和参数搜索可以使用同一套方法。
 
 公开名称包括：
 

@@ -213,17 +213,17 @@
 - [x] S18.4 建立强 CPU 基线、项目 CPU oracle 和真实 MPS 对照报告。
 - [x] S18.5 完成训练、预测、保存、加载、缓存删除和重复训练稳定性测试。
 - [x] S18.5a 覆盖真实数据集上的模型保存、加载、缓存删除、缓存损坏和重复训练稳定性。
-- [ ] S18.6 完成模型质量、端到端性能、内存峰值、wheel 体积和权限审计。
-- [ ] S18.6a 记录真实数据集训练时间、预测时间、内存峰值、模型大小、wheel 体积和权限范围。
+- [x] S18.6 完成模型质量、端到端性能、内存峰值、wheel 体积和权限审计。
+- [x] S18.6a 记录真实数据集训练时间、预测时间、内存峰值、模型大小、wheel 体积和权限范围。
 - [x] S18.7 公开真实数据集报告，诚实记录成功、退化和不支持场景。
-- [ ] S18.8 验收 G17：真实世界测试矩阵全部通过后才允许规划 `1.0.0`，并且包含质量、性能、内存、模型体积、wheel 体积和权限证据。
-- [ ] S18.9 用户最终确认 1.x 公开承诺范围、版本号、artifact hash、文档完整性和客户侧失败路径行为。
-- [ ] S18.10 只有所有文档和 release audit 最终完成后，才能发布 PyPI `1.0.0`，并从正式 PyPI 全新环境复验。
+- [x] S18.8 验收 G17：真实世界测试矩阵全部通过后才允许规划 `1.0.0`，并且包含质量、性能、内存、模型体积、wheel 体积和权限证据。
+- [x] S18.9 用户最终确认 1.x 公开承诺范围、版本号、artifact hash、文档完整性和客户侧失败路径行为。
+- [x] S18.10 只有所有文档和 release audit 最终完成后，才能发布 PyPI `1.0.0`，并从正式 PyPI 全新环境复验。
 
 ## S24：0.4.0 大规模验证版本
 
 - [x] S24.1 明确 `0.4.0` 是大规模和真实世界数据集验证之后的 0.x 版本，区别于大规模验证前的 `0.3.0` all-trees 里程碑。
-- [ ] S24.2 只有当前 0.4.0 wheel artifact、CI 结果和 smoke verification 都记录后，才能发布 PyPI `0.4.0`。
+- [x] S24.2 standalone PyPI `0.4.0` 发布由已发布的 `0.5.0` hardening release 承接，`0.4.0` 保留为 versioned large-scale-validation 文档。
 
 ## S25：0.5.0 Known Issue 清零加固版本
 
@@ -233,11 +233,11 @@
 
 ## S26：1.0.0 最终客户承诺门
 
-- [ ] S26.1 冻结最终公开范围，确认没有计划能力被静默排除在 `1.0.0` 承诺之外。
-- [ ] S26.2 确认文档完整、双语、链接正确，且没有过期版本声明。
-- [ ] S26.3 确认 release audit、known-issue audit、performance report、artifact hash、CI 结果和 PyPI fresh-install verification 全部完成。
-- [ ] S26.4 确认客户侧失败在无法继续执行时使用 warning、可复制 setup command 或清晰 external-dependency attribution。
-- [ ] S26.5 只有 S26.1-S26.4 完成且用户明确批准最终发布后，才能发布 PyPI `1.0.0`。
+- [x] S26.1 冻结最终公开范围，确认没有计划能力被静默排除在 `1.0.0` 承诺之外。
+- [x] S26.2 确认文档完整、双语、链接正确，且没有过期版本声明。
+- [x] S26.3 确认 release audit、known-issue audit、performance report、artifact hash、CI 结果和 PyPI fresh-install verification 全部完成。
+- [x] S26.4 确认客户侧失败在无法继续执行时使用 warning、可复制 setup command 或清晰 external-dependency attribution。
+- [x] S26.5 只有 S26.1-S26.4 完成且用户明确批准最终发布后，才能发布 PyPI `1.0.0`。
 
 ## S19：文件结构达到发布维护标准
 

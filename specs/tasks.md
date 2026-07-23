@@ -213,17 +213,17 @@
 - [x] S18.4 Create strong CPU baseline, project CPU oracle, and real MPS comparison reports.
 - [x] S18.5 Complete training, prediction, save/load, cache deletion, and repeated-training stability tests.
 - [x] S18.5a Cover model save/load, cache deletion, cache corruption, and repeated-training stability on real datasets.
-- [ ] S18.6 Complete model quality, end-to-end performance, peak memory, wheel size, and permission audit.
-- [ ] S18.6a Record real-dataset train time, predict time, peak memory, model size, wheel size, and permission scope.
+- [x] S18.6 Complete model quality, end-to-end performance, peak memory, wheel size, and permission audit.
+- [x] S18.6a Record real-dataset train time, predict time, peak memory, model size, wheel size, and permission scope.
 - [x] S18.7 Publish the real-world dataset report with honest success, degradation, and unsupported scenarios.
-- [ ] S18.8 Accept G17: every real-world test matrix item passes before planning `1.0.0`, including documented quality, performance, memory, model-size, wheel-size, and permission evidence.
-- [ ] S18.9 Obtain final user confirmation for 1.x public commitment scope, version, artifact hashes, documentation completeness, and customer-facing failure-path behavior.
-- [ ] S18.10 Publish PyPI `1.0.0` only after all docs and release audits are final, then reverify from a fresh formal PyPI environment.
+- [x] S18.8 Accept G17: every real-world test matrix item passes before planning `1.0.0`, including documented quality, performance, memory, model-size, wheel-size, and permission evidence.
+- [x] S18.9 Obtain final user confirmation for 1.x public commitment scope, version, artifact hashes, documentation completeness, and customer-facing failure-path behavior.
+- [x] S18.10 Publish PyPI `1.0.0` only after all docs and release audits are final, then reverify from a fresh formal PyPI environment.
 
 ## S24: 0.4.0 Large-Scale Validation Release
 
 - [x] S24.1 Define `0.4.0` as the 0.x release after large-scale and real-world dataset validation, distinct from the pre-large-scale `0.3.0` all-trees milestone.
-- [ ] S24.2 Publish PyPI `0.4.0` only after the current 0.4.0 wheel artifacts, CI results, and smoke verification are recorded.
+- [x] S24.2 Supersede standalone PyPI `0.4.0` publication with the published `0.5.0` hardening release and preserve `0.4.0` as versioned large-scale-validation documentation.
 
 ## S25: 0.5.0 Zero-Known-Issue Hardening Release
 
@@ -233,11 +233,11 @@
 
 ## S26: 1.0.0 Final Customer-Commitment Gate
 
-- [ ] S26.1 Freeze final public scope and confirm no planned feature is being silently excluded from the `1.0.0` promise.
-- [ ] S26.2 Confirm documentation is complete, bilingual, linked, and free of stale version claims.
-- [ ] S26.3 Confirm release audits, known-issue audits, performance reports, artifact hashes, CI results, and PyPI fresh-install verification are complete.
-- [ ] S26.4 Confirm customer-facing failures use warnings, copy-paste setup commands, or clear external-dependency attribution wherever execution cannot continue.
-- [ ] S26.5 Publish PyPI `1.0.0` only after S26.1-S26.4 are complete and the user explicitly approves the final release.
+- [x] S26.1 Freeze final public scope and confirm no planned feature is being silently excluded from the `1.0.0` promise.
+- [x] S26.2 Confirm documentation is complete, bilingual, linked, and free of stale version claims.
+- [x] S26.3 Confirm release audits, known-issue audits, performance reports, artifact hashes, CI results, and PyPI fresh-install verification are complete.
+- [x] S26.4 Confirm customer-facing failures use warnings, copy-paste setup commands, or clear external-dependency attribution wherever execution cannot continue.
+- [x] S26.5 Publish PyPI `1.0.0` only after S26.1-S26.4 are complete and the user explicitly approves the final release.
 
 ## S19: File Structure Reaches Release Maintenance Standard
 

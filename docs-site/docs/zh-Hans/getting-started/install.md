@@ -6,7 +6,7 @@
 python -m pip install mpsboost
 ```
 
-当前 `0.5.0` PyPI wheel 面向 Apple Silicon macOS。CPU 训练可直接使用；MPS 加速需要 Apple Silicon、Metal 和可用的本机环境。
+当前 `1.0.0` PyPI wheel 面向 Apple Silicon macOS。CPU 训练可直接使用；MPS 加速需要 Apple Silicon、Metal 和可用的本机环境。
 
 ## MPS 环境缺失时
 

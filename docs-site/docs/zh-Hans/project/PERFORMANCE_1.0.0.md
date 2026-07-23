@@ -1,0 +1,1 @@
+../../../../docs/PERFORMANCE_1.0.0.zh-Hans.md

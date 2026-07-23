@@ -2,6 +2,14 @@
 
 本项目所有值得记录的变更都会写入本文件。
 
+## 1.0.0 - 2026-07-23
+
+- 发布 stable customer-commitment release，承接 0.x 的功能、验证和加固线。
+- 冻结公开范围：native CPU/MPS tree estimator、显式可选 backend 诊断、项目内真实世界数据 cache，以及客户侧环境提示。
+- 增加最终 release、known-issue 和 performance report，并区分 current HEAD 证据与 v2/v3 前历史 benchmark baseline。
+- HIGGS 保持为显式 large local-file performance-boundary dataset，不把 multi-gigabyte raw data 打包或自动下载进用户环境。
+- 关闭 release audit 前必须完成 fresh PyPI install verification 和 versioned artifact hash 记录。
+
 ## 0.5.0 - 2026-07-23
 
 - 加固 portable backend 行为：用户显式选择 external backend policy 时，adapter warning 后通过 native CPU compatibility path 继续运行，而不是中断 workflow。

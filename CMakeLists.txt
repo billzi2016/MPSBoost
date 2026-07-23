@@ -39,7 +39,7 @@ if(DEFINED SKBUILD_PROJECT_VERSION_FULL)
   # only the base three-part version.
   set(MPSBOOST_VERSION "${SKBUILD_PROJECT_VERSION_FULL}")
 else()
-  set(MPSBOOST_VERSION "0.5.0")
+  set(MPSBOOST_VERSION "1.0.0")
 endif()
 
 configure_file(
