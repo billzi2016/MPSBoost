@@ -42,5 +42,6 @@ Default installs remain lightweight.
 `portable_setup_instructions()` returns copy-paste installation commands without interactive input.
 `choose_portable_backend(...)` records the selected policy and actual backend. The
 `PortableEstimatorAdapter` preserves `fit`, `predict`, `predict_proba`, `score`, `get_params`, and
-`set_params` for the native path, while external adapters stop until their backend mappings are
-validated.
+`set_params` for the native path. When an explicit external policy is selected but the estimator is
+not activated for that external runtime, the adapter warns, records both requested and effective
+backends, and keeps the workflow executable through the native CPU compatibility path.

@@ -4,7 +4,7 @@
 
 > **版本纪律：在 `v3-real-world-tests/prd.md` 的真实世界数据集验收全部完成前，只允许发布 `0.x` 版本。`1.x` 只能作为真实用户稳定承诺，不能仅凭 synthetic benchmark、功能数量或普通 CI 通过发布。**
 
-> **当前发布纪律：`0.3.0` 是大规模验证前的 all-trees 功能里程碑。`0.4.0` 是大规模和真实世界数据集验证之后的版本。`0.5.0` 是 known issue 清零和体验兜底版本。所有计划能力、真实世界矩阵、性能/内存/权限审计、artifact hash、安装/环境 fallback、客户侧失败路径都做到用户不容易卡住之前，不得发布 `1.0.0`。**
+> **当前发布纪律：`0.3.0` 是大规模验证前的 all-trees 功能里程碑。`0.4.0` 是大规模和真实世界数据集验证之后的版本。`0.5.0` 是 known issue 清零和体验兜底版本。所有计划能力、真实世界矩阵、性能/内存/权限审计、artifact hash、安装/环境 fallback、客户侧失败路径、文档页面、release audit、CI run、PyPI artifact 和 fresh-install verification 全部完成并明确关闭前，不得发布 `1.0.0`。**
 
 > **发布节奏：`0.2.0` 正式版完成后，不再为小型内部模块频繁发布 PyPI。下一次公开功能里程碑固定为 `0.3.0`，目标是完成 `v2-arboretum-implementation/prd.md` 中规划的 all trees 主体能力；中间开发只 commit、push 和保留 CI artifact，除非用户明确批准新的预发布。**
 
@@ -216,9 +216,9 @@
 - [ ] S18.6 完成模型质量、端到端性能、内存峰值、wheel 体积和权限审计。
 - [ ] S18.6a 记录真实数据集训练时间、预测时间、内存峰值、模型大小、wheel 体积和权限范围。
 - [x] S18.7 公开真实数据集报告，诚实记录成功、退化和不支持场景。
-- [ ] S18.8 验收 G17：真实世界测试矩阵全部通过，才允许规划 `1.0.0`。
-- [ ] S18.9 用户最终确认 1.x 公开承诺范围、版本号和 artifact 哈希。
-- [ ] S18.10 发布 PyPI `1.0.0` 并从正式 PyPI 全新环境复验。
+- [ ] S18.8 验收 G17：真实世界测试矩阵全部通过后才允许规划 `1.0.0`，并且包含质量、性能、内存、模型体积、wheel 体积和权限证据。
+- [ ] S18.9 用户最终确认 1.x 公开承诺范围、版本号、artifact hash、文档完整性和客户侧失败路径行为。
+- [ ] S18.10 只有所有文档和 release audit 最终完成后，才能发布 PyPI `1.0.0`，并从正式 PyPI 全新环境复验。
 
 ## S24：0.4.0 大规模验证版本
 
@@ -230,6 +230,14 @@
 - [ ] S25.1 把所有已知 runtime、documentation、packaging、environment 和 user-experience issue 分类为已修复、有意延期或当前平台不可能支持。
 - [ ] S25.2 确保缺可选依赖、缺 Metal toolchain、不支持的 Linux/CUDA 环境、适合 CPU 的 workload 都给出可复制 guidance 或 warning，而不是让用户遇到困惑失败。
 - [ ] S25.3 只有没有已知 blocking customer-facing issue 时，才能发布 PyPI `0.5.0`。
+
+## S26：1.0.0 最终客户承诺门
+
+- [ ] S26.1 冻结最终公开范围，确认没有计划能力被静默排除在 `1.0.0` 承诺之外。
+- [ ] S26.2 确认文档完整、双语、链接正确，且没有过期版本声明。
+- [ ] S26.3 确认 release audit、known-issue audit、performance report、artifact hash、CI 结果和 PyPI fresh-install verification 全部完成。
+- [ ] S26.4 确认客户侧失败在无法继续执行时使用 warning、可复制 setup command 或清晰 external-dependency attribution。
+- [ ] S26.5 只有 S26.1-S26.4 完成且用户明确批准最终发布后，才能发布 PyPI `1.0.0`。
 
 ## S19：文件结构达到发布维护标准
 

@@ -1,6 +1,6 @@
 # MPSBoost 中文文档
 
-MPSBoost 是面向 Apple Silicon 的树模型学习库。当前公开版本为 `0.4.0`，包含 native CPU/MPS 后端、sklearn 风格 estimator、多分类 native CPU softmax、随机森林、ExtraTrees、DecisionTree、CatBoost-like numeric estimator、高级回归目标、解释工具、异常检测和排序学习入口、可选 SHAP/portable-backend 诊断，以及真实世界验收报告。
+MPSBoost 是面向 Apple Silicon 的树模型学习库。当前公开版本为 `0.5.0`，包含 native CPU/MPS 后端、sklearn 风格 estimator、多分类 native CPU softmax、随机森林、ExtraTrees、DecisionTree、CatBoost-like numeric estimator、高级回归目标、解释工具、异常检测和排序学习入口、可选 SHAP/portable-backend 诊断、真实世界验收报告，以及客户侧 fallback 加固。
 
 本中文文档站点以根目录 README、规格和发布审计为单一事实源。已有项目文件通过 symlink 接入，避免复制后产生内容漂移。
 
@@ -12,6 +12,6 @@ MPSBoost 是面向 Apple Silicon 的树模型学习库。当前公开版本为 `
 - [Estimator API](user-guide/estimators.md)
 - [模型族](model-families/gradient-boosting.md)
 - [发布总览](release/index.md)
-- [0.4.0 发布](release/0.4.0.md)
-- [0.4.0 发布审计](project/RELEASE_AUDIT_0.4.0.md)
+- [0.5.0 发布](release/0.5.0.md)
+- [0.5.0 发布审计](project/RELEASE_AUDIT_0.5.0.md)
 - [任务清单](specs/tasks.md)

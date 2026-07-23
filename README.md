@@ -12,7 +12,7 @@ MPSBoost is an early-stage gradient boosting project for Apple Silicon. Its curr
 
 Documentation is available at [billzi2016.github.io/MPSBoost](https://billzi2016.github.io/MPSBoost/).
 
-> **Development status:** `0.4.0` is the current 0.x feature milestone. It builds on the v2 arboretum release with sklearn-style classifiers, native CPU multiclass softmax, random forests, ExtraTrees, decision trees, CatBoost-like numeric estimators, advanced regression objectives, feature explanations, CPU-suitable anomaly/ranking estimators, explicit environment guidance, documented backend-selection boundaries, optional SHAP/portable-backend diagnostics, and the S18 real-world acceptance report.
+> **Development status:** `0.5.0` is the current 0.x hardening milestone. It builds on the v2 arboretum and S18 validation releases with sklearn-style classifiers, native CPU multiclass softmax, random forests, ExtraTrees, decision trees, CatBoost-like numeric estimators, advanced regression objectives, feature explanations, CPU-suitable anomaly/ranking estimators, explicit environment guidance, documented backend-selection boundaries, optional SHAP/portable-backend diagnostics, the S18 real-world acceptance report, and user-facing fallback behavior for external backend policies.
 
 ## Project origin
 
@@ -129,7 +129,7 @@ print(mb.planned_estimators())
 mb.require_estimator_supported("CatBoostRegressor")
 ```
 
-The `0.4.0` milestone delivers the v2 arboretum foundation plus explicit optional SHAP and
+The `0.5.0` milestone delivers the v2 arboretum foundation plus explicit optional SHAP and
 portable-backend diagnostics: one shared tree-family registry, unified semantics for
 boosting/bagging/random-split models, honest backend policy, and no placeholder estimator classes.
 
@@ -269,7 +269,7 @@ preserves this regression region alongside larger wins.
 
 ## Release audits
 
-The `0.4.0` release gate includes:
+The `0.5.0` release gate includes:
 
 - CPU, packaging, integration, and real Metal GPU tests on Python 3.10 and 3.13.
 - Wheel content checks excluding specs, tests, caches, and build artifacts.

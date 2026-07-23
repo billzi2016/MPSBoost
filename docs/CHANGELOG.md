@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.0 - 2026-07-23
+
+- Harden portable backend behavior so explicit external backend policies warn and continue through
+  the native CPU compatibility path instead of stopping user workflows.
+- Record both requested and effective portable backend decisions in adapter training summaries.
+- Add versioned release audits and release pages through `0.5.0` while preserving earlier release
+  history.
+- Move long-form project documentation into `docs/` and AI usage guidance into `ai-skills/`,
+  leaving README as the root entry point.
+- Add the 0.5.0 known-issue audit as the handoff gate before any future `1.0.0` commitment.
+
 ## 0.4.0 - 2026-07-23
 
 - Add explicit portable-backend diagnostics, optional `xgboost`, `sklearn`, and `cuda` extras, and observable backend selection summaries.

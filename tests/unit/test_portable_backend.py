@@ -2,6 +2,7 @@
 
 import mpsboost as mb
 import numpy as np
+import pytest
 
 
 def test_optional_dependency_status_reports_copy_paste_commands():
@@ -100,8 +101,8 @@ def test_portable_estimator_adapter_preserves_sklearn_protocol_on_native_cpu():
     assert adapter.training_summary_["portable_backend"]["backend"] == "native_cpu"
 
 
-def test_portable_estimator_adapter_rejects_unvalidated_external_mapping():
-    """External paths should stop clearly until adapter semantics are validated."""
+def test_portable_estimator_adapter_keeps_external_policy_executable():
+    """External paths should warn, record requested backend, and keep native CPU runnable."""
 
     X = np.array([[0.0], [1.0]], dtype=np.float32)
     y = np.array([0.0, 1.0], dtype=np.float32)
@@ -112,9 +113,12 @@ def test_portable_estimator_adapter_rejects_unvalidated_external_mapping():
         platform_system="Linux",
     )
 
-    try:
+    with pytest.warns(RuntimeWarning, match="native CPU compatibility path"):
         adapter.fit(X, y)
-    except RuntimeError as exc:
-        assert "validated backend mapping" in str(exc)
-    else:
-        assert adapter.training_summary_["portable_backend"]["backend"] == "native_cpu"
+
+    assert adapter.predict(X).shape == y.shape
+    assert adapter.training_summary_["portable_backend"]["backend"] == "native_cpu"
+    assert adapter.training_summary_["portable_backend_requested"]["backend"] in {
+        "sklearn_cpu",
+        "xgboost_cpu",
+    }

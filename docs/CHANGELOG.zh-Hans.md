@@ -2,6 +2,14 @@
 
 本项目所有值得记录的变更都会写入本文件。
 
+## 0.5.0 - 2026-07-23
+
+- 加固 portable backend 行为：用户显式选择 external backend policy 时，adapter warning 后通过 native CPU compatibility path 继续运行，而不是中断 workflow。
+- 在 adapter training summary 中同时记录 requested 和 effective portable backend decision。
+- 增加到 `0.5.0` 的版本化 release audit 和 release page，同时保留更早 release history。
+- 将长文档移动到 `docs/`，AI 使用规范移动到 `ai-skills/`，根目录保留 README 作为入口。
+- 增加 0.5.0 known-issue audit，作为未来 `1.0.0` 承诺前的交接门。
+
 ## 0.4.0 - 2026-07-23
 
 - 增加显式 portable-backend 诊断、可选 `xgboost`、`sklearn`、`cuda` extras，以及可观测的 backend selection summary。

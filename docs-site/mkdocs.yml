@@ -62,6 +62,7 @@ nav:
       - Anomaly Detection and Ranking: model-families/anomaly-ranking.md
   - Release:
       - Overview: release/index.md
+      - 0.5.0: release/0.5.0.md
       - 0.4.0: release/0.4.0.md
       - 0.3.0: release/0.3.0.md
       - 0.2.0: release/0.2.0.md
@@ -79,6 +80,7 @@ nav:
       - Contributing: project/CONTRIBUTING.md
       - Changelog: project/CHANGELOG.md
       - Release Audits:
+          - 0.5.0: project/RELEASE_AUDIT_0.5.0.md
           - 0.4.0: project/RELEASE_AUDIT_0.4.0.md
           - 0.3.0: project/RELEASE_AUDIT_0.3.0.md
           - 0.2.0: project/RELEASE_AUDIT_0.2.0.md
@@ -86,6 +88,10 @@ nav:
           - 0.2.0b0: project/RELEASE_AUDIT_0.2.0b0.md
           - 0.2.0a0: project/RELEASE_AUDIT_0.2.0a0.md
           - 0.1.0a0: project/RELEASE_AUDIT_0.1.0a0.md
+      - Known Issues:
+          - 0.5.0: project/KNOWN_ISSUES_0.5.0.md
+      - Performance:
+          - 0.5.0: project/PERFORMANCE_0.5.0.md
       - Agent Skill: project/mps_boost_skill.md
       - Icon Assets: assets/icons/README.md
   - Benchmarks:

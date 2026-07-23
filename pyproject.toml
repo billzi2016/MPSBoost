@@ -7,7 +7,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "mpsboost"
-version = "0.4.0"
+version = "0.5.0"
 description = "Lightweight gradient boosting for Apple Silicon with an MPS/Metal backend"
 readme = "README.md"
 requires-python = ">=3.10"

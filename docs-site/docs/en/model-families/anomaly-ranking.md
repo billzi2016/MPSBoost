@@ -1,6 +1,6 @@
 # Anomaly Detection and Ranking
 
-MPSBoost `0.4.0` includes CPU-suitable anomaly detection and ranking entries.
+MPSBoost `0.5.0` includes CPU-suitable anomaly detection and ranking entries.
 
 ## Isolation Forest
 

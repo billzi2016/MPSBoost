@@ -109,7 +109,9 @@ python -m pip install 'mpsboost[cuda]'
 
 使用 `mb.optional_dependency_status()`、`mb.portable_setup_instructions()` 和 `mb.choose_portable_backend(...)` 提供可复制诊断和可观测 backend summary。外部 adapter 必须报告实际 backend，不得替代 native CPU oracle。
 
-`0.4.0` 是 0.x 收尾功能版本，不是 `1.0.0` 稳定承诺。在完整 S18 矩阵、性能/内存/权限审计、artifact hash 和用户明确最终确认完成前，不要把 MPSBoost 描述成已在所有真实世界数据集、Linux CPU 主机或 CUDA 主机上完成稳定承诺。
+`0.5.0` 是 0.x 加固版本，不是 `1.0.0` 稳定承诺。在完整 S18 矩阵、性能/内存/权限审计、performance report、artifact hash、文档、fresh-install check 和用户明确最终确认完成前，不要把 MPSBoost 描述成已在所有真实世界数据集、Linux CPU 主机或 CUDA 主机上完成稳定承诺。
+
+当显式 portable external backend policy 无法为当前 estimator 激活 external runtime 时，保持 workflow 可运行：发出 warning，使用 native CPU compatibility，并记录 requested/effective backend。sklearn/XGBoost/CUDA runtime failure 归属对应 external dependency stack，不归因于 native MPSBoost CPU/MPS。
 
 ## sklearn model selection
 

@@ -6,7 +6,7 @@
 python -m pip install mpsboost
 ```
 
-The `0.4.0` PyPI wheel targets Apple Silicon macOS. CPU training works directly.
+The `0.5.0` PyPI wheel targets Apple Silicon macOS. CPU training works directly.
 MPS acceleration requires Apple Silicon, Metal, and a usable local environment.
 
 ## When MPS Is Unavailable

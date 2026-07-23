@@ -4,7 +4,7 @@
 
 > **Version discipline: before all real-world dataset acceptance in `v3-real-world-tests/prd.md` is complete, only `0.x` versions may be released. `1.x` is a stable user commitment and must not be released based only on synthetic benchmarks, feature count, or ordinary CI success.**
 
-> **Current release discipline: `0.3.0` is the all-trees feature milestone before large-scale validation. `0.4.0` is the release after large-scale and real-world dataset validation. `0.5.0` is the zero-known-issue hardening release. Do not publish `1.0.0` until every planned feature, real-world matrix, performance/memory/permission audit, artifact hash, installation/environment fallback, and customer-facing failure path is complete enough that users should not get stuck.**
+> **Current release discipline: `0.3.0` is the all-trees feature milestone before large-scale validation. `0.4.0` is the release after large-scale and real-world dataset validation. `0.5.0` is the zero-known-issue hardening release. Do not publish `1.0.0` until every planned feature, real-world matrix, performance/memory/permission audit, artifact hash, installation/environment fallback, customer-facing failure path, documentation page, release audit, CI run, PyPI artifact, and fresh-install verification is complete and explicitly closed.**
 
 > **Release cadence: after the formal `0.2.0` release, do not publish PyPI for small internal modules. The next public feature milestone is fixed as `0.3.0`, targeting the all-trees capability planned in `v2-arboretum-implementation/prd.md`; intermediate development should commit, push, and preserve CI artifacts unless the user explicitly approves another prerelease.**
 
@@ -216,9 +216,9 @@
 - [ ] S18.6 Complete model quality, end-to-end performance, peak memory, wheel size, and permission audit.
 - [ ] S18.6a Record real-dataset train time, predict time, peak memory, model size, wheel size, and permission scope.
 - [x] S18.7 Publish the real-world dataset report with honest success, degradation, and unsupported scenarios.
-- [ ] S18.8 Accept G17: every real-world test matrix item passes before planning `1.0.0`.
-- [ ] S18.9 Obtain final user confirmation for 1.x public commitment scope, version, and artifact hashes.
-- [ ] S18.10 Publish PyPI `1.0.0` and reverify from a fresh formal PyPI environment.
+- [ ] S18.8 Accept G17: every real-world test matrix item passes before planning `1.0.0`, including documented quality, performance, memory, model-size, wheel-size, and permission evidence.
+- [ ] S18.9 Obtain final user confirmation for 1.x public commitment scope, version, artifact hashes, documentation completeness, and customer-facing failure-path behavior.
+- [ ] S18.10 Publish PyPI `1.0.0` only after all docs and release audits are final, then reverify from a fresh formal PyPI environment.
 
 ## S24: 0.4.0 Large-Scale Validation Release
 
@@ -230,6 +230,14 @@
 - [ ] S25.1 Triage every known runtime, documentation, packaging, environment, and user-experience issue into fixed, intentionally deferred, or impossible-under-current-platform categories.
 - [ ] S25.2 Ensure missing optional dependencies, missing Metal toolchain, unsupported Linux/CUDA environments, and CPU-suitable workloads produce copy-paste guidance or warnings instead of confusing failures.
 - [ ] S25.3 Publish PyPI `0.5.0` only when there are no known blocking customer-facing issues.
+
+## S26: 1.0.0 Final Customer-Commitment Gate
+
+- [ ] S26.1 Freeze final public scope and confirm no planned feature is being silently excluded from the `1.0.0` promise.
+- [ ] S26.2 Confirm documentation is complete, bilingual, linked, and free of stale version claims.
+- [ ] S26.3 Confirm release audits, known-issue audits, performance reports, artifact hashes, CI results, and PyPI fresh-install verification are complete.
+- [ ] S26.4 Confirm customer-facing failures use warnings, copy-paste setup commands, or clear external-dependency attribution wherever execution cannot continue.
+- [ ] S26.5 Publish PyPI `1.0.0` only after S26.1-S26.4 are complete and the user explicitly approves the final release.
 
 ## S19: File Structure Reaches Release Maintenance Standard
 

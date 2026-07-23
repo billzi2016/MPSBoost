@@ -135,10 +135,15 @@ Use `mb.optional_dependency_status()`, `mb.portable_setup_instructions()`, and
 `mb.choose_portable_backend(...)` for copy-paste diagnostics and observable backend summaries.
 External adapters must report the actual backend and must not replace the native CPU oracle.
 
-`0.4.0` is a 0.x finishing feature release, not a `1.0.0` stability commitment. Do not present
-MPSBoost as fully stable across every real-world dataset, Linux CPU host, or CUDA host until the
-full S18 matrix, performance/memory/permission audit, artifact hashes, and explicit user
-confirmation are complete.
+`0.5.0` is a 0.x hardening release, not a `1.0.0` stability commitment. Do not present MPSBoost
+as fully stable across every real-world dataset, Linux CPU host, or CUDA host until the full S18
+matrix, performance/memory/permission audit, performance report, artifact hashes, documentation,
+fresh-install checks, and explicit user confirmation are complete.
+
+When an explicit portable external backend policy cannot activate the external runtime for the
+current estimator, keep the workflow executable with a warning and native CPU compatibility. Record
+both requested and effective backends. Attribute sklearn/XGBoost/CUDA runtime failures to that
+external dependency stack, not to native MPSBoost CPU/MPS.
 
 ## sklearn model selection
 

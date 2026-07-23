@@ -1,8 +1,9 @@
 """Portable backend policy and dependency diagnostics.
 
-This module does not train through external libraries. It records the explicit S22 policy:
-native CPU/MPS remains the default MPSBoost implementation, while future portable adapters must be
-observable, optional, and never hidden behind a native backend name.
+This module does not hide external libraries behind native backend names. It records the explicit
+S22 policy: native CPU/MPS remains the default MPSBoost implementation, while portable choices stay
+observable, optional, and executable even when an external runtime is not suitable for the current
+estimator.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from importlib.util import find_spec
 from typing import Any, Literal
+import warnings
 
 PortableBackend = Literal[
     "native_cpu",
@@ -246,19 +248,35 @@ class PortableEstimatorAdapter:
             platform_system=self.platform_system,
             cuda_available=self.cuda_available,
         )
+        requested_decision = decision
         if decision.backend not in {"native_cpu", "native_mps"}:
-            raise RuntimeError(
-                "External portable estimator adapters require validated backend mapping before "
-                f"use. Selected policy: {decision.to_dict()}"
+            message = (
+                f"Portable backend '{decision.backend}' was selected through explicit policy, "
+                "but this estimator is running through the native CPU compatibility path so the "
+                "workflow remains executable. External runtime availability and performance belong "
+                "to the selected optional sklearn/XGBoost/CUDA stack; native MPSBoost CPU remains "
+                "the correctness path."
+            )
+            if decision.install_command:
+                message += f" Verify the external dependency with: {decision.install_command}"
+            warnings.warn(message, RuntimeWarning, stacklevel=2)
+            decision = PortableBackendDecision(
+                mode=decision.mode,
+                backend="native_cpu",
+                reason=message,
+                requires_extra=decision.requires_extra,
+                install_command=decision.install_command,
             )
         if hasattr(self.estimator, "set_params"):
             native_device = "mps" if decision.backend == "native_mps" else "cpu"
             self.estimator.set_params(device=native_device)
         self.estimator.fit(X, y, **fit_params)
         self.estimator_ = self.estimator
+        self.portable_backend_requested_ = requested_decision.to_dict()
         self.portable_backend_decision_ = decision.to_dict()
         self.training_summary_ = {
             "portable_backend": self.portable_backend_decision_,
+            "portable_backend_requested": self.portable_backend_requested_,
             "estimator_summary": getattr(self.estimator, "training_summary_", {}),
         }
         for name in ("classes_", "n_features_in_", "n_estimators_"):

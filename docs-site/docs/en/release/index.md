@@ -12,5 +12,5 @@ being rewritten for newer milestones.
 | `0.2.0` | First formal MPS histogram engine release. |
 | `0.3.0` | All-trees feature milestone before large-scale validation. |
 | `0.4.0` | Large-scale and real-world validation release. |
-| `0.5.0` | Planned zero-known-issue hardening release. |
+| `0.5.0` | Zero-known-blocking-issue hardening release. |
 | `1.0.0` | Planned stable customer-commitment release after all gates are complete. |
